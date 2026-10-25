@@ -1,14 +1,14 @@
 using AIResetRadar.Core;
 namespace AIResetRadar.App.Presentation;
 
-public sealed record QuotaRow(ProviderAccount Account, QuotaSnapshot Snapshot, QuotaWindow Window)
+public sealed record QuotaRow(ProviderAccount Account, QuotaSnapshot Snapshot, QuotaWindow Window, decimal Low = 30, decimal Critical = 10)
 {
-    public bool IsWarning => Window.Capacity() is CapacityState.Low or CapacityState.Critical or CapacityState.Exhausted;
+    public bool IsWarning => Window.Capacity(Low, Critical) is CapacityState.Low or CapacityState.Critical or CapacityState.Exhausted;
     public string UsedText => Window.Used is { } used ? Window.Unit == UsageUnit.Percent ? $"{used:0.#}% used" : $"{used:N0} used" : "Usage unavailable";
     public string LeftText => Window.Unit == UsageUnit.Percent ? Window.RemainingPercent is { } percent ? $"{percent:0.#}% left" : "Left unavailable" :
         Window.Remaining is { } left ? left < 0 ? $"{-left:N0} over" : $"{left:N0} left" : "Limit unavailable";
     public string SourceNote => Snapshot.Health == SourceHealth.Demo ? "Demo data" : Snapshot.Health != SourceHealth.Healthy ? $"{Snapshot.Health}: {Snapshot.Message}" : Snapshot.UsageAllowed == false ? "Provider reports usage is paused" :
-        Window.AllowanceSource == AllowanceProvenance.Manual ? "User-entered allowance · Billing data may lag" : "";
+        Snapshot.Message ?? (Window.AllowanceSource == AllowanceProvenance.Manual ? "User-entered allowance · Billing data may lag" : "");
 }
 
 public sealed record HorizonEvent(string AccountId, string Title, string Detail, DateTimeOffset At, bool IsExpiry);
@@ -19,12 +19,13 @@ public sealed class DashboardState
     public Dictionary<string, QuotaSnapshot> Snapshots { get; } = [];
     public bool IsDemo { get; private set; }
     public string Sort { get; set; } = "Next reset";
+    public RadarSettings Settings { get; set; } = new();
     public IEnumerable<QuotaRow> Rows
     {
         get
         {
             var rows = Accounts.Where(a => a.Enabled && Snapshots.ContainsKey(a.Id))
-                .SelectMany(a => Snapshots[a.Id].Windows.Select(w => new QuotaRow(a, Snapshots[a.Id], w)));
+                .SelectMany(a => Snapshots[a.Id].Windows.Select(w => { var rule = Settings.RuleFor(a.Id, w.Id); return new QuotaRow(a, Snapshots[a.Id], w, rule.LowThreshold!.Value, rule.CriticalThreshold!.Value); }));
             return Sort switch { "Least remaining" => rows.OrderBy(r => r.Window.RemainingPercent ?? decimal.MaxValue),
                 "Account" => rows.OrderBy(r => r.Account.Provider).ThenBy(r => r.Account.Nickname),
                 _ => rows.OrderBy(r => r.Window.ResetsAt ?? DateTimeOffset.MaxValue) };

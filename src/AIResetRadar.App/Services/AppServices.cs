@@ -7,7 +7,7 @@ public sealed class AppServices
     public string DirectoryPath { get; }
     public LocalStore Store { get; }
     public AccountMonitor Monitor { get; }
-    readonly HttpClient http = new() { Timeout = TimeSpan.FromSeconds(35) };
+    readonly HttpClient http = new(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(35) };
     AppServices()
     {
         DirectoryPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AIResetRadar");

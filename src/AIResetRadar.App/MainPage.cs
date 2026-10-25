@@ -28,20 +28,24 @@ public sealed partial class MainPage : ContentPage
     }
     void Render()
     {
+        state.Settings = preferences;
         body.Children.Clear();
         rowViews.Clear();
         freshness.Text = state.IsDemo ? "DEMO DATA · No live accounts connected" : state.Snapshots.Count == 0 ? "Connect an account to start monitoring" : $"Updated {state.Snapshots.Values.Max(s => s.ObservedAt).ToLocalTime():h:mm tt} · {DateTimeOffset.Now:ddd, MMM d, yyyy}";
+        if (retiredCredentials.Count > 0) freshness.Text += " · Previous sign-in cleanup pending";
         var heading = new Grid { ColumnDefinitions = [new(GridLength.Star), new(GridLength.Auto)], ColumnSpacing = 20 };
         heading.Add(new VerticalStackLayout { Spacing = 5, Children = { new Label { Text = "Reset Horizon", FontSize = 28, FontFamily = "Segoe UI Semibold" },
             new Label { Text = "Upcoming quota resets and credit expirations across your accounts.", TextColor = Color.FromArgb("#B6B8C8"), FontSize = 15 } }});
         var reserves = state.Accounts.Where(a => a.Enabled && state.Snapshots.ContainsKey(a.Id)).Select(a => state.Snapshots[a.Id].Reserve).Where(r => r?.AvailableCount != null).ToArray();
         var next = reserves.Select(r => r!.EarliestExpiry(DateTimeOffset.Now)).Where(d => d != null).Min();
-        var reserve = MakeButton(reserves.Length == 0 ? "Available resets · Not reported" : $"{reserves.Sum(r => r!.AvailableCount)} Codex resets available", "\uE8B7"); reserve.Clicked += async (_, _) => await OpenReserveAsync();
-        heading.Add(new VerticalStackLayout { Spacing = 5, Padding = new Thickness(0, 0, 0, 3), Children = { reserve, new Label { Text = next is { } expiry ? $"Earliest known expiry {expiry.ToLocalTime():MMM d · h:mm tt}" : "Expiry details may be unavailable", FontSize = 12, TextColor = Color.FromArgb("#B6B8C8"), HorizontalTextAlignment = TextAlignment.End } }}, 1);
+        var unconfirmedExpiry = reserves.Any(r => r!.Credits?.Any(c => c.Status == "available" && c.ExpiresAt <= DateTimeOffset.UtcNow) == true);
+        var staleReserve = state.Accounts.Where(a => a.Enabled && a.Provider == "OpenAI").Any(a => !state.Snapshots.TryGetValue(a.Id, out var snapshot) || snapshot.Health is not (AIResetRadar.Core.SourceHealth.Healthy or AIResetRadar.Core.SourceHealth.Demo) || snapshot.Reserve?.AvailableCount is null);
+        var reserve = MakeButton(reserves.Length == 0 ? "Available resets · Not reported" : $"{reserves.Sum(r => r!.AvailableCount)} Codex resets {(unconfirmedExpiry || staleReserve ? "last reported" : "available")}", "\uE8B7"); reserve.Clicked += async (_, _) => await OpenReserveAsync();
+        heading.Add(new VerticalStackLayout { Spacing = 5, Padding = new Thickness(0, 0, 0, 3), Children = { reserve, new Label { Text = unconfirmedExpiry ? "Expiry reached · Awaiting provider confirmation" : next is { } expiry ? $"Earliest known expiry {expiry.ToLocalTime():MMM d · h:mm tt}" : "Expiry details may be unavailable", FontSize = 12, TextColor = Color.FromArgb("#B6B8C8"), HorizontalTextAlignment = TextAlignment.End } }}, 1);
         body.Children.Add(heading); body.Children.Add(new HorizonView(state.Events(DateTimeOffset.Now), id => OpenAccount(id)));
         var toolbar = new Grid { ColumnDefinitions = [new(GridLength.Star), new(GridLength.Auto), new(GridLength.Auto)], ColumnSpacing = 12 };
         toolbar.Add(new Label { Text = "Accounts", FontSize = 24, FontFamily = "Segoe UI Semibold", VerticalOptions = LayoutOptions.Center });
-        var add = MakeButton(state.IsDemo ? "Exit demo" : "Add account", "\uE710"); add.Clicked += async (_, _) => { if (state.IsDemo) { state.ClearDemo(); Render(); } else await AddAccountAsync(); };
+        var add = MakeButton(state.IsDemo ? "Exit demo" : "Add account", "\uE710"); add.Clicked += async (_, _) => { if (state.IsDemo) { state.ClearDemo(); initialized = false; await InitializeAsync(); } else await AddAccountAsync(); };
         var sort = new Picker { WidthRequest = 180, ItemsSource = new[] { "Next reset", "Least remaining", "Account" }, TextColor = Colors.White, BackgroundColor = Color.FromArgb("#232429"), SelectedItem = state.Sort };
         SemanticProperties.SetDescription(sort, "Sort accounts by next reset, least remaining, or account");
         sort.SelectedIndexChanged += (_, _) => { if (sort.SelectedItem is string value && value != state.Sort) { state.Sort = value; Render(); } };
@@ -55,7 +59,7 @@ public sealed partial class MainPage : ContentPage
         }
         foreach (var row in state.Rows)
         {
-            var view = new QuotaRowView(row, async r => await OpenDetailsAsync(r), preferences.LowThreshold, preferences.CriticalThreshold);
+            var view = new QuotaRowView(row, async r => await OpenDetailsAsync(r));
             rowViews.Add(view); body.Children.Add(view);
         }
         foreach (var account in state.Accounts.Where(a => !a.Enabled || !state.Snapshots.TryGetValue(a.Id, out var snapshot) || snapshot.Windows.Count == 0))
@@ -65,5 +69,9 @@ public sealed partial class MainPage : ContentPage
             accountStatus.Clicked += async (_, _) => await OpenSettingsAsync(); body.Children.Add(accountStatus);
         }
     }
-    static Button MakeButton(string text, string glyph) => new() { Text = text, ContentLayout = new Button.ButtonContentLayout(Button.ButtonContentLayout.ImagePosition.Left, 9), ImageSource = new FontImageSource { FontFamily = "Segoe Fluent Icons", Glyph = glyph, Color = Color.FromArgb("#B5A0F4"), Size = 20 } };
+    static Button MakeButton(string text, string glyph) => new() { Text = text, ContentLayout = new Button.ButtonContentLayout(Button.ButtonContentLayout.ImagePosition.Left, 9), ImageSource = glyph switch
+    {
+        "\uE72C" => ImageSource.FromFile("refresh.png"), "\uE713" => ImageSource.FromFile("settings.png"),
+        _ => new FontImageSource { FontFamily = "Segoe Fluent Icons", Glyph = glyph, Color = Color.FromArgb("#B5A0F4"), Size = 20 }
+    } };
 }

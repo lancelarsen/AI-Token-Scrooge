@@ -6,6 +6,7 @@ public sealed class HorizonView : Border
     readonly HorizonEvent[] events;
     readonly Grid grid = new() { ColumnSpacing = 20, RowSpacing = 8 };
     readonly ScrollView viewport = new() { Orientation = ScrollOrientation.Horizontal, HeightRequest = 132, HorizontalScrollBarVisibility = ScrollBarVisibility.Always };
+    double renderedWidth = double.NaN;
     public HorizonView(IEnumerable<HorizonEvent> source, Action<string> open)
     {
         events = source.ToArray(); BackgroundColor = Color.FromArgb("#202229"); StrokeThickness = 0;
@@ -15,6 +16,8 @@ public sealed class HorizonView : Border
     }
     void Render(Action<string> open)
     {
+        if (Math.Abs(renderedWidth - Width) < 1) return;
+        renderedWidth = Width;
         grid.Children.Clear(); grid.ColumnDefinitions.Clear(); grid.RowDefinitions.Clear();
         if (events.Length == 0) { grid.Children.Add(new Label { Text = "Upcoming resets and earned-credit expirations will appear here.", TextColor = Color.FromArgb("#B6B8C8") }); return; }
         var columns = events.Length;

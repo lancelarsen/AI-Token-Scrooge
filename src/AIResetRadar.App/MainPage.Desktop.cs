@@ -14,6 +14,7 @@ public sealed partial class MainPage
     readonly Dictionary<string, DateTimeOffset> snoozed = [];
     readonly Dictionary<string, DateTimeOffset> nextRefresh = [];
     IDispatcherTimer? timer;
+    System.Net.NetworkInformation.NetworkAvailabilityChangedEventHandler? networkChanged;
 
     public void AttachWindow(Window window, Microsoft.UI.Xaml.Window native)
     {
@@ -28,19 +29,22 @@ public sealed partial class MainPage
             tray.Exit += () => { exiting = true; if (quickWindow is not null) Application.Current!.CloseWindow(quickWindow); Application.Current!.CloseWindow(window); };
         }
         catch { freshness.Text = "Tray is unavailable; keep the window open to monitor."; }
-        NotificationService.Current.Invoked += async (action, account) =>
+        NotificationService.Current.Invoked += async (action, account, quotaWindow) =>
         {
             if (action == "snooze") { snoozed[account] = DateTimeOffset.UtcNow.AddHours(1); await AppServices.Current.Store.WriteAsync("snoozed", snoozed); }
-            else { ShowMain(); OpenAccount(account); }
+            else { ShowMain(); OpenAccount(account, quotaWindow); }
         };
         native.AppWindow.Closing += (_, args) =>
         {
             if (!exiting && preferences.CloseToTray && tray is not null) { args.Cancel = true; native.AppWindow.Hide(); return; }
-            timer?.Stop(); tray?.Dispose(); NotificationService.Current.Dispose();
+            timer?.Stop(); if (networkChanged is not null) System.Net.NetworkInformation.NetworkChange.NetworkAvailabilityChanged -= networkChanged;
+            tray?.Dispose(); NotificationService.Current.Dispose();
         };
         timer = Dispatcher.CreateTimer(); timer.Interval = TimeSpan.FromSeconds(30);
         timer.Tick += async (_, _) => { foreach (var row in rowViews) row.UpdateClock(DateTimeOffset.Now); if (!state.IsDemo) await RefreshAsync(false); else UpdateTray(); };
         timer.Start();
+        networkChanged = (_, args) => { if (args.IsAvailable) Dispatcher.Dispatch(async () => { nextRefresh.Clear(); if (!state.IsDemo) await RefreshAsync(); }); };
+        System.Net.NetworkInformation.NetworkChange.NetworkAvailabilityChanged += networkChanged;
         window.Resumed += async (_, _) => { nextRefresh.Clear(); if (!state.IsDemo) await RefreshAsync(); };
         if (Environment.GetCommandLineArgs().Contains("--tray")) native.DispatcherQueue.TryEnqueue(() => native.AppWindow.Hide());
         UpdateTray();
@@ -70,7 +74,7 @@ public sealed partial class MainPage
         var rows = state.Rows.ToArray();
         var limiting = rows.OrderBy(r => r.Window.RemainingPercent ?? decimal.MaxValue).FirstOrDefault();
         var unknown = state.Accounts.Count == 0 || state.Accounts.Where(a => a.Enabled).Any(a => !state.Snapshots.TryGetValue(a.Id, out var s) || s.Health != SourceHealth.Healthy && s.Health != SourceHealth.Demo) || rows.Any(r => r.Window.RemainingPercent is null);
-        var warning = rows.Any(r => r.Window.Capacity(preferences.LowThreshold, preferences.CriticalThreshold) is CapacityState.Low or CapacityState.Critical);
+        var warning = rows.Any(r => r.Window.Capacity(r.Low, r.Critical) is CapacityState.Low or CapacityState.Critical);
         var exhausted = rows.Any(r => r.Window.Capacity() == CapacityState.Exhausted);
         var text = limiting is null ? "AI Reset Radar · No usage data" : $"Radar · {limiting.Account.Nickname} / {limiting.Window.Name}: {limiting.LeftText}";
         if (unknown) text += " · Some data unavailable"; if (state.IsDemo) text = "DEMO · " + text;
@@ -79,12 +83,21 @@ public sealed partial class MainPage
     async Task EvaluateAlertsAsync(ProviderAccount account, QuotaSnapshot? previous, QuotaSnapshot current)
     {
         var now = DateTimeOffset.UtcNow;
+        var lease = new AccountRefreshLease(account);
+        bool Current() => lease.IsCurrent(state.Accounts.FirstOrDefault(a => a.Id == account.Id));
         foreach (var alert in AlertEvaluator.Evaluate(account, previous, current, preferences, now))
         {
+            if (!Current()) return;
             if (alertHistory.Any(e => e.Key == alert.Key)) continue;
+            // Persist intent before Windows delivery so a restart cannot replay the same logical event.
+            var index = alertHistory.Count;
+            alertHistory.Add(alert);
+            await AppServices.Current.Store.WriteAsync("alerts", alertHistory.ToArray());
+            if (!Current()) return;
             var canDeliver = preferences.Notifications && !AlertEvaluator.IsQuiet(preferences, now, TimeZoneInfo.Local) && (!snoozed.TryGetValue(account.Id, out var until) || until <= now);
             var sent = canDeliver && NotificationService.Current.Show(alert, preferences);
-            alertHistory.Add(alert with { Delivered = sent });
+            index = alertHistory.FindIndex(e => e.Key == alert.Key);
+            if (index >= 0) alertHistory[index] = alert with { Delivered = sent };
             if (canDeliver) ShowBanner(alert);
         }
         alertHistory.RemoveAll(e => e.CreatedAt < now.AddDays(-30));

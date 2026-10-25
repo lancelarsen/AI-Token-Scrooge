@@ -10,10 +10,11 @@ public sealed class QuotaRowView : Border
     readonly View reset;
     readonly Label countdown;
     readonly DateTimeOffset? resetsAt;
+    bool? wideLayout;
     public void UpdateClock(DateTimeOffset now) => countdown.Text = ResetTime.Countdown(resetsAt, now);
-    public QuotaRowView(QuotaRow row, Action<QuotaRow> open, decimal low = 30, decimal critical = 10)
+    public QuotaRowView(QuotaRow row, Action<QuotaRow> open)
     {
-        var warning = row.Window.Capacity(low, critical) is CapacityState.Low or CapacityState.Critical or CapacityState.Exhausted;
+        var warning = row.IsWarning;
         resetsAt = row.Window.ResetsAt;
         Stroke = Color.FromArgb("#383B46"); BackgroundColor = Color.FromArgb("#1C1E24");
         StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 13 };
@@ -47,7 +48,6 @@ public sealed class QuotaRowView : Border
             }}
         }};
         root.Add(layout, 1); Content = root;
-        var tap = new TapGestureRecognizer(); tap.Tapped += (_, _) => open(row); GestureRecognizers.Add(tap);
         // Native button is transparent, keyboard-focusable and exposes the complete row to Narrator.
         var details = new Button { Text = "", BackgroundColor = Colors.Transparent, BorderWidth = 0, HeightRequest = -1, HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Fill };
         SemanticProperties.SetDescription(details, $"{row.Account.Provider}, {row.Account.Nickname}, {row.Window.Name}, {row.UsedText}, {row.LeftText}. Open details.");
@@ -57,9 +57,13 @@ public sealed class QuotaRowView : Border
 
     void Reflow()
     {
+        var wide = Width > 1050;
+        // Height changes are a result of reflow, not a reason to rebuild the same tree again.
+        if (wideLayout == wide) return;
+        wideLayout = wide;
         layout.Children.Clear(); layout.ColumnDefinitions.Clear(); layout.RowDefinitions.Clear();
         Grid.SetColumnSpan(bar, 1);
-        if (Width > 1050)
+        if (wide)
         {
             layout.ColumnDefinitions = [new(new GridLength(320)), new(GridLength.Star), new(new GridLength(235))];
             layout.Add(identity); layout.Add(bar, 1); layout.Add(reset, 2);

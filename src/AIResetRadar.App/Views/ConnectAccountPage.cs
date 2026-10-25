@@ -17,12 +17,23 @@ public sealed class ConnectAccountPage : ContentPage
     readonly bool codex;
     readonly Func<ProviderAccount, QuotaSnapshot, Task> connected;
     CodexConnection? connection;
-    readonly string id = Guid.NewGuid().ToString("N");
+    readonly string id;
+    readonly string credentialId = Guid.NewGuid().ToString("N");
+    readonly ProviderAccount? reconnect;
     string? loginId;
     bool signingIn;
+    bool committed, committing;
+    ProviderAccount? pendingAccount;
 
-    public ConnectAccountPage(bool codex, Func<ProviderAccount, QuotaSnapshot, Task> connected)
+    public ConnectAccountPage(bool codex, Func<ProviderAccount, QuotaSnapshot, Task> connected, ProviderAccount? reconnect = null)
     {
+        this.reconnect = reconnect; id = reconnect?.Id ?? Guid.NewGuid().ToString("N");
+        if (reconnect is not null)
+        {
+            nickname.Text = reconnect.Nickname; allowance.Text = reconnect.Allowance?.ToString();
+            organization.Text = reconnect.Scope.StartsWith("organization:") ? reconnect.Scope[13..] : ""; organization.IsReadOnly = true;
+            unit.SelectedIndex = reconnect.Unit == UsageUnit.Requests ? 1 : 0; unit.IsEnabled = false;
+        }
         this.codex = codex; this.connected = connected; Title = codex ? "Connect OpenAI Codex" : "Connect GitHub Copilot";
         BackgroundColor = Color.FromArgb("#141519");
         var cancel = new Button { Text = "Cancel" }; cancel.Clicked += async (_, _) => await CloseAsync();
@@ -47,7 +58,8 @@ public sealed class ConnectAccountPage : ContentPage
             if (codex)
             {
                 if (signingIn) { await FinishCodexAsync(); return; }
-                connection = await AppServices.Current.Monitor.OpenCodexAsync(id, lifetime.Token);
+                if (connection is not null) { await connection.DisposeAsync(); connection = null; }
+                connection = await AppServices.Current.Monitor.OpenCodexAsync(credentialId, lifetime.Token);
                 connection.Notification += notification =>
                 {
                     if (ProviderMapping.Text(notification, "method") == "account/login/completed")
@@ -64,6 +76,7 @@ public sealed class ConnectAccountPage : ContentPage
             }
             else
             {
+                if (pendingAccount is not null) { await AppServices.Current.Monitor.DisconnectAsync(pendingAccount); pendingAccount = null; }
                 if (string.IsNullOrWhiteSpace(token.Text)) { status.Text = "Enter a GitHub token. Do not paste it into chat."; return; }
                 decimal? limit = null;
                 if (!string.IsNullOrWhiteSpace(allowance.Text))
@@ -73,12 +86,14 @@ public sealed class ConnectAccountPage : ContentPage
                 }
                 status.Text = "Checking GitHub identity and billing access…";
                 var result = await AppServices.Current.Monitor.ConnectGitHubAsync(nickname.Text.Trim(), token.Text.Trim(), limit,
-                    unit.SelectedIndex == 1 ? UsageUnit.Requests : UsageUnit.Credits, organization.Text, lifetime.Token);
-                token.Text = ""; await connected(result.Account, result.Snapshot); await CloseAsync();
+                    unit.SelectedIndex == 1 ? UsageUnit.Requests : UsageUnit.Credits, organization.Text, lifetime.Token, reconnect);
+                pendingAccount = result.Account; token.Text = "";
+                if (lifetime.IsCancellationRequested) { await AppServices.Current.Monitor.DisconnectAsync(result.Account); pendingAccount = null; return; }
+                committing = true; await connected(result.Account, result.Snapshot); committed = true; committing = false; await CloseAsync();
             }
         }
         catch (Exception error) { status.Text = SafeMessage(error); }
-        finally { connect.IsEnabled = true; }
+        finally { committing = false; connect.IsEnabled = true; }
     }
     bool finishing;
     async Task FinishCodexAsync()
@@ -86,21 +101,42 @@ public sealed class ConnectAccountPage : ContentPage
         if (connection is null || finishing) return; finishing = true;
         try
         {
-            var result = await AppServices.Current.Monitor.CompleteCodexAsync(connection, id, nickname.Text.Trim(), lifetime.Token);
-            await connected(result.Account, result.Snapshot); await CloseAsync();
+            var result = await AppServices.Current.Monitor.CompleteCodexAsync(connection, id, nickname.Text.Trim(), lifetime.Token, credentialId);
+            var accepted = reconnect is null ? result.Account : ReconnectPolicy.Accept(reconnect, result.Account);
+            lifetime.Token.ThrowIfCancellationRequested();
+            committing = true; await connected(accepted, result.Snapshot); committed = true; committing = false; await CloseAsync();
         }
         catch (Exception error) { status.Text = SafeMessage(error); }
-        finally { finishing = false; }
+        finally { committing = false; finishing = false; }
+    }
+    bool closing;
+    Task? cleanup;
+    protected override bool OnBackButtonPressed() { _ = CloseAsync(); return true; }
+    protected override void OnHandlerChanging(HandlerChangingEventArgs args)
+    {
+        if (args.NewHandler is null) _ = CleanupAsync();
+        base.OnHandlerChanging(args);
     }
     async Task CloseAsync()
+    {
+        if (closing || committing) return; closing = true;
+        await CleanupAsync();
+        await Navigation.PopModalAsync();
+    }
+    Task CleanupAsync() => cleanup ??= CleanupCoreAsync();
+    async Task CleanupCoreAsync()
     {
         await lifetime.CancelAsync(); token.Text = "";
         if (connection is not null)
         {
-            try { if (loginId is not null) await connection.CallAsync("account/login/cancel", new { loginId }); } catch { }
-            await connection.DisposeAsync(); connection = null;
+            var owned = connection; connection = null;
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+            try { if (loginId is not null) await owned.CallAsync("account/login/cancel", new { loginId }, timeout.Token); } catch { }
+            if (!committed) { try { await owned.CallAsync("account/logout", ct: timeout.Token); } catch { } }
+            await owned.DisposeAsync();
         }
-        await Navigation.PopModalAsync();
+        if (!committed && pendingAccount is not null)
+        { try { await AppServices.Current.Monitor.DisconnectAsync(pendingAccount); } catch { } pendingAccount = null; }
     }
     public static string SafeMessage(Exception error) => error switch {
         ProviderAccessException or InvalidDataException or FileNotFoundException => error.Message,

@@ -15,7 +15,7 @@ public sealed partial class MainPage
         var actions = new HorizontalStackLayout { Spacing = 8 };
         var view = new Button { Text = "View account", BackgroundColor = Color.FromArgb("#7169CA") };
         var snooze = new Button { Text = "Snooze 1 hour" }; var dismiss = new Button { Text = "Dismiss" };
-        view.Clicked += (_, _) => { OpenAccount(alert.AccountId); Dismiss(); };
+        view.Clicked += (_, _) => { OpenAccount(alert.AccountId, alert.WindowId); Dismiss(); };
         snooze.Clicked += async (_, _) => { snoozed[alert.AccountId] = DateTimeOffset.UtcNow.AddHours(1); await AppServices.Current.Store.WriteAsync("snoozed", snoozed); Dismiss(); };
         dismiss.Clicked += (_, _) => Dismiss(); actions.Children.Add(view); actions.Children.Add(snooze); actions.Children.Add(dismiss); detail.Children.Add(actions);
         banner = new Border { Padding = 18, Content = detail, Stroke = Color.FromArgb("#55515F"), BackgroundColor = Color.FromArgb("#222329"),
@@ -34,7 +34,7 @@ public sealed partial class MainPage
         foreach (var alert in alertHistory.OrderByDescending(a => a.CreatedAt))
         {
             var item = new Button { Text = $"{alert.CreatedAt.ToLocalTime():MMM d, h:mm tt} · {alert.Title}\n{alert.Detail}\n{(alert.Delivered ? "Sent to Windows" : "Recorded in history")}", HeightRequest = -1, MinimumHeightRequest = 80 };
-            item.Clicked += (_, _) => OpenAccount(alert.AccountId); content.Children.Add(item);
+            item.Clicked += (_, _) => OpenAccount(alert.AccountId, alert.WindowId); content.Children.Add(item);
         }
         var back = new Button { Text = "Close" }; back.Clicked += async (_, _) => await Navigation.PopModalAsync(); content.Children.Add(back);
         page.Content = new ScrollView { Content = content }; await Navigation.PushModalAsync(page);
