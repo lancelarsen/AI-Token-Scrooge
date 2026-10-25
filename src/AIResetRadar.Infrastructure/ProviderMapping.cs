@@ -23,7 +23,7 @@ public static class ProviderMapping
             if (credits.TryGetProperty("credits", out var list) && list.ValueKind == JsonValueKind.Array)
                 details = list.EnumerateArray().Select(c => new ResetCredit(Text(c, "id") ?? throw new InvalidDataException("Reset credit identity missing."),
                     Text(c, "status") ?? "unknown", Timestamp(c, "expiresAt"), Text(c, "title"))).DistinctBy(c => c.Id).ToArray();
-            reserve = new((int?)Number(credits, "availableCount"), details);
+            reserve = new(Integer(credits, "availableCount"), details);
         }
         var message = scope is null ? "Workspace identity unavailable from provider" : null;
         if (response.TryGetProperty("ordinaryUsageAllowed", out var allowed) && allowed.ValueKind == JsonValueKind.False)
@@ -34,10 +34,12 @@ public static class ProviderMapping
 
         void AddBucket(string id, JsonElement bucket)
         {
+            if (bucket.ValueKind != JsonValueKind.Object) return;
             foreach (var key in new[] { "primary", "secondary" })
             {
                 if (!bucket.TryGetProperty(key, out var window) || window.ValueKind != JsonValueKind.Object) continue;
-                var minutes = (int?)Number(window, "windowDurationMins");
+                var minutes = Integer(window, "windowDurationMins");
+                if (minutes == 0) minutes = null;
                 var duration = minutes switch { 300 => "5-hour", 10080 => "Weekly", > 0 => $"{minutes} min", _ => key };
                 var name = Text(bucket, "limitName") ?? (id == "codex" ? "Codex" : id);
                 windows.Add(new($"{id}/{key}", $"{name} · {duration}", UsageUnit.Percent, Number(window, "usedPercent"),
@@ -50,29 +52,36 @@ public static class ProviderMapping
     {
         if (!response.TryGetProperty("usageItems", out var items) || items.ValueKind != JsonValueKind.Array)
             throw new InvalidDataException("Billing response did not include usage data.");
-        decimal used = 0;
+        decimal? used = 0;
+        bool matched = false, unknownUnits = false;
         foreach (var item in items.EnumerateArray())
         {
             var unit = Text(item, "unitType");
             var selected = account.Unit == UsageUnit.Requests ? unit == "requests" : unit is "credits" or "ai-credits";
-            if (selected) used += Number(item, "grossQuantity") ?? throw new InvalidDataException("Billing quantity unavailable.");
+            if (unit is not ("requests" or "credits" or "ai-credits")) unknownUnits = true;
+            if (selected)
+            {
+                var quantity = Number(item, "grossQuantity");
+                if (quantity is not >= 0) throw new InvalidDataException("Billing quantity is unavailable or invalid.");
+                used += quantity; matched = true;
+            }
         }
+        if (unknownUnits || items.GetArrayLength() > 0 && !matched) used = null;
         var utc = observed.UtcDateTime;
         var reset = new DateTimeOffset(new DateTime(utc.Year, utc.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(1));
         var label = account.Unit == UsageUnit.Requests ? "Premium requests · Monthly" : "AI credits · Monthly";
         return new(account.Id, account.Subject, account.Scope, observed,
             [new("copilot/monthly", label, account.Unit, used, account.Allowance, reset, null,
                 account.Allowance.HasValue ? AllowanceProvenance.Manual : AllowanceProvenance.Unknown)], null,
-            Message: "Billing reports may lag; allowance is user-entered when supplied.");
+            Message: used is null ? "The report did not establish usage in the selected unit. Capacity is unavailable." : "Billing reports may lag; allowance is user-entered when supplied.");
     }
 
     public static string? Text(JsonElement element, string key) => element.TryGetProperty(key, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
     static decimal? Number(JsonElement element, string key) => element.TryGetProperty(key, out var value) && value.ValueKind == JsonValueKind.Number && value.TryGetDecimal(out var number) ? number : null;
+    static int? Integer(JsonElement element, string key) => Number(element, key) is { } number && number >= 0 && number <= int.MaxValue && decimal.Truncate(number) == number ? (int)number : null;
     static DateTimeOffset? Timestamp(JsonElement element, string key)
     {
         var seconds = Number(element, key);
-        if (seconds is null) return null;
-        try { return DateTimeOffset.FromUnixTimeSeconds((long)seconds.Value); }
-        catch (ArgumentOutOfRangeException) { return null; }
+        return seconds is >= -62135596800 and <= 253402300799 && decimal.Truncate(seconds.Value) == seconds ? DateTimeOffset.FromUnixTimeSeconds((long)seconds.Value) : null;
     }
 }

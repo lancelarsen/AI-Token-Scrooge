@@ -56,4 +56,46 @@ public class ProviderMappingTests
         Assert.Equal(1800, result.Windows[0].Remaining);
         Assert.Equal(AllowanceProvenance.Manual, result.Windows[0].AllowanceSource);
     }
+
+    [Fact] public void CodexNullExpiryAndDuplicateDetailsDoNotInventAReserve()
+    {
+        var result = ProviderMapping.Codex(Account, Json("""
+        {"rateLimitsByLimitId":{"future_bucket":null},"rateLimitResetCredits":{"availableCount":3,"credits":[
+        {"id":"x","status":"available","expiresAt":null},{"id":"x","status":"available","expiresAt":null}]}}
+        """), Now);
+        Assert.Empty(result.Windows);
+        Assert.Equal(3, result.Reserve!.AvailableCount);
+        Assert.Single(result.Reserve.Credits!);
+        Assert.True(result.Reserve.HasPartialDetails);
+        Assert.Null(result.Reserve.EarliestExpiry(Now));
+    }
+
+    [Fact] public void CopilotDecemberPeriodResetsInJanuaryUtc()
+    {
+        var result = ProviderMapping.GitHub(Account, Json("""{"usageItems":[]}"""), DateTimeOffset.Parse("2026-12-31T23:59:00Z"));
+        Assert.Equal(DateTimeOffset.Parse("2027-01-01T00:00:00Z"), result.Windows[0].ResetsAt);
+    }
+
+    [Fact] public void CopilotUnrecognizedUnitsCannotMeanZeroUsage()
+    {
+        var result = ProviderMapping.GitHub(Account with { Allowance = 100 }, Json("""{"usageItems":[{"unitType":"future-units","grossQuantity":80}]}"""), Now);
+        Assert.Null(result.Windows[0].Used);
+        Assert.Null(result.Windows[0].RemainingPercent);
+    }
+
+    [Fact] public void CopilotRejectsIncompleteSelectedQuantities()
+    {
+        Assert.Throws<InvalidDataException>(() => ProviderMapping.GitHub(Account,
+            Json("""{"usageItems":[{"unitType":"credits","grossQuantity":-1}]}"""), Now));
+    }
+
+    [Fact] public void MalformedCodexTimestampsAndCountsStayUnknown()
+    {
+        var result = ProviderMapping.Codex(Account, Json("""
+            {"rateLimits":{"primary":{"usedPercent":50,"windowDurationMins":9999999999999999999,"resetsAt":9999999999999999999}},
+             "rateLimitResetCredits":{"availableCount":1.5,"credits":null}}
+            """), Now);
+        Assert.Null(result.Windows[0].ResetsAt); Assert.Null(result.Windows[0].DurationMinutes);
+        Assert.Null(result.Reserve!.AvailableCount);
+    }
 }

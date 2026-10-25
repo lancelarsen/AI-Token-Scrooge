@@ -38,13 +38,28 @@ public sealed class GitHubUsageClient(HttpClient http, TimeProvider clock)
         request.Headers.Add("X-GitHub-Api-Version", "2026-03-10");
         using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
         var retry = response.Headers.RetryAfter?.Date ?? (response.Headers.RetryAfter?.Delta is { } delay ? clock.GetUtcNow() + delay : (DateTimeOffset?)null);
+        var limited = response.StatusCode == HttpStatusCode.TooManyRequests || response.StatusCode == HttpStatusCode.Forbidden &&
+            (retry is not null || response.Headers.TryGetValues("X-RateLimit-Remaining", out var remaining) && remaining.Contains("0"));
+        if (limited)
+        {
+            if (retry is null && response.Headers.TryGetValues("X-RateLimit-Reset", out var resetValues) && long.TryParse(resetValues.FirstOrDefault(), out var reset) && reset is > 0 and <= 253402300799)
+                retry = DateTimeOffset.FromUnixTimeSeconds(reset);
+            throw new ProviderAccessException("GitHub asked Radar to wait before refreshing.", SourceHealth.Stale,
+                retry > clock.GetUtcNow() ? retry : clock.GetUtcNow().AddMinutes(5));
+        }
         if (response.StatusCode == HttpStatusCode.Unauthorized) throw new ProviderAccessException("GitHub sign-in expired. Reconnect this account.", SourceHealth.AuthenticationRequired);
         if (response.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.NotFound)
             throw new ProviderAccessException("GitHub billing access is unavailable. Personal tokens need Plan read permission; organization billing needs authorized administration access.", SourceHealth.PermissionRequired, retry);
-        if ((int)response.StatusCode == 429) throw new ProviderAccessException("GitHub asked Radar to wait before refreshing.", SourceHealth.Stale, retry ?? clock.GetUtcNow().AddMinutes(5));
         if (!response.IsSuccessStatusCode) throw new ProviderAccessException("GitHub usage is temporarily unavailable. Last known values are retained.", SourceHealth.Offline);
         if (response.Content.Headers.ContentLength > 5_000_000) throw new InvalidDataException("GitHub report exceeded the monitor's size limit.");
-        using var document = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
+        await using var stream = await response.Content.ReadAsStreamAsync(ct);
+        using var body = new MemoryStream(); var buffer = new byte[16384]; int read;
+        while ((read = await stream.ReadAsync(buffer.AsMemory(), ct)) != 0)
+        {
+            if (body.Length + read > 5_000_000) throw new InvalidDataException("GitHub report exceeded the monitor's size limit.");
+            body.Write(buffer, 0, read);
+        }
+        using var document = JsonDocument.Parse(body.GetBuffer().AsMemory(0, (int)body.Length));
         return document.RootElement.Clone();
     }
 }
