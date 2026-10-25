@@ -98,4 +98,14 @@ public class ProviderMappingTests
         Assert.Null(result.Windows[0].ResetsAt); Assert.Null(result.Windows[0].DurationMinutes);
         Assert.Null(result.Reserve!.AvailableCount);
     }
+
+    [Fact] public void AValidReserveStillProducesExpiryAlertsWithoutQuotaWindows()
+    {
+        var result = ProviderMapping.Codex(Account, Json($$$"""
+            {"accountId":"workspace-a","rateLimitsByLimitId":{},"rateLimitResetCredits":{"availableCount":1,
+             "credits":[{"id":"c","status":"available","expiresAt":{{{Now.AddMinutes(30).ToUnixTimeSeconds()}}}}]}}
+            """), Now);
+        Assert.Equal(SourceHealth.Healthy, result.Health);
+        Assert.Single(AlertEvaluator.Evaluate(Account, null, result, new(), Now));
+    }
 }

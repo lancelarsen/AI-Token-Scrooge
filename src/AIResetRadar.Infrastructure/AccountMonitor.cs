@@ -23,7 +23,7 @@ public sealed class AccountMonitor(string directory, ISecretStore secrets, GitHu
         var identity = await github.IdentifyAsync(token, ct);
         if (reconnect is not null && reconnect.Subject != identity.Subject) throw new ProviderAccessException("Sign in to the same GitHub account to reconnect. Add a separate connection for a different account.", SourceHealth.AuthenticationRequired);
         var account = new ProviderAccount(reconnect?.Id ?? Guid.NewGuid().ToString("N"), "GitHub Copilot", nickname, identity.Subject,
-            string.IsNullOrWhiteSpace(organization) ? "personal" : "organization:" + organization.Trim(), Allowance: allowance, Unit: unit, Login: identity.Login, CredentialId: Guid.NewGuid().ToString("N"));
+            string.IsNullOrWhiteSpace(organization) ? "personal" : "organization:" + organization.Trim().ToLowerInvariant(), Allowance: allowance, Unit: unit, Login: identity.Login, CredentialId: Guid.NewGuid().ToString("N"));
         if (reconnect is not null) account = ReconnectPolicy.Accept(reconnect, account);
         QuotaSnapshot snapshot;
         try { snapshot = await github.ReadAsync(account, token, ct); }

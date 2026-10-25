@@ -4,6 +4,22 @@ namespace AIResetRadar.Infrastructure.Tests;
 
 public class LocalStoreTests
 {
+    sealed class Clock(DateTimeOffset now) : TimeProvider
+    { public DateTimeOffset Now = now; public override DateTimeOffset GetUtcNow() => Now; }
+    [Fact] public async Task HistoryExpiresAfterOfflineTimeWithoutAnotherProviderSnapshot()
+    {
+        using var files = new TestDirectory(); var clock = new Clock(DateTimeOffset.UtcNow);
+        var store = new LocalStore(files.Database, clock);
+        await store.RecordSnapshotAsync(new("a", "sample", "scope", clock.Now, [], null));
+        var alert = new AlertEvent("event", "a", "weekly", "Low", "Fixture", clock.Now);
+        await store.WriteAsync("alerts", new[] { alert });
+        clock.Now = clock.Now.AddDays(31);
+        Assert.Empty(await store.HistoryAsync("a"));
+        Assert.Empty((await store.ReadAsync<AlertEvent[]>("alerts"))!);
+        // A stale in-memory ledger must not restore expired events after pruning.
+        await store.WriteAsync("alerts", new[] { alert });
+        Assert.Empty((await store.ReadAsync<AlertEvent[]>("alerts"))!);
+    }
     sealed class TestDirectory : IDisposable
     {
         readonly string root = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "AIResetRadar-tests"));

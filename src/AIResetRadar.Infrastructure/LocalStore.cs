@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Data.Sqlite;
+using AIResetRadar.Core;
 namespace AIResetRadar.Infrastructure;
 
 /// <summary>Non-secret local state. Tokens belong exclusively in ISecretStore.</summary>
@@ -7,6 +8,7 @@ public sealed class LocalStore
 {
     readonly string connectionString;
     readonly SemaphoreSlim gate = new(1, 1);
+    readonly TimeProvider clock;
     public async Task WriteMonitoringStateAsync(IReadOnlyList<AIResetRadar.Core.ProviderAccount> accounts, IReadOnlyList<AIResetRadar.Core.QuotaSnapshot> snapshots, IReadOnlyList<AIResetRadar.Core.ProviderAccount>? retired = null, CancellationToken ct = default)
     {
         var values = new Dictionary<string, string> { ["accounts"] = JsonSerializer.Serialize(accounts), ["snapshots"] = JsonSerializer.Serialize(snapshots) };
@@ -34,7 +36,7 @@ public sealed class LocalStore
             await using var command = connection.CreateCommand();
             command.CommandText = "INSERT OR REPLACE INTO history(account_id,observed_at,value) VALUES($account,$observed,$value); DELETE FROM history WHERE observed_at < $cutoff;";
             command.Parameters.AddWithValue("$account", snapshot.AccountId); command.Parameters.AddWithValue("$observed", snapshot.ObservedAt.ToUnixTimeMilliseconds());
-            command.Parameters.AddWithValue("$value", JsonSerializer.Serialize(snapshot)); command.Parameters.AddWithValue("$cutoff", DateTimeOffset.UtcNow.AddDays(-30).ToUnixTimeMilliseconds());
+            command.Parameters.AddWithValue("$value", JsonSerializer.Serialize(snapshot)); command.Parameters.AddWithValue("$cutoff", HistoryRetention.Cutoff(clock.GetUtcNow()).ToUnixTimeMilliseconds());
             await command.ExecuteNonQueryAsync(ct);
         }
         finally { gate.Release(); }
@@ -59,8 +61,9 @@ public sealed class LocalStore
         try { await using var connection = await OpenAsync(default); await using var command = connection.CreateCommand(); command.CommandText = "DELETE FROM history WHERE account_id=$account"; command.Parameters.AddWithValue("$account", accountId); await command.ExecuteNonQueryAsync(); }
         finally { gate.Release(); }
     }
-    public LocalStore(string path)
+    public LocalStore(string path, TimeProvider? clock = null)
     {
+        this.clock = clock ?? TimeProvider.System;
         SQLitePCL.Batteries_V2.Init();
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         connectionString = new SqliteConnectionStringBuilder { DataSource = path }.ToString();
@@ -85,7 +88,8 @@ public sealed class LocalStore
             await using var connection = await OpenAsync(ct);
             await using var command = connection.CreateCommand();
             command.CommandText = "INSERT INTO state(key,value) VALUES($key,$value) ON CONFLICT(key) DO UPDATE SET value=excluded.value";
-            command.Parameters.AddWithValue("$key", key); command.Parameters.AddWithValue("$value", JsonSerializer.Serialize(value));
+            var json = key == "alerts" && value is IEnumerable<AlertEvent> alerts ? JsonSerializer.Serialize(HistoryRetention.PruneAlerts(alerts, clock.GetUtcNow())) : JsonSerializer.Serialize(value);
+            command.Parameters.AddWithValue("$key", key); command.Parameters.AddWithValue("$value", json);
             await command.ExecuteNonQueryAsync(ct);
         }
         finally { gate.Release(); }
@@ -99,9 +103,23 @@ public sealed class LocalStore
             await using var command = connection.CreateCommand();
             command.CommandText = "PRAGMA user_version";
             if (Convert.ToInt64(await command.ExecuteScalarAsync(ct)) > 2) throw new InvalidDataException("This database was created by a newer Radar version. Update Radar before opening it.");
-            command.CommandText = "CREATE TABLE IF NOT EXISTS state(key TEXT PRIMARY KEY,value TEXT NOT NULL); CREATE TABLE IF NOT EXISTS history(account_id TEXT NOT NULL,observed_at INTEGER NOT NULL,value TEXT NOT NULL,PRIMARY KEY(account_id,observed_at)); PRAGMA user_version=2;";
-            await command.ExecuteNonQueryAsync(ct); return connection;
+            command.CommandText = "CREATE TABLE IF NOT EXISTS state(key TEXT PRIMARY KEY,value TEXT NOT NULL); CREATE TABLE IF NOT EXISTS history(account_id TEXT NOT NULL,observed_at INTEGER NOT NULL,value TEXT NOT NULL,PRIMARY KEY(account_id,observed_at)); CREATE INDEX IF NOT EXISTS history_observed ON history(observed_at); PRAGMA user_version=2;";
+            await command.ExecuteNonQueryAsync(ct);
+            await PruneAsync(connection, ct); return connection;
         }
         catch { await connection.DisposeAsync(); throw; }
+    }
+    async Task PruneAsync(SqliteConnection connection, CancellationToken ct)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM history WHERE observed_at < $cutoff";
+        command.Parameters.AddWithValue("$cutoff", HistoryRetention.Cutoff(clock.GetUtcNow()).ToUnixTimeMilliseconds()); await command.ExecuteNonQueryAsync(ct);
+        command.Parameters.Clear(); command.CommandText = "SELECT value FROM state WHERE key='alerts'";
+        if (await command.ExecuteScalarAsync(ct) is not string json) return;
+        var alerts = JsonSerializer.Deserialize<AlertEvent[]>(json) ?? [];
+        var retained = HistoryRetention.PruneAlerts(alerts, clock.GetUtcNow());
+        if (retained.Length == alerts.Length) return;
+        command.CommandText = "UPDATE state SET value=$value WHERE key='alerts'"; command.Parameters.AddWithValue("$value", JsonSerializer.Serialize(retained));
+        await command.ExecuteNonQueryAsync(ct);
     }
 }

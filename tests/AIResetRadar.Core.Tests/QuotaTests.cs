@@ -3,6 +3,12 @@ namespace AIResetRadar.Core.Tests;
 
 public class QuotaTests
 {
+    [Fact] public void ExactTimestampIncludesDateClockAndOffsetRatherThanFractionalSeconds()
+    {
+        var at = DateTimeOffset.Parse("2026-10-25T09:46:00.300-05:00");
+        Assert.Equal("2026-10-25 14:46:00 +00:00", ResetTime.Exact(at, TimeZoneInfo.Utc));
+        Assert.Equal("Not supplied", ResetTime.Exact(null));
+    }
     static QuotaWindow Window(decimal? used, decimal? limit = 100, UsageUnit unit = UsageUnit.Percent) =>
         new("weekly", "Codex weekly", unit, used, limit, null);
 

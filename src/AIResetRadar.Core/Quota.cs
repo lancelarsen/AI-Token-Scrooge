@@ -6,7 +6,10 @@ public enum AllowanceProvenance { Unknown, Provider, Manual }
 public enum CapacityState { Unknown, Healthy, Low, Critical, Exhausted }
 
 public sealed record ProviderAccount(string Id, string Provider, string Nickname, string Subject, string Scope,
-    bool Enabled = true, decimal? Allowance = null, UsageUnit Unit = UsageUnit.Credits, string? Login = null, string? CredentialId = null);
+    bool Enabled = true, decimal? Allowance = null, UsageUnit Unit = UsageUnit.Credits, string? Login = null, string? CredentialId = null)
+{
+    public bool ScopeEquals(string? other) => string.Equals(Scope, other, Provider == "GitHub Copilot" ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
+}
 
 public sealed record QuotaWindow(string Id, string Name, UsageUnit Unit, decimal? Used,
     decimal? Limit, DateTimeOffset? ResetsAt, int? DurationMinutes = null,
@@ -29,17 +32,22 @@ public sealed record QuotaWindow(string Id, string Name, UsageUnit Unit, decimal
 public sealed record ResetCredit(string Id, string Status, DateTimeOffset? ExpiresAt, string? Title = null);
 public sealed record ResetReserve(int? AvailableCount, IReadOnlyList<ResetCredit>? Credits)
 {
-    public bool HasPartialDetails => AvailableCount is > 0 && (Credits is null || Credits.Count < AvailableCount);
-    public DateTimeOffset? EarliestExpiry(DateTimeOffset now) => Credits?
+    public bool HasPartialDetails => AvailableCount is > 0 && (Credits is null || Credits.Count(c => c.Status == "available") < AvailableCount);
+    public DateTimeOffset? EarliestExpiry(DateTimeOffset now) => AvailableCount == 0 ? null : Credits?
         .Where(c => c.Status == "available" && c.ExpiresAt > now).Select(c => c.ExpiresAt).Min();
 }
 
 public sealed record QuotaSnapshot(string AccountId, string Subject, string Scope, DateTimeOffset ObservedAt,
     IReadOnlyList<QuotaWindow> Windows, ResetReserve? Reserve, SourceHealth Health = SourceHealth.Healthy,
-    string? Message = null, DateTimeOffset? ProviderDataAt = null, bool? UsageAllowed = null);
+    string? Message = null, DateTimeOffset? ProviderDataAt = null, bool? UsageAllowed = null)
+{
+    public bool BelongsTo(ProviderAccount account) => AccountId == account.Id && Subject == account.Subject && (account.Scope == "unresolved" || account.ScopeEquals(Scope));
+}
 
 public static class ResetTime
 {
+    public static string Exact(DateTimeOffset? value, TimeZoneInfo? zone = null) => value is { } at ?
+        TimeZoneInfo.ConvertTime(at, zone ?? TimeZoneInfo.Local).ToString("yyyy-MM-dd HH:mm:ss zzz", System.Globalization.CultureInfo.InvariantCulture) : "Not supplied";
     public static string Countdown(DateTimeOffset? reset, DateTimeOffset now)
     {
         if (reset is null) return "Reset time unavailable";

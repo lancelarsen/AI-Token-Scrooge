@@ -36,7 +36,7 @@ public static class AlertEvaluator
                 alerts.Add(new($"{account.Id}/{window.Id}/{period}/restored", account.Id, window.Id, $"{window.Name} is available again",
                     $"Provider confirmed capacity · {account.Provider} / {account.Nickname}", now));
         }
-        foreach (var credit in settings.RuleFor(account.Id).Expiry ? current.Reserve?.Credits ?? [] : [])
+        foreach (var credit in settings.RuleFor(account.Id).Expiry && current.Reserve?.AvailableCount != 0 ? current.Reserve?.Credits ?? [] : [])
         {
             if (credit.Status != "available" || credit.ExpiresAt is not { } expiry || expiry <= now) continue;
             var left = expiry - now;

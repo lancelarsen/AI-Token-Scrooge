@@ -29,8 +29,10 @@ public static class ProviderMapping
         if (response.TryGetProperty("ordinaryUsageAllowed", out var allowed) && allowed.ValueKind == JsonValueKind.False)
             message = "Provider reports included usage is paused";
         bool? usageAllowed = response.TryGetProperty("ordinaryUsageAllowed", out var permission) && permission.ValueKind is JsonValueKind.True or JsonValueKind.False ? permission.GetBoolean() : null;
+        var hasReserve = reserve?.AvailableCount is not null || reserve?.Credits?.Count > 0;
+        if (windows.Count == 0 && hasReserve) message = "Codex reported reset credits; quota windows are unavailable.";
         return new(account.Id, account.Subject, scope ?? account.Scope, observed, windows, reserve,
-            windows.Count == 0 ? SourceHealth.Unsupported : SourceHealth.Healthy, message, UsageAllowed: usageAllowed);
+            windows.Count == 0 && !hasReserve ? SourceHealth.Unsupported : SourceHealth.Healthy, message, UsageAllowed: usageAllowed);
 
         void AddBucket(string id, JsonElement bucket)
         {

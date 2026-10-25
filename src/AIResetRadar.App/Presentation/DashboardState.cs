@@ -11,7 +11,7 @@ public sealed record QuotaRow(ProviderAccount Account, QuotaSnapshot Snapshot, Q
         Snapshot.Message ?? (Window.AllowanceSource == AllowanceProvenance.Manual ? "User-entered allowance · Billing data may lag" : "");
 }
 
-public sealed record HorizonEvent(string AccountId, string Title, string Detail, DateTimeOffset At, bool IsExpiry);
+public sealed record HorizonEvent(string AccountId, string Title, string Detail, DateTimeOffset At, bool IsExpiry, string? WindowId = null);
 
 public sealed class DashboardState
 {
@@ -34,9 +34,9 @@ public sealed class DashboardState
 
     public IEnumerable<HorizonEvent> Events(DateTimeOffset now) => Rows
         .Where(r => r.Window.ResetsAt > now).Select(r => new HorizonEvent(r.Account.Id,
-            $"{r.Account.Provider} / {r.Account.Nickname}", r.Window.Name, r.Window.ResetsAt!.Value, false))
+            $"{r.Account.Provider} / {r.Account.Nickname}", r.Window.Name, r.Window.ResetsAt!.Value, false, r.Window.Id))
         .Concat(Accounts.Where(a => a.Enabled && Snapshots.ContainsKey(a.Id)).SelectMany(a =>
-            Snapshots[a.Id].Reserve?.Credits?.Where(c => c.Status == "available" && c.ExpiresAt > now)
+            Snapshots[a.Id].Reserve?.AvailableCount == 0 ? [] : Snapshots[a.Id].Reserve?.Credits?.Where(c => c.Status == "available" && c.ExpiresAt > now)
                 .Select(c => new HorizonEvent(a.Id, "Earned reset expires", $"{a.Provider} / {a.Nickname}", c.ExpiresAt!.Value, true)) ?? []))
         .OrderBy(e => e.At).Take(5);
 
@@ -59,4 +59,30 @@ public sealed class DashboardState
     }
 
     public void ClearDemo() { IsDemo = false; Accounts.Clear(); Snapshots.Clear(); }
+    public bool TryEditDemoAccount(ProviderAccount edit)
+    {
+        if (!IsDemo) return false;
+        var index = Accounts.FindIndex(a => a.Id == edit.Id); if (index >= 0) Accounts[index] = Accounts[index] with { Nickname = edit.Nickname, Enabled = edit.Enabled };
+        return true;
+    }
+    public void ApplyDemoScenario(string scenario)
+    {
+        if (!IsDemo) return;
+        foreach (var id in Snapshots.Keys.ToArray())
+        {
+            var snapshot = Snapshots[id];
+            Snapshots[id] = scenario switch
+            {
+                "reserve-only" => snapshot with { Windows = [], Message = "Demo: source reported reset credits without quota windows." },
+                "offline" => snapshot with { Health = SourceHealth.Offline, Message = "Demo: network unavailable; last successful values retained." },
+                "auth" => snapshot with { Health = SourceHealth.AuthenticationRequired, Message = "Demo: reconnect this account to resume monitoring." },
+                "permission" => snapshot with { Health = SourceHealth.PermissionRequired, Message = "Demo: billing read access is unavailable." },
+                "unknown" => snapshot with { Windows = snapshot.Windows.Select(w => w with { Used = null, Limit = null }).ToArray() },
+                "exhausted" => snapshot with { Windows = snapshot.Windows.Select(w => w with { Used = w.Unit == UsageUnit.Percent ? 100 : w.Limit }).ToArray() },
+                "due" => snapshot with { Windows = snapshot.Windows.Select(w => w with { ResetsAt = DateTimeOffset.UtcNow.AddMinutes(-1) }).ToArray() },
+                "partial" when snapshot.Reserve is not null => snapshot with { Reserve = new(3, [new("sample-credit", "available", DateTimeOffset.UtcNow.AddMinutes(45))]) },
+                _ => snapshot
+            };
+        }
+    }
 }
