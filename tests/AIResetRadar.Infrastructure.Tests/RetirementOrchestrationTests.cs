@@ -46,7 +46,7 @@ namespace AIResetRadar.App
     public sealed partial class MainPage
     {
         readonly Presentation.DashboardState state = new();
-        readonly RadarSettings preferences = new();
+        RadarSettings preferences = new();
         readonly List<AlertEvent> alertHistory = [];
         readonly Dictionary<string, DateTimeOffset> snoozed = [];
         readonly Dictionary<string, DateTimeOffset> nextRefresh = [], throttledUntil = [];
@@ -57,11 +57,14 @@ namespace AIResetRadar.App
         {
             Services.AppServices.Current = new() { Store = store, Monitor = monitor };
             Platforms.Windows.NotificationService.Current = new();
+            Platforms.Windows.StartupService.Reset();
             if (live is not null) state.Accounts.Add(live);
             if (retired is not null) retiredCredentials.Add(retired);
             if (demo) state.LoadDemo(DateTimeOffset.UtcNow);
         }
         public Task RunCleanupAsync() => CleanupRetiredAsync();
+        public Task SavePreferencesForTestAsync(RadarSettings settings) => SaveSettingsAsync(settings);
+        public RadarSettings PreferencesForTest => preferences;
         public async Task WaitForCleanupAsync() { await cleanupGate.WaitAsync(); cleanupGate.Release(); }
         public void SetSnapshotForTest(QuotaSnapshot snapshot) => state.Snapshots[snapshot.AccountId] = snapshot;
         public Task CommitForTestAsync(ProviderAccount account, QuotaSnapshot snapshot, ProviderAccount? original) => CommitConnectionAsync(account, snapshot, original);
@@ -75,6 +78,21 @@ namespace AIResetRadar.App
 
 namespace AIResetRadar.App.Platforms.Windows
 {
+    public sealed record StartupRegistration(object? Value);
+    public static class StartupService
+    {
+        public static object? Value { get; set; }
+        public static int Writes { get; private set; }
+        public static int Restores { get; private set; }
+        public static bool FailWrite { get; set; }
+        public static bool FailRestore { get; set; }
+        public static void Reset() { Value = "original registration"; Writes = Restores = 0; FailWrite = FailRestore = false; }
+        public static StartupRegistration Capture() => new(Value);
+        public static void Restore(StartupRegistration previous)
+        { Restores++; if (FailRestore) throw new IOException("Fixture rollback failure"); Value = previous.Value; }
+        public static void SetEnabled(bool enabled)
+        { Writes++; Value = enabled ? "new registration" : null; if (FailWrite) throw new IOException("Fixture registration failure"); }
+    }
     public sealed class NotificationService
     {
         public static NotificationService Current { get; set; } = new();

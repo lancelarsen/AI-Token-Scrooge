@@ -109,7 +109,7 @@ public sealed partial class MainPage
         await Navigation.PushModalAsync(new ConnectAccountPage(provider == "OpenAI Codex", (account, snapshot) => CommitConnectionAsync(account, snapshot, null)));
     }
     async Task OpenSettingsAsync() => await Navigation.PushModalAsync(new SettingsPage(state.Accounts, state.Snapshots, preferences, state.IsDemo,
-        async settings => { if (!state.IsDemo) { if (settings.LaunchAtSignIn != preferences.LaunchAtSignIn) AIResetRadar.App.Platforms.Windows.StartupService.SetEnabled(settings.LaunchAtSignIn); await AppServices.Current.Store.WriteAsync("settings", settings); } preferences = settings; Render(); UpdateTray(); },
+        SaveSettingsAsync,
         UpdateAccountAsync, OpenHistoryAsync, TestNotificationAsync, ReconnectAsync));
     async Task ReconnectAsync(ProviderAccount original)
     {

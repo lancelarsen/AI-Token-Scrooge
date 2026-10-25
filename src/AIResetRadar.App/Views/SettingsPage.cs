@@ -1,4 +1,5 @@
 using AIResetRadar.Core;
+using AIResetRadar.App.Services;
 namespace AIResetRadar.App.Views;
 
 public sealed class SettingsPage : ContentPage
@@ -64,7 +65,8 @@ public sealed class SettingsPage : ContentPage
                 original.Rules?.Where(r => accounts.Any(a => a.Id == r.AccountId)).ToArray());
             if (!settings.HasValidThresholds) { status.Text = "An account/window rule conflicts with these defaults. Adjust its thresholds first."; return; }
             try { await save(settings); await Navigation.PopModalAsync(); }
-            catch { status.Text = "Settings could not be saved. Check local folder access."; }
+            catch (SettingsSaveException error) { status.Text = error.Message; }
+            catch { status.Text = "Settings could not be saved. Check available space and local folder access."; }
         };
         form.Children.Add(done);
         var cancel = new Button { Text = "Close" }; cancel.Clicked += async (_, _) => await Navigation.PopModalAsync(); form.Children.Add(cancel);
