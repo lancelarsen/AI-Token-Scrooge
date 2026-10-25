@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AIResetRadar.App/AIResetRadar.App.csproj" />
+    <Project Path="src/AIResetRadar.Core/AIResetRadar.Core.csproj" />
+    <Project Path="src/AIResetRadar.Infrastructure/AIResetRadar.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AIResetRadar.Core.Tests/AIResetRadar.Core.Tests.csproj" />
+    <Project Path="tests/AIResetRadar.Infrastructure.Tests/AIResetRadar.Infrastructure.Tests.csproj" />
+  </Folder>
+</Solution>

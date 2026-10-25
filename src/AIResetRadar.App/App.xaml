@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui" xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" x:Class="AIResetRadar.App.App">
+ <Application.Resources><ResourceDictionary>
+  <Color x:Key="Canvas">#141519</Color><Color x:Key="Surface">#222329</Color>
+  <Color x:Key="Line">#3B3D47</Color><Color x:Key="Accent">#B5A0F4</Color>
+  <Color x:Key="Muted">#B6B8C8</Color><Color x:Key="Warning">#EAAA51</Color>
+  <Style TargetType="Label"><Setter Property="TextColor" Value="#F2F1F5"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="FontSize" Value="14"/></Style>
+  <Style TargetType="Button"><Setter Property="BackgroundColor" Value="#232429"/><Setter Property="TextColor" Value="#F2F1F5"/><Setter Property="BorderColor" Value="#45464D"/><Setter Property="BorderWidth" Value="1"/><Setter Property="CornerRadius" Value="10"/><Setter Property="Padding" Value="16,10"/><Setter Property="FontSize" Value="14"/><Setter Property="HeightRequest" Value="44"/></Style>
+  <Style TargetType="Entry"><Setter Property="TextColor" Value="#F2F1F5"/><Setter Property="BackgroundColor" Value="#2A2B30"/><Setter Property="PlaceholderColor" Value="#B6B8C8"/></Style>
+ </ResourceDictionary></Application.Resources>
+</Application>

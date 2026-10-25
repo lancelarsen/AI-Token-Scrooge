@@ -1,4 +1,13 @@
 using AIResetRadar.Infrastructure;
+using AIResetRadar.Core;
+
+if (args.Length == 2 && args[0] == "--inspect-store")
+{
+    var store = new LocalStore(Path.GetFullPath(args[1]));
+    var alerts = await store.ReadAsync<AlertEvent[]>("alerts") ?? [];
+    Console.WriteLine($"Alert events: {alerts.Length}; Windows-delivered: {alerts.Count(a => a.Delivered)}");
+    return 0;
+}
 
 var executable = CodexLocator.Find() ?? throw new InvalidOperationException("Codex executable not found.");
 var root = Path.GetFullPath(Path.Combine("artifacts", "isolated-profile-probe"));

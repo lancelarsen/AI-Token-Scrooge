@@ -1,0 +1,49 @@
+# AI Reset Radar
+
+A native Windows .NET MAUI desktop monitor for AI usage windows and expiring earned resets. The selected dark design is preserved in `design/references/approved-ui.png`.
+
+## Current implementation
+
+- Per-account quota rows with Used/Left text inside taller bars, lavender normal states and amber warning states.
+- Chronological automatic-reset and earned-credit-expiry timeline; independent quota windows and accounts.
+- Codex app-server connection using separate app-owned profiles and OS keyring storage; read-only monitoring transport.
+- GitHub Copilot billing connection using a fine-grained token and current personal or organization billing endpoints. Monthly allowance is optional and explicitly user-entered.
+- SQLite metadata, last-known snapshots, settings and alert history; GitHub secrets protected with current-user Windows DPAPI.
+- Tray quick view/menu, close-to-tray, taskbar status overlays, optional sign-in startup, refresh/backoff, native Windows notifications and in-app banners.
+- Quiet hours, snooze, privacy mode, alert thresholds and notification test.
+
+This is an active implementation. Live authenticated provider coverage, full multi-account renewal testing and release acceptance are not yet complete. See `docs/verification.md` and the task checklist. Demo data is always labeled; it does not prove a live integration works.
+
+## Run and build
+
+Requires Windows and the pinned .NET 10 SDK with the `maui-windows` workload for building. The self-contained publish output is intended to run without a separately installed .NET runtime.
+
+```powershell
+dotnet build src/AIResetRadar.App/AIResetRadar.App.csproj
+dotnet test AIResetRadar.slnx
+dotnet publish src/AIResetRadar.App/AIResetRadar.App.csproj -c Release -r win-x64 --self-contained true -p:WindowsAppSDKSelfContained=true -o artifacts/publish/win-x64
+```
+
+Run the published `artifacts/publish/win-x64/AIResetRadar.App.exe`. For a design preview, use `--demo`; `--compact` starts an 800×700 logical-pixel window. The main window also fits within the current monitor's working area. Test data can be isolated with `--data-dir <absolute-folder>`.
+
+The app initially opens without accounts. **Add account** offers OpenAI Codex or GitHub Copilot. OpenAI sign-in happens in your own browser. For GitHub, enter the token in the app's masked field, not in chat. Personal billing requires Plan read permission; organization-funded usage needs authorized organization billing access. GitHub usage may lag, and a usage report alone does not establish your allowance. General ChatGPT model quotas and OpenAI API billing are separate products and are not included.
+
+The tray icon's menu opens Radar, refreshes usage or exits. Closing the main window keeps the monitor running when close-to-tray is enabled. **Exit Radar** ends monitoring. Startup at Windows sign-in is off by default. Windows may place tray icons in its overflow menu. Native popup appearance and delivery depend on Windows settings and Focus Assist; history remains available in Radar.
+
+## Data and credentials
+
+Default application state: `%LOCALAPPDATA%\AIResetRadar`. SQLite stores non-secret connection metadata and usage/alert data. Protected token files are in `Credentials`; independent Codex profiles are in `Profiles`. Existing Codex/IDE profiles are not modified. Removing a connection deletes/signs out Radar's own saved credentials only. Logs must never include tokens or provider response bodies.
+
+Radar does not make inference requests, redeem resets, purchase credits or switch accounts in other applications. The Codex transport has an explicit method allowlist.
+
+## Design and plan
+
+- `design/selection.md`: final visual selection and required details.
+- `tasks/plan.md`: complete requirements and verification gates.
+- `tasks/todo.md`: implementation checklist.
+- `docs/toolchain.md`: verified environment.
+- `docs/verification.md`: current evidence and remaining checks.
+
+## Assets
+
+The radar app icon was generated using the built-in ImageGen tool, based on the approved screenshot, and saved at `src/AIResetRadar.App/Resources/Images/radar.png`. A Windows ICO format conversion is in `Resources/app.ico`. OpenAI's source icon was reused from the user's CreatorMicroModelKeys project. GitHub's icon comes from its official `github.githubassets.com/favicons/favicon-dark.svg` asset. Provider marks identify the services; Radar is an independent application.
