@@ -1,0 +1,77 @@
+using System.Text.Json;
+using AIResetRadar.Core;
+namespace AIResetRadar.Infrastructure;
+
+public static class ProviderMapping
+{
+    public static QuotaSnapshot Codex(ProviderAccount account, JsonElement response, DateTimeOffset observed)
+    {
+        var scope = Text(response, "accountId");
+        if (!string.IsNullOrEmpty(scope) && account.Scope != "unresolved" && scope != account.Scope)
+            throw new InvalidDataException("The provider returned a different workspace. Reconnect this account.");
+        List<QuotaWindow> windows = [];
+        if (response.TryGetProperty("rateLimitsByLimitId", out var map) && map.ValueKind == JsonValueKind.Object && map.EnumerateObject().Any())
+        {
+            foreach (var bucket in map.EnumerateObject()) AddBucket(bucket.Name, bucket.Value);
+        }
+        else if (response.TryGetProperty("rateLimits", out var legacy) && legacy.ValueKind == JsonValueKind.Object)
+            AddBucket(Text(legacy, "limitId") ?? "codex", legacy);
+        ResetReserve? reserve = null;
+        if (response.TryGetProperty("rateLimitResetCredits", out var credits) && credits.ValueKind == JsonValueKind.Object)
+        {
+            IReadOnlyList<ResetCredit>? details = null;
+            if (credits.TryGetProperty("credits", out var list) && list.ValueKind == JsonValueKind.Array)
+                details = list.EnumerateArray().Select(c => new ResetCredit(Text(c, "id") ?? throw new InvalidDataException("Reset credit identity missing."),
+                    Text(c, "status") ?? "unknown", Timestamp(c, "expiresAt"), Text(c, "title"))).DistinctBy(c => c.Id).ToArray();
+            reserve = new((int?)Number(credits, "availableCount"), details);
+        }
+        var message = scope is null ? "Workspace identity unavailable from provider" : null;
+        if (response.TryGetProperty("ordinaryUsageAllowed", out var allowed) && allowed.ValueKind == JsonValueKind.False)
+            message = "Provider reports included usage is paused";
+        return new(account.Id, account.Subject, scope ?? account.Scope, observed, windows, reserve,
+            windows.Count == 0 ? SourceHealth.Unsupported : SourceHealth.Healthy, message);
+
+        void AddBucket(string id, JsonElement bucket)
+        {
+            foreach (var key in new[] { "primary", "secondary" })
+            {
+                if (!bucket.TryGetProperty(key, out var window) || window.ValueKind != JsonValueKind.Object) continue;
+                var minutes = (int?)Number(window, "windowDurationMins");
+                var duration = minutes switch { 300 => "5-hour", 10080 => "Weekly", > 0 => $"{minutes} min", _ => key };
+                var name = Text(bucket, "limitName") ?? (id == "codex" ? "Codex" : id);
+                windows.Add(new($"{id}/{key}", $"{name} · {duration}", UsageUnit.Percent, Number(window, "usedPercent"),
+                    100, Timestamp(window, "resetsAt"), minutes, AllowanceProvenance.Provider));
+            }
+        }
+    }
+
+    public static QuotaSnapshot GitHub(ProviderAccount account, JsonElement response, DateTimeOffset observed)
+    {
+        if (!response.TryGetProperty("usageItems", out var items) || items.ValueKind != JsonValueKind.Array)
+            throw new InvalidDataException("Billing response did not include usage data.");
+        decimal used = 0;
+        foreach (var item in items.EnumerateArray())
+        {
+            var unit = Text(item, "unitType");
+            var selected = account.Unit == UsageUnit.Requests ? unit == "requests" : unit is "credits" or "ai-credits";
+            if (selected) used += Number(item, "grossQuantity") ?? throw new InvalidDataException("Billing quantity unavailable.");
+        }
+        var utc = observed.UtcDateTime;
+        var reset = new DateTimeOffset(new DateTime(utc.Year, utc.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(1));
+        var label = account.Unit == UsageUnit.Requests ? "Premium requests · Monthly" : "AI credits · Monthly";
+        return new(account.Id, account.Subject, account.Scope, observed,
+            [new("copilot/monthly", label, account.Unit, used, account.Allowance, reset, null,
+                account.Allowance.HasValue ? AllowanceProvenance.Manual : AllowanceProvenance.Unknown)], null,
+            Message: "Billing reports may lag; allowance is user-entered when supplied.");
+    }
+
+    public static string? Text(JsonElement element, string key) => element.TryGetProperty(key, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
+    static decimal? Number(JsonElement element, string key) => element.TryGetProperty(key, out var value) && value.ValueKind == JsonValueKind.Number && value.TryGetDecimal(out var number) ? number : null;
+    static DateTimeOffset? Timestamp(JsonElement element, string key)
+    {
+        var seconds = Number(element, key);
+        if (seconds is null) return null;
+        try { return DateTimeOffset.FromUnixTimeSeconds((long)seconds.Value); }
+        catch (ArgumentOutOfRangeException) { return null; }
+    }
+}
