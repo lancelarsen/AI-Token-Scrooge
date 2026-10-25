@@ -4,7 +4,7 @@ Updated October 25, 2026. The build goal remains active. Fixtures and builds do 
 
 ## Verified
 
-- **51 passing Windows tests:** 30 Core and 21 Infrastructure, zero skipped/failed. Coverage includes quota math/unknowns/overage, reset confirmation, DST, partial reserves, alert crossings and scoped rules, expiry keys, malformed values, identity mismatches, organization-user filtering, 403/429 handling, body bounds, DPAPI, snapshot retention on collection, schema migration/future-version rejection, and atomic rollback of account/snapshot/retired-credential references.
+- **75 passing Windows tests:** 49 Core and 26 Infrastructure, zero skipped/failed. Coverage includes quota math/unknowns/overage, reset confirmation, DST and exact timestamps, partial reserves, alert crossings and scoped rules, tray status aggregation, cached identity/scope matching, demo presentation, provider links, malformed values, organization-user filtering, 403/429 handling, body bounds, DPAPI, retention during offline periods, schema migration/future-version rejection, and atomic rollback of account/snapshot/retired-credential references.
 - Native self-contained Release x64 publish succeeds with MAUI Controls **10.0.120**, exact SDK **10.0.403**, and the pinned .NET **10.0.13** runtime. Published runtime configuration and restored assets were inspected. The installed Windows build workload remains 10.0.20. See `toolchain.md` for the SDK replacement and framework-resolution decision.
 - NuGet audit across the solution and transitive dependencies reports no known vulnerable packages from configured sources.
 - Installed Codex schema was generated with 0.164.0-alpha.11.1. Optional workspace, multiple quota buckets, earned resets and included-usage permission are represented without inventing absent values.
@@ -16,9 +16,16 @@ Updated October 25, 2026. The build goal remains active. Fixtures and builds do 
 - Real Windows Computer Use observed the dashboard, four demo rows, timeline, Settings and accessibility labels. References: `design/references/approved-ui.png` and CreatorMicroModelKeys editor/settings screenshots.
 - Compact startup requested **800x700**; the captured client was approximately **789x694**. Rows reflowed and the timeline scrolled horizontally. Choosing **Least remaining** put the 18%-remaining Copilot row first.
 - A native click on **Send test notification** persisted one event; Windows returned a nonzero notification ID. A separate store read confirmed one Windows-accepted event. This does not prove a visible popup under Focus Assist.
-- Initial startup exceeded the working area; a work-area clamp was added. Final desktop sizing/scaling needs a new observation.
-- Repeated size-change reconstruction caused excessive idle CPU. Rendering now changes only for width/breakpoint changes. The bounded regression run recorded **0.0 CPU seconds over 15 seconds**, with working set **261.8 -> 259.2 MB**. Evidence: ignored `artifacts/idle-test/idle-result.json`; repeat with `scripts/Test-Idle.ps1`. That sample predates servicing and the newest controls; their final resource measurement remains required.
-- Computer Use reported a physical **Escape** stop. UI checks remain stopped pending the user's answer to the resume question. Auth dialogs are not automated.
+- The user explicitly resumed native checks after the earlier Escape stop. Current desktop capture is approximately **1428x837**, clamped to the monitor work area. Current compact capture is **789x694**. The header and tall Used/Left bars remain readable; the compact timeline scrolls horizontally to Copilot and later credit events. The desktop accounts list scrolls vertically.
+- A weekly timeline click opens the weekly quota rather than the first account window. Native inspection caught an exact-date formatting bug; the corrected dialog shows complete reset/fetch timestamps and numeric UTC offsets. A reserve-only fixture opens the owning account's credit details without quota rows.
+- A 70% low-capacity rule for Personal's five-hour window turns that row amber while Work stays lavender. Settings and rule fields expose explicit accessibility descriptions. Full keyboard/Narrator acceptance remains open.
+- Native unknown/exhausted/offline/reset-due fixtures were checked at compact width. Unknown values say unavailable, 100% fills retain both labels, offline values retain their source warning, and overdue timers show checking without resetting consumption.
+- The current demo's explicit notification test produced its in-app banner without a Windows-acceptance error. Snooze dismisses the banner. This is not proof of a visible OS popup or cold activation.
+- A credential-free native fixture preserved its saved account, snapshot, pending retirement, settings, history, alert and snooze entries after demo Refresh, notification test and Snooze. Review found its original retirement IDs were invalid, so that native run alone cannot prove protection from cleanup. The probe now uses valid GUIDs; rerun its native actions with a new directory under `artifacts/native-qa` when live sign-in is finished. Demo edits and test events stay in memory.
+- Three direct orchestration tests compile the production account-cleanup method unchanged, with real DashboardState/SQLite and a credential-transport spy. They prove demo cleanup does nothing, reconnect retires only the old credential while preserving history, and removed-account cleanup deletes its history. The same tests were run against the previous implementation: the demo case failed by calling disconnect; both live cases passed. Restored fixed source passes all three.
+- **Resource acceptance is open.** The older 0.0 CPU-seconds/15-second sample predates the current servicing/inspection session. Current measurements show sustained load, also reproducible in a plain 100-label MAUI window with no Radar dashboard or tray logic. See `native-performance.md`; this must not be reported as fixed.
+
+Current ignored native evidence is under `artifacts/native-qa/evidence`, including `dashboard-desktop.png`, `dashboard-compact.png`, `weekly-exact-timestamps.png`, `reserve-only-details.png`, `test-notification-banner.png`, and compact unknown/exhausted/offline/reset-due captures. Auth dialogs are handled by the user and are not captured for evidence.
 
 ## Distribution
 
@@ -28,10 +35,10 @@ Updated October 25, 2026. The build goal remains active. Fixtures and builds do 
 
 - Authenticated Codex usage/window/reserve comparison; two independent signed-in accounts, renewal, restart, rejected reconnect and removal isolation, including the existing external Codex/IDE login.
 - Authenticated GitHub personal/organization access, allowance/discount/overage reconciliation and billing latency. Official billing endpoint documentation was rechecked; actual account coverage remains absent.
-- Final desktop/compact comparison after servicing and rule changes, keyboard/Narrator, 100/150/200% DPI, empty/error/partial states and final resource/soak measurements.
+- Remaining keyboard/Narrator, 100/150/200% DPI, permission/auth/partial states and final resource/soak acceptance. Desktop/compact observations above are limited to the current monitor and scale.
 - Tray quick view/positioning, hide/restore/Exit, Explorer restart, startup, network/power/clock recovery and child shutdown during real sessions.
 - Notification View/Snooze/Dismiss, exact-window/cold activation, OS-disabled notifications, quiet hours, restart deduplication and persistent-delivery interleavings.
-- Transport/process/DB fault matrix, cleanup-retry failures, retention independent of successful collection, provider capability/usage-page affordances and the final requirement audit.
+- Transport/process/DB fault matrix, cleanup-retry failures, signed-in provider usage-page handoff and the final requirement audit. Retention independent of successful collection and provider-link selection now have automated coverage; browser identity and actual access still require live checks.
 - Clean-user extraction/launch/notifications/removal, final packaging/signing decision and README walkthrough.
 
-No live check is passed because a demo, build, schema or empty-profile probe succeeds. No credential contents were copied into evidence.
+Live acceptance remains open until checked with authenticated accounts. No credential contents were copied into evidence.

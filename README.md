@@ -12,7 +12,7 @@ A native Windows .NET MAUI desktop monitor for AI usage windows and expiring ear
 - Tray quick view/menu, close-to-tray, taskbar status overlays, optional sign-in startup, refresh/backoff, native Windows notifications and in-app banners.
 - Quiet hours, snooze, privacy mode, per-account/window alert rules and thresholds, and notification test.
 
-This is an active implementation. Live authenticated provider coverage, full multi-account renewal testing and release acceptance are not yet complete. See `docs/verification.md` and the task checklist. Demo data is always labeled; it does not prove a live integration works.
+This is an active implementation. Live authenticated provider coverage, full multi-account renewal testing and release acceptance are not yet complete. A native CPU regression remains under investigation; see `docs/native-performance.md`. See `docs/verification.md` and the task checklist for evidence. Demo data is always labeled; it does not prove a live integration works.
 
 ## Run and build
 
@@ -25,6 +25,8 @@ dotnet publish src/AIResetRadar.App/AIResetRadar.App.csproj -c Release -r win-x6
 ```
 
 Run the published `artifacts/publish/win-x64/AIResetRadar.App.exe`. For a design preview, use `--demo`; `--compact` starts an 800×700 logical-pixel window. The main window also fits within the current monitor's working area. Test data can be isolated with `--data-dir <absolute-folder>`.
+
+Preview-only error cases use `--demo --scenario unknown`, `offline`, `auth`, `permission`, `exhausted`, `due`, `partial` or `reserve-only`. Demo account/settings changes, alert history and snooze changes stay in memory. The explicit notification test still asks Windows to display a test popup.
 
 `./scripts/Build-Windows.ps1 -Package` tests, publishes and creates an unsigned preview ZIP with a SHA-256 manifest under `artifacts/releases/`. Use `-PublishDirectory artifacts/publish/validation-win-x64` to keep a running older review copy untouched. Extract the complete ZIP before launching the executable. The ZIP is a portable review package; clean-user acceptance and installer/signing remain open. The build requires the exact SDK in `global.json`; see `docs/toolchain.md` for the supported runtime pin.
 
