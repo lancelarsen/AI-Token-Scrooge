@@ -12,8 +12,9 @@ public sealed class CodexConnection : IAsyncDisposable
     readonly SemaphoreSlim writer = new(1, 1);
     readonly CancellationTokenSource stopped = new();
     int nextId;
+    readonly Task reading, errors;
     public event Action<JsonElement>? Notification;
-    CodexConnection(Process process) { this.process = process; _ = ReadAsync(); _ = DrainErrorsAsync(); }
+    CodexConnection(Process process) { this.process = process; reading = ReadAsync(); errors = DrainErrorsAsync(); }
 
     public static async Task<CodexConnection> StartAsync(string executable, string profile, CancellationToken ct = default)
     {
@@ -79,6 +80,8 @@ public sealed class CodexConnection : IAsyncDisposable
         await stopped.CancelAsync();
         try { process.StandardInput.Close(); if (!process.HasExited) process.Kill(entireProcessTree: true); }
         catch (InvalidOperationException) { }
+        try { await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(5)); await Task.WhenAll(reading, errors).WaitAsync(TimeSpan.FromSeconds(5)); }
+        catch (TimeoutException) { }
         process.Dispose(); stopped.Dispose();
     }
 }

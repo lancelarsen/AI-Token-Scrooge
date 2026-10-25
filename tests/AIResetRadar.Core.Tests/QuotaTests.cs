@@ -59,5 +59,13 @@ public class QuotaTests
         Assert.Equal(now.AddDays(4), reserve.EarliestExpiry(now));
         Assert.Null(new ResetReserve(2, null).EarliestExpiry(now));
         Assert.Null(new ResetReserve(1, [new("x", "available", null)]).EarliestExpiry(now));
+        Assert.False(new ResetReserve(0, null).HasPartialDetails);
+    }
+
+    [Fact] public void CountdownUsesElapsedTimeAcrossTheAutumnClockChange()
+    {
+        var start = DateTimeOffset.Parse("2026-11-01T01:30:00-05:00");
+        var end = DateTimeOffset.Parse("2026-11-01T01:30:00-06:00");
+        Assert.Equal("In 1h 0m", ResetTime.Countdown(end, start));
     }
 }

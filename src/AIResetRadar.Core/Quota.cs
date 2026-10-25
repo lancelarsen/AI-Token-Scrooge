@@ -6,7 +6,7 @@ public enum AllowanceProvenance { Unknown, Provider, Manual }
 public enum CapacityState { Unknown, Healthy, Low, Critical, Exhausted }
 
 public sealed record ProviderAccount(string Id, string Provider, string Nickname, string Subject, string Scope,
-    bool Enabled = true, decimal? Allowance = null, UsageUnit Unit = UsageUnit.Credits, string? Login = null);
+    bool Enabled = true, decimal? Allowance = null, UsageUnit Unit = UsageUnit.Credits, string? Login = null, string? CredentialId = null);
 
 public sealed record QuotaWindow(string Id, string Name, UsageUnit Unit, decimal? Used,
     decimal? Limit, DateTimeOffset? ResetsAt, int? DurationMinutes = null,
@@ -29,7 +29,7 @@ public sealed record QuotaWindow(string Id, string Name, UsageUnit Unit, decimal
 public sealed record ResetCredit(string Id, string Status, DateTimeOffset? ExpiresAt, string? Title = null);
 public sealed record ResetReserve(int? AvailableCount, IReadOnlyList<ResetCredit>? Credits)
 {
-    public bool HasPartialDetails => AvailableCount is { } count && (Credits is null || Credits.Count < count);
+    public bool HasPartialDetails => AvailableCount is > 0 && (Credits is null || Credits.Count < AvailableCount);
     public DateTimeOffset? EarliestExpiry(DateTimeOffset now) => Credits?
         .Where(c => c.Status == "available" && c.ExpiresAt > now).Select(c => c.ExpiresAt).Min();
 }
