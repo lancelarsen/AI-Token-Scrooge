@@ -42,4 +42,42 @@ public class AlertTests
         Assert.True(AlertEvaluator.IsQuiet(settings, midnight.AddHours(7), TimeZoneInfo.Utc));
         Assert.False(AlertEvaluator.IsQuiet(settings, midnight.AddHours(12), TimeZoneInfo.Utc));
     }
+
+    [Fact] public void ImprovingFromCriticalToLowDoesNotProduceAnotherWarning() =>
+        Assert.Empty(AlertEvaluator.Evaluate(Account, Snapshot(98), Snapshot(75), new(), Now));
+
+    [Fact] public void ANewPeriodCanProduceOneInitialLowWarning() =>
+        Assert.Single(AlertEvaluator.Evaluate(Account, Snapshot(75, Now.AddHours(-1)), Snapshot(75), new(), Now));
+
+    [Fact] public void WindowRulesOverrideAccountDefaultsAndLeaveOtherAccountsAlone()
+    {
+        var settings = new RadarSettings(Rules: [new("a", LowThreshold: 50), new("a", "weekly", LowThreshold: 20, Low: false)]);
+        Assert.Equal(20, settings.RuleFor("a", "weekly").LowThreshold);
+        Assert.Equal(50, settings.RuleFor("a", "short").LowThreshold);
+        Assert.Equal(30, settings.RuleFor("b", "weekly").LowThreshold);
+        Assert.Empty(AlertEvaluator.Evaluate(Account, null, Snapshot(85), settings, Now));
+    }
+
+    [Fact] public void DisablingLowWarningsDoesNotDisableExhaustedOrAnotherAccount()
+    {
+        var settings = new RadarSettings(Rules: [new("a", Low: false)]);
+        Assert.Empty(AlertEvaluator.Evaluate(Account, null, Snapshot(80), settings, Now));
+        Assert.Single(AlertEvaluator.Evaluate(Account, null, Snapshot(100), settings, Now));
+        Assert.Single(AlertEvaluator.Evaluate(Account with { Id = "b" }, null, Snapshot(80) with { AccountId = "b" }, settings, Now));
+    }
+
+    [Fact] public void ExpiryRulesAreScopedToTheAccount()
+    {
+        var snapshot = Snapshot(10) with { Reserve = new(1, [new("c", "available", Now.AddMinutes(30))]) };
+        Assert.Empty(AlertEvaluator.Evaluate(Account, null, snapshot, new(Rules: [new("a", Expiry: false)]), Now));
+    }
+
+    [Fact] public void DefaultChangesCannotInvertInheritedWindowThresholds()
+    {
+        var settings = new RadarSettings(Rules: [new("a", "weekly", LowThreshold: 20)]);
+        Assert.True(settings.HasValidThresholds);
+        Assert.False((settings with { CriticalThreshold = 25 }).HasValidThresholds);
+        var loaded = System.Text.Json.JsonSerializer.Deserialize<RadarSettings>("{\"LowThreshold\":40,\"CriticalThreshold\":10}")!;
+        Assert.Null(loaded.Rules); Assert.Equal(40, loaded.RuleFor("a", "weekly").LowThreshold);
+    }
 }

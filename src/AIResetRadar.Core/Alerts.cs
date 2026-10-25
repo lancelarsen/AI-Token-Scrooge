@@ -18,21 +18,25 @@ public static class AlertEvaluator
         List<AlertEvent> alerts = [];
         foreach (var window in current.Windows)
         {
-            var state = window.Capacity(settings.LowThreshold, settings.CriticalThreshold);
+            var rule = settings.RuleFor(account.Id, window.Id);
+            var state = window.Capacity(rule.LowThreshold!.Value, rule.CriticalThreshold!.Value);
             var period = window.ResetsAt?.ToUnixTimeSeconds().ToString() ?? "unknown";
-            if (state is CapacityState.Low or CapacityState.Critical or CapacityState.Exhausted)
+            var before = previous?.Windows.FirstOrDefault(w => w.Id == window.Id);
+            var threshold = state == CapacityState.Exhausted ? 0 : state == CapacityState.Critical ? rule.CriticalThreshold!.Value : rule.LowThreshold!.Value;
+            var crossed = before?.RemainingPercent is not { } oldLeft || before.ResetsAt != window.ResetsAt || oldLeft > threshold;
+            var enabled = state switch { CapacityState.Low => rule.Low, CapacityState.Critical => rule.Critical, CapacityState.Exhausted => rule.Exhausted, _ => false };
+            if (crossed && enabled)
             {
                 var severity = state.ToString().ToLowerInvariant();
                 alerts.Add(new($"{account.Id}/{window.Id}/{period}/{severity}", account.Id, window.Id,
                     $"{window.Name} {(state == CapacityState.Exhausted ? "is exhausted" : "is running low")}",
                     $"{window.RemainingPercent:0.#}% left · {account.Provider} / {account.Nickname}", now));
             }
-            var before = previous?.Windows.FirstOrDefault(w => w.Id == window.Id);
-            if (before?.Capacity() == CapacityState.Exhausted && window.RemainingPercent > 0 && current.UsageAllowed == true)
+            if (rule.Restored && before?.Capacity() == CapacityState.Exhausted && window.RemainingPercent > 0 && current.UsageAllowed == true)
                 alerts.Add(new($"{account.Id}/{window.Id}/{period}/restored", account.Id, window.Id, $"{window.Name} is available again",
                     $"Provider confirmed capacity · {account.Provider} / {account.Nickname}", now));
         }
-        foreach (var credit in current.Reserve?.Credits ?? [])
+        foreach (var credit in settings.RuleFor(account.Id).Expiry ? current.Reserve?.Credits ?? [] : [])
         {
             if (credit.Status != "available" || credit.ExpiresAt is not { } expiry || expiry <= now) continue;
             var left = expiry - now;
