@@ -31,7 +31,7 @@ public sealed partial class MainPage
         catch { freshness.Text = "Tray is unavailable; keep the window open to monitor."; }
         NotificationService.Current.Invoked += async (action, account, quotaWindow) =>
         {
-            if (action == "snooze") { snoozed[account] = DateTimeOffset.UtcNow.AddHours(1); await AppServices.Current.Store.WriteAsync("snoozed", snoozed); }
+            if (action == "snooze") { snoozed[account] = DateTimeOffset.UtcNow.AddHours(1); if (!state.IsDemo) await AppServices.Current.Store.WriteAsync("snoozed", snoozed); }
             else { ShowMain(); OpenAccount(account, quotaWindow); }
         };
         native.AppWindow.Closing += (_, args) =>
@@ -72,12 +72,13 @@ public sealed partial class MainPage
     void UpdateTray()
     {
         var rows = state.Rows.ToArray();
-        var limiting = rows.OrderBy(r => r.Window.RemainingPercent ?? decimal.MaxValue).FirstOrDefault();
-        var unknown = state.Accounts.Count == 0 || state.Accounts.Where(a => a.Enabled).Any(a => !state.Snapshots.TryGetValue(a.Id, out var s) || s.Health != SourceHealth.Healthy && s.Health != SourceHealth.Demo) || rows.Any(r => r.Window.RemainingPercent is null);
-        var warning = rows.Any(r => r.Window.Capacity(r.Low, r.Critical) is CapacityState.Low or CapacityState.Critical);
-        var exhausted = rows.Any(r => r.Window.Capacity() == CapacityState.Exhausted);
-        var text = limiting is null ? "AI Reset Radar · No usage data" : $"Radar · {limiting.Account.Nickname} / {limiting.Window.Name}: {limiting.LeftText}";
-        if (unknown) text += " · Some data unavailable"; if (state.IsDemo) text = "DEMO · " + text;
+        var status = MonitorStatus.Evaluate(state.Accounts, state.Snapshots, preferences);
+        var limiting = rows.FirstOrDefault(r => r.Account.Id == status.AccountId && r.Window.Id == status.WindowId);
+        var unknown = status.Capacity == CapacityState.Unknown || status.HasUnavailableData || status.UsagePaused;
+        var warning = status.Capacity is CapacityState.Low or CapacityState.Critical;
+        var exhausted = status.Capacity == CapacityState.Exhausted;
+        var text = limiting is null ? "AI Reset Radar" : $"Radar · {limiting.Account.Nickname} / {limiting.Window.Name}: {limiting.LeftText}";
+        if (status.Notice is not null) text += " · " + status.Notice; if (state.IsDemo) text = "DEMO · " + text;
         tray?.Update(text, warning, exhausted, unknown);
     }
     async Task EvaluateAlertsAsync(ProviderAccount account, QuotaSnapshot? previous, QuotaSnapshot current)
@@ -100,7 +101,7 @@ public sealed partial class MainPage
             if (index >= 0) alertHistory[index] = alert with { Delivered = sent };
             if (canDeliver) ShowBanner(alert);
         }
-        alertHistory.RemoveAll(e => e.CreatedAt < now.AddDays(-30));
+        alertHistory.RemoveAll(e => e.CreatedAt < HistoryRetention.Cutoff(now));
         await AppServices.Current.Store.WriteAsync("alerts", alertHistory);
     }
 }

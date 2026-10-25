@@ -15,15 +15,16 @@ public sealed partial class MainPage
         try
         {
             preferences = await AppServices.Current.Store.ReadAsync<RadarSettings>("settings") ?? new();
-            retiredCredentials.Clear(); retiredCredentials.AddRange(await AppServices.Current.Store.ReadAsync<ProviderAccount[]>("retired") ?? []);
+            retiredCredentials.Clear();
             alertHistory.Clear(); snoozed.Clear();
-            alertHistory.AddRange(await AppServices.Current.Store.ReadAsync<AlertEvent[]>("alerts") ?? []);
-            foreach (var item in await AppServices.Current.Store.ReadAsync<Dictionary<string, DateTimeOffset>>("snoozed") ?? []) snoozed[item.Key] = item.Value;
             if (!state.IsDemo)
             {
+                retiredCredentials.AddRange(await AppServices.Current.Store.ReadAsync<ProviderAccount[]>("retired") ?? []);
+                alertHistory.AddRange(await AppServices.Current.Store.ReadAsync<AlertEvent[]>("alerts") ?? []);
+                foreach (var item in await AppServices.Current.Store.ReadAsync<Dictionary<string, DateTimeOffset>>("snoozed") ?? []) snoozed[item.Key] = item.Value;
                 state.Accounts.AddRange(await AppServices.Current.Store.ReadAsync<ProviderAccount[]>("accounts") ?? []);
                 foreach (var snapshot in await AppServices.Current.Store.ReadAsync<QuotaSnapshot[]>("snapshots") ?? [])
-                    if (state.Accounts.Any(a => a.Id == snapshot.AccountId)) state.Snapshots[snapshot.AccountId] = snapshot with { Health = SourceHealth.Stale, Message = "Saved values — refreshing" };
+                    if (state.Accounts.Any(snapshot.BelongsTo)) state.Snapshots[snapshot.AccountId] = snapshot with { Health = SourceHealth.Stale, Message = "Saved values — refreshing" };
                 Render(); await RefreshAsync();
             }
             AIResetRadar.App.Platforms.Windows.NotificationService.Current.Drain();
@@ -38,6 +39,7 @@ public sealed partial class MainPage
         refresh.IsEnabled = false;
         try
         {
+            alertHistory.RemoveAll(e => e.CreatedAt < HistoryRetention.Cutoff(DateTimeOffset.UtcNow));
             if (state.IsDemo) { Render(); return; }
             foreach (var account in state.Accounts.Where(a => a.Enabled).ToArray())
             {
@@ -91,7 +93,7 @@ public sealed partial class MainPage
         await Navigation.PushModalAsync(new ConnectAccountPage(provider == "OpenAI Codex", (account, snapshot) => CommitConnectionAsync(account, snapshot, null)));
     }
     async Task OpenSettingsAsync() => await Navigation.PushModalAsync(new SettingsPage(state.Accounts, state.Snapshots, preferences, state.IsDemo,
-        async settings => { if (settings.LaunchAtSignIn != preferences.LaunchAtSignIn) AIResetRadar.App.Platforms.Windows.StartupService.SetEnabled(settings.LaunchAtSignIn); preferences = settings; await AppServices.Current.Store.WriteAsync("settings", settings); Render(); UpdateTray(); },
+        async settings => { if (!state.IsDemo) { if (settings.LaunchAtSignIn != preferences.LaunchAtSignIn) AIResetRadar.App.Platforms.Windows.StartupService.SetEnabled(settings.LaunchAtSignIn); await AppServices.Current.Store.WriteAsync("settings", settings); } preferences = settings; Render(); UpdateTray(); },
         UpdateAccountAsync, OpenHistoryAsync, TestNotificationAsync, ReconnectAsync));
     async Task ReconnectAsync(ProviderAccount original)
     {
@@ -99,17 +101,25 @@ public sealed partial class MainPage
     }
     void OpenAccount(string id, string? windowId = null)
     {
+        if (string.IsNullOrEmpty(windowId) && state.Accounts.Any(a => a.Id == id) && state.Snapshots.GetValueOrDefault(id)?.Reserve is not null)
+        { _ = OpenReserveAsync(id); return; }
         var row = state.Rows.FirstOrDefault(r => r.Account.Id == id && (string.IsNullOrEmpty(windowId) || r.Window.Id == windowId));
         if (row is not null) _ = OpenDetailsAsync(row);
         else _ = DisplayAlertAsync("Usage details unavailable", "This account or quota window is no longer available. Refresh the dashboard to check current connections.", "Close");
     }
-    Task OpenDetailsAsync(QuotaRow row) => DisplayAlertAsync($"{row.Account.Provider} / {row.Account.Nickname}",
-        $"{row.Window.Name}\n{row.UsedText} · {row.LeftText}\nResets: {row.Window.ResetsAt?.ToLocalTime():f zzz}\n\nAccount: {row.Account.Login ?? row.Account.Subject}\nScope: {row.Account.Scope}\nLast successful fetch: {row.Snapshot.ObservedAt.ToLocalTime():f zzz}\nProvider data as of: {row.Snapshot.ProviderDataAt?.ToLocalTime().ToString("f zzz") ?? "Not supplied"}\n\n{row.SourceNote}", "Close");
-    Task OpenReserveAsync()
+    async Task OpenDetailsAsync(QuotaRow row)
     {
-        var lines = state.Accounts.Where(a => state.Snapshots.ContainsKey(a.Id)).Select(a => {
+        var details = $"{row.Window.Name}\n{row.UsedText} · {row.LeftText}\nResets: {ResetTime.Exact(row.Window.ResetsAt)}\n\nAccount: {row.Account.Login ?? row.Account.Subject}\nScope: {row.Account.Scope}\nLast successful fetch: {ResetTime.Exact(row.Snapshot.ObservedAt)}\nProvider data as of: {ResetTime.Exact(row.Snapshot.ProviderDataAt)}\n\n{row.SourceNote}";
+        if (state.IsDemo || ProviderLinks.Usage(row.Account) is null) { await DisplayAlertAsync($"{row.Account.Provider} / {row.Account.Nickname}", details, "Close"); return; }
+        if (await DisplayAlertAsync($"{row.Account.Provider} / {row.Account.Nickname}", details + "\n\nProvider pages use your browser's sign-in. Check its account and workspace before comparing.", "Open provider usage", "Close") && !await ProviderNavigation.OpenAsync(row.Account))
+            await DisplayAlertAsync("Provider page unavailable", "Open your provider's usage page in your browser, or use Usage and access help in Settings.", "Close");
+    }
+    Task OpenReserveAsync(string? accountId = null)
+    {
+        var lines = state.Accounts.Where(a => (accountId is null ? a.Enabled : a.Id == accountId) && state.Snapshots.ContainsKey(a.Id)).Select(a => {
             var reserve = state.Snapshots[a.Id].Reserve;
             return reserve is null ? null : $"{a.Provider} / {a.Nickname}: {reserve.AvailableCount?.ToString() ?? "Unknown"} reported available\n" +
+                $"Snapshot fetched {state.Snapshots[a.Id].ObservedAt.ToLocalTime():g} · {(a.Enabled ? state.Snapshots[a.Id].Health : "Monitoring paused")}\n" +
                 (reserve.HasPartialDetails ? "Provider supplied only partial credit details.\n" : "") +
                 string.Join("\n", reserve.Credits?.Select(c => $"• {c.ExpiresAt?.ToLocalTime().ToString("f") ?? "Expiry unavailable"} · {(c.ExpiresAt <= DateTimeOffset.UtcNow ? "Expired locally — checking provider" : c.Status)}") ?? ["Credit details unavailable"]);
         }).Where(s => s != null);

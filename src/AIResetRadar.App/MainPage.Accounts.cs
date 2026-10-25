@@ -17,7 +17,7 @@ public sealed partial class MainPage
         {
             var index = state.Accounts.FindIndex(a => a.Id == incoming.Id);
             if (original is not null && index < 0) throw new InvalidDataException("This connection was removed. Add the account again.");
-            if (original is null && state.Accounts.Any(a => a.Provider == incoming.Provider && a.Subject == incoming.Subject && a.Scope == incoming.Scope))
+            if (original is null && state.Accounts.Any(a => a.Provider == incoming.Provider && a.Subject == incoming.Subject && a.ScopeEquals(incoming.Scope)))
                 throw new InvalidDataException("This account and workspace/billing scope is already connected.");
             retired = index >= 0 ? state.Accounts[index] : null;
             accepted = retired is null ? incoming : ReconnectPolicy.Accept(retired, incoming);
@@ -41,7 +41,8 @@ public sealed partial class MainPage
     }
     async Task CleanupRetiredAsync()
     {
-        if (!await cleanupGate.WaitAsync(0)) return;
+        // Demo accounts are never an authoritative inventory of saved connections.
+        if (state.IsDemo || !await cleanupGate.WaitAsync(0)) return;
         try
         {
             foreach (var retired in retiredCredentials.ToArray())
@@ -49,8 +50,10 @@ public sealed partial class MainPage
                 try
                 {
                     if (readCompletions.TryGetValue(retired.Id, out var read) && CredentialKey(read.Account) == CredentialKey(retired)) await read.Ended.Task;
+                    if (state.IsDemo) return;
                     if (!state.Accounts.Any(a => CredentialKey(a) == CredentialKey(retired)))
                     { using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(8)); await AppServices.Current.Monitor.DisconnectAsync(retired, timeout.Token); }
+                    if (state.IsDemo) return;
                     if (!state.Accounts.Any(a => a.Id == retired.Id)) await AppServices.Current.Store.DeleteHistoryAsync(retired.Id);
                     await accountChanges.WaitAsync();
                     try { await AppServices.Current.Store.WriteAsync("retired", retiredCredentials.Where(a => CredentialKey(a) != CredentialKey(retired)).ToArray()); retiredCredentials.RemoveAll(a => CredentialKey(a) == CredentialKey(retired)); }
@@ -63,6 +66,7 @@ public sealed partial class MainPage
     }
     async Task UpdateAccountAsync(ProviderAccount edit, bool remove)
     {
+        if (state.TryEditDemoAccount(edit)) { Render(); UpdateTray(); return; }
         await accountChanges.WaitAsync();
         try
         {

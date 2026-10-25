@@ -41,6 +41,12 @@ public sealed class ConnectAccountPage : ContentPage
         form.Children.Add(new Label { Text = Title, FontSize = 26, FontFamily = "Segoe UI Semibold" });
         form.Children.Add(new Label { Text = codex ? "Sign in through OpenAI in your browser. Radar keeps this account in its own protected Codex profile and only reads usage limits." :
             "Use a GitHub fine-grained token with Plan read permission for personal billing. Organization reports require authorized organization access. Your token is protected with Windows DPAPI.", TextColor = Color.FromArgb("#B6B8C8") });
+        var help = new Button { Text = "Usage and access help" };
+        help.Clicked += async (_, _) => {
+            var uri = ProviderLinks.Help(codex ? "OpenAI" : "GitHub Copilot");
+            try { if (uri is not null) await Launcher.Default.OpenAsync(uri); } catch { status.Text = "Help could not open. Check your default browser."; }
+        };
+        form.Children.Add(help);
         form.Children.Add(nickname);
         if (!codex) { form.Children.Add(token); form.Children.Add(unit); form.Children.Add(allowance); form.Children.Add(organization); }
         else connect.Text = "Sign in with OpenAI";

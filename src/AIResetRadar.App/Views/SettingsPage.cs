@@ -8,6 +8,7 @@ public sealed class SettingsPage : ContentPage
         Func<RadarSettings, Task> save, Func<ProviderAccount, bool, Task> update, Func<Task> history, Func<Task> test, Func<ProviderAccount, Task> reconnect)
     {
         Title = "Settings"; BackgroundColor = Color.FromArgb("#141519");
+        if (demo) form.Children.Add(new Label { Text = "Demo changes stay in this preview. Notification test uses Windows.", TextColor = Color.FromArgb("#B5A0F4") });
         var notifications = Toggle("Popup notifications", original.Notifications);
         var sound = Toggle("Notification sound", original.Sound);
         var privacy = Toggle("Hide account identities in notifications", original.Privacy);
@@ -18,6 +19,7 @@ public sealed class SettingsPage : ContentPage
         var critical = Field("Critical capacity: percent left", original.CriticalThreshold.ToString());
         var close = Toggle("Keep monitoring in the tray when window closes", original.CloseToTray);
         var startup = Toggle("Launch at Windows sign-in", original.LaunchAtSignIn);
+        startup.IsEnabled = !demo;
         var showHistory = new Button { Text = "Alert history" }; showHistory.Clicked += async (_, _) => await history(); form.Children.Add(showHistory);
         var testNotification = new Button { Text = "Send test notification" }; testNotification.Clicked += async (_, _) => await test(); form.Children.Add(testNotification);
         form.Children.Add(new Label { Text = "Connected accounts", FontSize = 21, FontFamily = "Segoe UI Semibold", Margin = new Thickness(0, 16, 0, 0) });
@@ -28,7 +30,14 @@ public sealed class SettingsPage : ContentPage
             var rename = new Button { Text = $"{account.Provider} / {account.Nickname} · Rename" };
             rename.Clicked += async (_, _) => await AccountAction(async () => { var name = await DisplayPromptAsync("Account nickname", "Choose a label for this account.", initialValue: Latest().Nickname); if (!string.IsNullOrWhiteSpace(name)) { current = Latest() with { Nickname = name.Trim() }; await update(current, false); rename.Text = $"{current.Provider} / {current.Nickname} · Rename"; } });
             form.Children.Add(rename);
-            var rules = new Button { Text = "Account and window alert rules", IsEnabled = !demo };
+            var providerPages = new Grid { ColumnDefinitions = [new(GridLength.Star), new(GridLength.Star)], ColumnSpacing = 10 };
+            var usagePage = new Button { Text = "Provider usage page", IsEnabled = !demo };
+            var accessHelp = new Button { Text = "Usage and access help" };
+            usagePage.Clicked += async (_, _) => { if (!await AIResetRadar.App.Services.ProviderNavigation.OpenAsync(Latest())) await DisplayAlertAsync("Provider page unavailable", "Open the provider's usage page in your browser.", "Close"); };
+            accessHelp.Clicked += async (_, _) => { if (!await AIResetRadar.App.Services.ProviderNavigation.OpenAsync(Latest(), true)) await DisplayAlertAsync("Help unavailable", "Open your provider's usage documentation in your browser.", "Close"); };
+            providerPages.Add(usagePage); providerPages.Add(accessHelp, 1); form.Children.Add(providerPages);
+            var browserNotice = new Label { Text = "Browser pages use the account signed in there. Check the account/workspace before comparing.", FontSize = 12, TextColor = Color.FromArgb("#B6B8C8") }; form.Children.Add(browserNotice);
+            var rules = new Button { Text = "Account and window alert rules" };
             rules.Clicked += async (_, _) => await Navigation.PushModalAsync(new AlertRulesPage(current, snapshots.GetValueOrDefault(current.Id)?.Windows ?? [], original,
                 async updated => { var settings = original with { Rules = updated.Where(r => accounts.Any(a => a.Id == r.AccountId)).ToArray() }; await save(settings); original = settings; }));
             form.Children.Add(rules);
@@ -41,7 +50,7 @@ public sealed class SettingsPage : ContentPage
                 catch { syncing = true; enabled.IsToggled = Latest().Enabled; syncing = false; await AccountError(); }
             };
             var remove = new Button { Text = "Remove connection", IsEnabled = !demo };
-            remove.Clicked += async (_, _) => await AccountAction(async () => { if (await DisplayAlertAsync("Remove connection?", "Radar will remove only its own saved connection for this account.", "Remove", "Cancel")) { await update(Latest(), true); form.Children.Remove(rename); form.Children.Remove(remove); form.Children.Remove(rules); form.Children.Remove(signIn); if (enabled.Parent is View enabledRow) form.Children.Remove(enabledRow); } });
+            remove.Clicked += async (_, _) => await AccountAction(async () => { if (await DisplayAlertAsync("Remove connection?", "Radar will remove only its own saved connection for this account.", "Remove", "Cancel")) { await update(Latest(), true); form.Children.Remove(rename); form.Children.Remove(remove); form.Children.Remove(rules); form.Children.Remove(signIn); form.Children.Remove(providerPages); form.Children.Remove(browserNotice); if (enabled.Parent is View enabledRow) form.Children.Remove(enabledRow); } });
             form.Children.Add(remove);
         }
         var status = new Label { TextColor = Color.FromArgb("#EAAA51") }; form.Children.Add(status);
@@ -68,6 +77,7 @@ public sealed class SettingsPage : ContentPage
     Switch Toggle(string title, bool value)
     {
         var toggle = new Switch { IsToggled = value, OnColor = Color.FromArgb("#8170CF") };
+        SemanticProperties.SetDescription(toggle, title);
         var row = new Grid { ColumnDefinitions = [new(GridLength.Star), new(GridLength.Auto)], ColumnSpacing = 20 };
         row.Add(new Label { Text = title, VerticalOptions = LayoutOptions.Center }); row.Add(toggle, 1); form.Children.Add(row); return toggle;
     }
@@ -76,6 +86,6 @@ public sealed class SettingsPage : ContentPage
     Entry Field(string title, string value)
     {
         form.Children.Add(new Label { Text = title, TextColor = Color.FromArgb("#B6B8C8") });
-        var entry = new Entry { Text = value, Keyboard = Keyboard.Numeric }; form.Children.Add(entry); return entry;
+        var entry = new Entry { Text = value, Keyboard = Keyboard.Numeric }; SemanticProperties.SetDescription(entry, title); form.Children.Add(entry); return entry;
     }
 }

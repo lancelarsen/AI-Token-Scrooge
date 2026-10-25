@@ -56,7 +56,7 @@ public sealed class AlertRulesPage : ContentPage
             ((View)expiry.Parent!).IsVisible = id is null; status.Text = "";
         }
     }
-    Entry Field(string title) { form.Children.Add(new Label { Text = title, TextColor = Color.FromArgb("#B6B8C8") }); var field = new Entry { Keyboard = Keyboard.Numeric }; form.Children.Add(field); return field; }
+    Entry Field(string title) { form.Children.Add(new Label { Text = title, TextColor = Color.FromArgb("#B6B8C8") }); var field = new Entry { Keyboard = Keyboard.Numeric }; SemanticProperties.SetDescription(field, title); form.Children.Add(field); return field; }
     Switch Toggle(string title)
     {
         var toggle = new Switch { OnColor = Color.FromArgb("#8170CF") }; SemanticProperties.SetDescription(toggle, title);

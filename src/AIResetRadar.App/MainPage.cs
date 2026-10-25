@@ -1,5 +1,6 @@
 using AIResetRadar.App.Controls;
 using AIResetRadar.App.Presentation;
+using AIResetRadar.Core;
 namespace AIResetRadar.App;
 
 public sealed partial class MainPage : ContentPage
@@ -23,6 +24,8 @@ public sealed partial class MainPage : ContentPage
         root.Add(header); root.Add(new BoxView { Color = Color.FromArgb("#363842") }, 0, 1); root.Add(new ScrollView { Content = body }, 0, 2); Content = root;
         refresh.Clicked += async (_, _) => await RefreshAsync(); settings.Clicked += async (_, _) => await OpenSettingsAsync();
         if (Environment.GetCommandLineArgs().Contains("--demo")) state.LoadDemo(DateTimeOffset.Now);
+        var args = Environment.GetCommandLineArgs(); var scenario = Array.IndexOf(args, "--scenario");
+        if (scenario >= 0 && scenario + 1 < args.Length) state.ApplyDemoScenario(args[scenario + 1]);
         Appearing += async (_, _) => await InitializeAsync();
         Render();
     }
@@ -31,18 +34,15 @@ public sealed partial class MainPage : ContentPage
         state.Settings = preferences;
         body.Children.Clear();
         rowViews.Clear();
-        freshness.Text = state.IsDemo ? "DEMO DATA · No live accounts connected" : state.Snapshots.Count == 0 ? "Connect an account to start monitoring" : $"Updated {state.Snapshots.Values.Max(s => s.ObservedAt).ToLocalTime():h:mm tt} · {DateTimeOffset.Now:ddd, MMM d, yyyy}";
+        freshness.Text = state.IsDemo ? "DEMO DATA · Live monitoring paused" : state.Snapshots.Count == 0 ? "Connect an account to start monitoring" : $"Updated {state.Snapshots.Values.Max(s => s.ObservedAt).ToLocalTime():h:mm tt} · {DateTimeOffset.Now:ddd, MMM d, yyyy}";
         if (retiredCredentials.Count > 0) freshness.Text += " · Previous sign-in cleanup pending";
         var heading = new Grid { ColumnDefinitions = [new(GridLength.Star), new(GridLength.Auto)], ColumnSpacing = 20 };
         heading.Add(new VerticalStackLayout { Spacing = 5, Children = { new Label { Text = "Reset Horizon", FontSize = 28, FontFamily = "Segoe UI Semibold" },
             new Label { Text = "Upcoming quota resets and credit expirations across your accounts.", TextColor = Color.FromArgb("#B6B8C8"), FontSize = 15 } }});
-        var reserves = state.Accounts.Where(a => a.Enabled && state.Snapshots.ContainsKey(a.Id)).Select(a => state.Snapshots[a.Id].Reserve).Where(r => r?.AvailableCount != null).ToArray();
-        var next = reserves.Select(r => r!.EarliestExpiry(DateTimeOffset.Now)).Where(d => d != null).Min();
-        var unconfirmedExpiry = reserves.Any(r => r!.Credits?.Any(c => c.Status == "available" && c.ExpiresAt <= DateTimeOffset.UtcNow) == true);
-        var staleReserve = state.Accounts.Where(a => a.Enabled && a.Provider == "OpenAI").Any(a => !state.Snapshots.TryGetValue(a.Id, out var snapshot) || snapshot.Health is not (AIResetRadar.Core.SourceHealth.Healthy or AIResetRadar.Core.SourceHealth.Demo) || snapshot.Reserve?.AvailableCount is null);
-        var reserve = MakeButton(reserves.Length == 0 ? "Available resets · Not reported" : $"{reserves.Sum(r => r!.AvailableCount)} Codex resets {(unconfirmedExpiry || staleReserve ? "last reported" : "available")}", "\uE8B7"); reserve.Clicked += async (_, _) => await OpenReserveAsync();
-        heading.Add(new VerticalStackLayout { Spacing = 5, Padding = new Thickness(0, 0, 0, 3), Children = { reserve, new Label { Text = unconfirmedExpiry ? "Expiry reached · Awaiting provider confirmation" : next is { } expiry ? $"Earliest known expiry {expiry.ToLocalTime():MMM d · h:mm tt}" : "Expiry details may be unavailable", FontSize = 12, TextColor = Color.FromArgb("#B6B8C8"), HorizontalTextAlignment = TextAlignment.End } }}, 1);
-        body.Children.Add(heading); body.Children.Add(new HorizonView(state.Events(DateTimeOffset.Now), id => OpenAccount(id)));
+        var summary = ResetSummary.Evaluate(state.Accounts, state.Snapshots, DateTimeOffset.UtcNow);
+        var reserve = MakeButton(summary.ReportedCount is not { } count ? "Available resets · Count not reported" : $"{count} Codex resets {(summary.IsLastReported ? "last reported" : "available")}", "\uE8B7"); reserve.Clicked += async (_, _) => await OpenReserveAsync();
+        heading.Add(new VerticalStackLayout { Spacing = 5, Padding = new Thickness(0, 0, 0, 3), Children = { reserve, new Label { Text = summary.HasExpiredDetails ? "Expiry reached · Awaiting provider confirmation" : summary.EarliestExpiry is { } expiry ? $"Earliest known expiry {expiry.ToLocalTime():MMM d · h:mm tt}" : "Expiry details may be unavailable", FontSize = 12, TextColor = Color.FromArgb("#B6B8C8"), HorizontalTextAlignment = TextAlignment.End } }}, 1);
+        body.Children.Add(heading); body.Children.Add(new HorizonView(state.Events(DateTimeOffset.Now), e => OpenAccount(e.AccountId, e.WindowId)));
         var toolbar = new Grid { ColumnDefinitions = [new(GridLength.Star), new(GridLength.Auto), new(GridLength.Auto)], ColumnSpacing = 12 };
         toolbar.Add(new Label { Text = "Accounts", FontSize = 24, FontFamily = "Segoe UI Semibold", VerticalOptions = LayoutOptions.Center });
         var add = MakeButton(state.IsDemo ? "Exit demo" : "Add account", "\uE710"); add.Clicked += async (_, _) => { if (state.IsDemo) { state.ClearDemo(); initialized = false; await InitializeAsync(); } else await AddAccountAsync(); };

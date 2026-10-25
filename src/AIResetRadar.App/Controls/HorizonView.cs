@@ -7,14 +7,14 @@ public sealed class HorizonView : Border
     readonly Grid grid = new() { ColumnSpacing = 20, RowSpacing = 8 };
     readonly ScrollView viewport = new() { Orientation = ScrollOrientation.Horizontal, HeightRequest = 132, HorizontalScrollBarVisibility = ScrollBarVisibility.Always };
     double renderedWidth = double.NaN;
-    public HorizonView(IEnumerable<HorizonEvent> source, Action<string> open)
+    public HorizonView(IEnumerable<HorizonEvent> source, Action<HorizonEvent> open)
     {
         events = source.ToArray(); BackgroundColor = Color.FromArgb("#202229"); StrokeThickness = 0;
         StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 15 };
         Padding = new Thickness(24, 18); viewport.Content = grid; Content = viewport;
         SizeChanged += (_, _) => Render(open); Render(open);
     }
-    void Render(Action<string> open)
+    void Render(Action<HorizonEvent> open)
     {
         if (Math.Abs(renderedWidth - Width) < 1) return;
         renderedWidth = Width;
@@ -35,9 +35,10 @@ public sealed class HorizonView : Border
                 new Label { Text = e.At.ToLocalTime().ToString("h:mm tt"), FontSize = 14, FontFamily = "Segoe UI Semibold", TextColor = color },
                 new Label { Text = e.Title, FontSize = 13 }, new Label { Text = e.Detail, FontSize = 12, TextColor = Color.FromArgb("#BEC1D2") }
             }};
-            var tap = new TapGestureRecognizer(); tap.Tapped += (_, _) => open(e.AccountId); content.GestureRecognizers.Add(tap);
-            SemanticProperties.SetDescription(content, $"{e.Title}. {e.Detail}. {e.At.ToLocalTime():f}");
-            grid.Add(content, i % columns, i / columns);
+            var target = new Grid(); target.Children.Add(content);
+            var action = new Button { Text = "", BackgroundColor = Colors.Transparent, BorderWidth = 0, HeightRequest = -1, HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Fill };
+            action.Clicked += (_, _) => open(e); SemanticProperties.SetDescription(action, $"{e.Title}. {e.Detail}. {e.At.ToLocalTime():f}. Open details."); target.Children.Add(action);
+            grid.Add(target, i % columns, i / columns);
         }
     }
 }

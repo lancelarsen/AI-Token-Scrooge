@@ -16,7 +16,7 @@ public sealed partial class MainPage
         var view = new Button { Text = "View account", BackgroundColor = Color.FromArgb("#7169CA") };
         var snooze = new Button { Text = "Snooze 1 hour" }; var dismiss = new Button { Text = "Dismiss" };
         view.Clicked += (_, _) => { OpenAccount(alert.AccountId, alert.WindowId); Dismiss(); };
-        snooze.Clicked += async (_, _) => { snoozed[alert.AccountId] = DateTimeOffset.UtcNow.AddHours(1); await AppServices.Current.Store.WriteAsync("snoozed", snoozed); Dismiss(); };
+        snooze.Clicked += async (_, _) => { snoozed[alert.AccountId] = DateTimeOffset.UtcNow.AddHours(1); if (!state.IsDemo) await AppServices.Current.Store.WriteAsync("snoozed", snoozed); Dismiss(); };
         dismiss.Clicked += (_, _) => Dismiss(); actions.Children.Add(view); actions.Children.Add(snooze); actions.Children.Add(dismiss); detail.Children.Add(actions);
         banner = new Border { Padding = 18, Content = detail, Stroke = Color.FromArgb("#55515F"), BackgroundColor = Color.FromArgb("#222329"),
             StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 14 }, MaximumWidthRequest = 520,
@@ -26,6 +26,7 @@ public sealed partial class MainPage
     }
     async Task OpenHistoryAsync()
     {
+        alertHistory.RemoveAll(e => e.CreatedAt < HistoryRetention.Cutoff(DateTimeOffset.UtcNow));
         var page = new ContentPage { Title = "Alert history", BackgroundColor = Color.FromArgb("#141519") };
         var content = new VerticalStackLayout { Padding = 28, Spacing = 16 };
         content.Children.Add(new Label { Text = "Alert history", FontSize = 26, FontFamily = "Segoe UI Semibold" });
@@ -45,7 +46,7 @@ public sealed partial class MainPage
         var alert = new AlertEvent("test/" + Guid.NewGuid().ToString("N"), id, null, "Radar notification test", "This is a test. Your account usage has not changed.", DateTimeOffset.UtcNow);
         var sent = NotificationService.Current.Show(alert, preferences with { Notifications = true });
         alertHistory.Add(alert with { Delivered = sent });
-        await AppServices.Current.Store.WriteAsync("alerts", alertHistory);
+        if (!state.IsDemo) await AppServices.Current.Store.WriteAsync("alerts", alertHistory);
         await Navigation.PopModalAsync(); ShowBanner(alert);
         if (!sent) await DisplayAlertAsync("Notification test", NotificationService.Current.Problem ?? "Windows did not confirm delivery. The test is recorded in history.", "OK");
     }
