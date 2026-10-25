@@ -34,6 +34,7 @@ public sealed partial class MainPage
             if (action == "snooze") { snoozed[account] = DateTimeOffset.UtcNow.AddHours(1); if (!state.IsDemo) await AppServices.Current.Store.WriteAsync("snoozed", snoozed); }
             else { ShowMain(); OpenAccount(account, quotaWindow); }
         };
+        NotificationService.Current.Drain();
         native.AppWindow.Closing += (_, args) =>
         {
             if (!exiting && preferences.CloseToTray && tray is not null) { args.Cancel = true; native.AppWindow.Hide(); return; }

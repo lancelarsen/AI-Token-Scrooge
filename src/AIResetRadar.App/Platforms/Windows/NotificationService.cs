@@ -6,7 +6,8 @@ namespace AIResetRadar.App.Platforms.Windows;
 public sealed class NotificationService : IDisposable
 {
     public static NotificationService Current { get; } = new();
-    readonly System.Collections.Concurrent.ConcurrentQueue<(string Action, string Account, string? Window)> pending = new();
+    readonly NotificationActivationInbox pending = new();
+    bool accountsLoaded;
     bool registered;
     public string? Problem { get; private set; }
     public event Action<string, string, string?>? Invoked;
@@ -20,10 +21,16 @@ public sealed class NotificationService : IDisposable
         var action = args.Arguments.ContainsKey("action") ? args.Arguments["action"] : "view";
         var account = args.Arguments.ContainsKey("account") ? args.Arguments["account"] : "";
         var window = args.Arguments.ContainsKey("window") ? args.Arguments["window"] : null;
-        pending.Enqueue((action, account, window));
+        pending.Enqueue(new(action, account, window));
         if (Invoked is not null) MainThread.BeginInvokeOnMainThread(Drain);
     }
-    public void Drain() { while (pending.TryDequeue(out var item)) Invoked?.Invoke(item.Action, item.Account, item.Window); }
+    public void AccountsLoading() => accountsLoaded = false;
+    public void AccountsLoaded() { accountsLoaded = true; Drain(); }
+    public void Drain()
+    {
+        var handler = Invoked;
+        pending.Drain(accountsLoaded, handler is null ? null : item => handler(item.Action, item.AccountId, item.WindowId));
+    }
     public bool Show(AlertEvent alert, RadarSettings settings)
     {
         if (!registered || !settings.Notifications) return false;

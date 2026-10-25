@@ -12,6 +12,7 @@ public sealed partial class MainPage
     async Task InitializeAsync()
     {
         if (initialized) return; initialized = true;
+        AIResetRadar.App.Platforms.Windows.NotificationService.Current.AccountsLoading();
         try
         {
             preferences = await AppServices.Current.Store.ReadAsync<RadarSettings>("settings") ?? new();
@@ -25,9 +26,11 @@ public sealed partial class MainPage
                 state.Accounts.AddRange(await AppServices.Current.Store.ReadAsync<ProviderAccount[]>("accounts") ?? []);
                 foreach (var snapshot in await AppServices.Current.Store.ReadAsync<QuotaSnapshot[]>("snapshots") ?? [])
                     if (state.Accounts.Any(snapshot.BelongsTo)) state.Snapshots[snapshot.AccountId] = snapshot with { Health = SourceHealth.Stale, Message = "Saved values — refreshing" };
-                Render(); await RefreshAsync();
+                Render();
+                AIResetRadar.App.Platforms.Windows.NotificationService.Current.AccountsLoaded();
+                await RefreshAsync();
             }
-            AIResetRadar.App.Platforms.Windows.NotificationService.Current.Drain();
+            else AIResetRadar.App.Platforms.Windows.NotificationService.Current.AccountsLoaded();
         }
         catch { await DisplayAlertAsync("Local storage unavailable", "Radar could not load its local account data. Check available disk space and folder access before connecting accounts.", "OK"); }
     }
