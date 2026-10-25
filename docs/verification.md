@@ -1,32 +1,37 @@
 # Implementation evidence and remaining gates
 
-Updated October 25, 2026. Goal remains active. This report distinguishes implementation and fixtures from live authenticated verification.
+Updated October 25, 2026. The build goal remains active. Fixtures and builds do not substitute for authenticated account or native UI acceptance.
 
-## Verified this build session
+## Verified
 
-- Native Windows MAUI project builds with zero warnings/errors after the initial implementation slices.
-- Core tests: 16 passed. Provider/storage tests: 8 passed. Scope includes percentage/absolute/unknown usage, overage, countdown confirmation, partial reset reserves, quiet hours, warning severity, stable expiry-event keys, workspace mismatch, Copilot units and allowance provenance, authenticated GitHub user binding, organization user filters, and real SQLite restart round-trips.
-- Installed Codex schema generated with 0.164.0-alpha.11.1. It includes multi-bucket quota windows, earned reset count/details, optional workspace identity and included-usage permission.
-- A real stdio protocol probe used two different **empty app-owned profiles**. Both returned no signed-in account, establishing that these profiles did not import the user's existing login. Inference methods were rejected by the client allowlist. This is not a two-signed-in-account renewal test.
-- The real app was launched and inspected through native Windows Computer Use. Dashboard, all four sample quota rows, timeline, Settings, and named accessibility controls were observed. Source references: CreatorMicroModelKeys editor/settings screenshots and the exact user-selected `design/references/approved-ui.png`.
-- A native UI click on **Send test notification** created a persisted alert. Windows returned a nonzero notification ID; the test database reported one accepted notification. That establishes API acceptance, not proof of a visible popup when Windows suppresses banners.
-- A self-contained Release x64 publish completed. Subsequent UI refinements require republishing before delivery.
+- **51 passing Windows tests:** 30 Core and 21 Infrastructure, zero skipped/failed. Coverage includes quota math/unknowns/overage, reset confirmation, DST, partial reserves, alert crossings and scoped rules, expiry keys, malformed values, identity mismatches, organization-user filtering, 403/429 handling, body bounds, DPAPI, snapshot retention on collection, schema migration/future-version rejection, and atomic rollback of account/snapshot/retired-credential references.
+- Native self-contained Release x64 publish succeeds with MAUI Controls **10.0.120**, exact SDK **10.0.403**, and the pinned .NET **10.0.13** runtime. Published runtime configuration and restored assets were inspected. The installed Windows build workload remains 10.0.20. See `toolchain.md` for the SDK replacement and framework-resolution decision.
+- NuGet audit across the solution and transitive dependencies reports no known vulnerable packages from configured sources.
+- Installed Codex schema was generated with 0.164.0-alpha.11.1. Optional workspace, multiple quota buckets, earned resets and included-usage permission are represented without inventing absent values.
+- The real stdio probe was rerun after transport-disposal changes: two separate empty app-owned profiles returned no account; inference was rejected by the allowlist. Afterwards the authoritative host inventory found zero children matching the monitor's minimal app-server signature. This proves empty-profile separation and probe shutdown, not authenticated renewal isolation.
+- A second-model code review identified stale reconnect results and destructive-before-commit removal. Fixes use immutable account generations, staged credential IDs, durable cleanup references and atomic metadata adoption/removal. Settings resolve the latest account record. Lifecycle/secret-preservation/DB rollback tests pass; full native interleaving and fault scenarios remain open.
 
-## Observed visual differences / follow-up
+## Native observations already obtained
 
-- The initial desktop window extended beyond the visible monitor working area; startup now clamps it to the available area. Retest this change.
-- Timeline includes actual chronological events, including the second account's earlier reset; it intentionally does not copy the mockup's unsorted account rows or omit that event.
-- A horizontal scrolling timeline is being used at narrower widths to avoid consuming several rows of the compact screen. Native compact inspection remains required after this change.
-- Native title bar, real provider icons, demo labels, unknown-data labels and actual values differ from the generated image. Preserve the selected visual hierarchy while testing actual native layout, keyboard access and scaling.
+- Real Windows Computer Use observed the dashboard, four demo rows, timeline, Settings and accessibility labels. References: `design/references/approved-ui.png` and CreatorMicroModelKeys editor/settings screenshots.
+- Compact startup requested **800x700**; the captured client was approximately **789x694**. Rows reflowed and the timeline scrolled horizontally. Choosing **Least remaining** put the 18%-remaining Copilot row first.
+- A native click on **Send test notification** persisted one event; Windows returned a nonzero notification ID. A separate store read confirmed one Windows-accepted event. This does not prove a visible popup under Focus Assist.
+- Initial startup exceeded the working area; a work-area clamp was added. Final desktop sizing/scaling needs a new observation.
+- Repeated size-change reconstruction caused excessive idle CPU. Rendering now changes only for width/breakpoint changes. The bounded regression run recorded **0.0 CPU seconds over 15 seconds**, with working set **261.8 -> 259.2 MB**. Evidence: ignored `artifacts/idle-test/idle-result.json`; repeat with `scripts/Test-Idle.ps1`. That sample predates servicing and the newest controls; their final resource measurement remains required.
+- Computer Use reported a physical **Escape** stop. UI checks remain stopped pending the user's answer to the resume question. Auth dialogs are not automated.
 
-## Still required
+## Distribution
 
-- Authenticated Codex account/window/reserve comparison; two independent signed-in accounts, token renewal, sign-out/remove isolation and restart.
-- Authenticated GitHub personal/organization access reconciliation, allowance provenance and billing latency.
-- Final desktop and 800×700 native comparison, keyboard/Narrator and 100/150/200% DPI verification.
-- Notification View/Snooze/Dismiss and cold-start activation, alert history restart behavior, disabled OS notifications, quiet hours and source-change reconciliation.
-- Tray quick view, hide/restore/Exit, Explorer restart, network/power/clock recovery, resource measurements and clean-user package smoke test.
-- Snapshot history/retention, reconnect UX, stronger fault/race coverage, serving-version update assessment and final code review.
-- Reproducible distribution package and README acceptance check against final behavior.
+`scripts/Build-Windows.ps1 -Package` provides the test/publish/package recipe. `scripts/Package-Windows.ps1` rejects obvious local-state/credential files, checks required self-contained files in the ZIP, and writes a SHA-256 manifest. Current preview input is `artifacts/publish/validation-win-x64`, preserving the running older review copy. The ZIP is unsigned; it is not a completed installer or clean-user acceptance result.
 
-No required live check is considered passed because demo fixtures or a build succeeded. No credential contents were inspected or copied into reports.
+## Required open gates
+
+- Authenticated Codex usage/window/reserve comparison; two independent signed-in accounts, renewal, restart, rejected reconnect and removal isolation, including the existing external Codex/IDE login.
+- Authenticated GitHub personal/organization access, allowance/discount/overage reconciliation and billing latency. Official billing endpoint documentation was rechecked; actual account coverage remains absent.
+- Final desktop/compact comparison after servicing and rule changes, keyboard/Narrator, 100/150/200% DPI, empty/error/partial states and final resource/soak measurements.
+- Tray quick view/positioning, hide/restore/Exit, Explorer restart, startup, network/power/clock recovery and child shutdown during real sessions.
+- Notification View/Snooze/Dismiss, exact-window/cold activation, OS-disabled notifications, quiet hours, restart deduplication and persistent-delivery interleavings.
+- Transport/process/DB fault matrix, cleanup-retry failures, retention independent of successful collection, provider capability/usage-page affordances and the final requirement audit.
+- Clean-user extraction/launch/notifications/removal, final packaging/signing decision and README walkthrough.
+
+No live check is passed because a demo, build, schema or empty-profile probe succeeds. No credential contents were copied into evidence.
