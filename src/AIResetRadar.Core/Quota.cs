@@ -6,7 +6,7 @@ public enum AllowanceProvenance { Unknown, Provider, Manual }
 public enum CapacityState { Unknown, Healthy, Low, Critical, Exhausted }
 
 public sealed record ProviderAccount(string Id, string Provider, string Nickname, string Subject, string Scope,
-    bool Enabled = true, decimal? Allowance = null, UsageUnit Unit = UsageUnit.Credits);
+    bool Enabled = true, decimal? Allowance = null, UsageUnit Unit = UsageUnit.Credits, string? Login = null);
 
 public sealed record QuotaWindow(string Id, string Name, UsageUnit Unit, decimal? Used,
     decimal? Limit, DateTimeOffset? ResetsAt, int? DurationMinutes = null,
@@ -36,7 +36,7 @@ public sealed record ResetReserve(int? AvailableCount, IReadOnlyList<ResetCredit
 
 public sealed record QuotaSnapshot(string AccountId, string Subject, string Scope, DateTimeOffset ObservedAt,
     IReadOnlyList<QuotaWindow> Windows, ResetReserve? Reserve, SourceHealth Health = SourceHealth.Healthy,
-    string? Message = null, DateTimeOffset? ProviderDataAt = null);
+    string? Message = null, DateTimeOffset? ProviderDataAt = null, bool? UsageAllowed = null);
 
 public static class ResetTime
 {

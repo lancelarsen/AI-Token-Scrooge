@@ -28,8 +28,9 @@ public static class ProviderMapping
         var message = scope is null ? "Workspace identity unavailable from provider" : null;
         if (response.TryGetProperty("ordinaryUsageAllowed", out var allowed) && allowed.ValueKind == JsonValueKind.False)
             message = "Provider reports included usage is paused";
+        bool? usageAllowed = response.TryGetProperty("ordinaryUsageAllowed", out var permission) && permission.ValueKind is JsonValueKind.True or JsonValueKind.False ? permission.GetBoolean() : null;
         return new(account.Id, account.Subject, scope ?? account.Scope, observed, windows, reserve,
-            windows.Count == 0 ? SourceHealth.Unsupported : SourceHealth.Healthy, message);
+            windows.Count == 0 ? SourceHealth.Unsupported : SourceHealth.Healthy, message, UsageAllowed: usageAllowed);
 
         void AddBucket(string id, JsonElement bucket)
         {
