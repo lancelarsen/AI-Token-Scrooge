@@ -44,10 +44,13 @@ public sealed partial class MainPage
     {
         var id = state.Accounts.FirstOrDefault()?.Id ?? "test";
         var alert = new AlertEvent("test/" + Guid.NewGuid().ToString("N"), id, null, "Radar notification test", "This is a test. Your account usage has not changed.", DateTimeOffset.UtcNow);
+        try { if (!await RecordAlertIntentAsync(alert)) return; }
+        catch { await DisplayAlertAsync("Local history unavailable", "Radar could not record the test notification. Check available space and folder access, then try again.", "Close"); return; }
         var sent = NotificationService.Current.Show(alert, preferences with { Notifications = true });
-        alertHistory.Add(alert with { Delivered = sent });
-        if (!state.IsDemo) await AppServices.Current.Store.WriteAsync("alerts", alertHistory);
+        var deliverySaved = true;
+        try { await MarkAlertDeliveredAsync(alert, sent); } catch { deliverySaved = false; }
         await Navigation.PopModalAsync(); ShowBanner(alert);
         if (!sent) await DisplayAlertAsync("Notification test", NotificationService.Current.Problem ?? "Windows did not confirm delivery. The test is recorded in history.", "OK");
+        else if (!deliverySaved) await DisplayAlertAsync("Notification test", "Windows accepted the notification, but Radar could not save the delivery status. The test will not be replayed.", "Close");
     }
 }

@@ -57,23 +57,36 @@ public sealed partial class MainPage
                 var previous = state.Snapshots.GetValueOrDefault(account.Id);
                 try
                 {
-                    var snapshot = await AppServices.Current.Monitor.RefreshAsync(account, timeout.Token);
+                    QuotaSnapshot snapshot;
+                    try { snapshot = await AppServices.Current.Monitor.RefreshAsync(account, timeout.Token); }
+                    catch (Exception error)
+                    {
+                        if (!Current()) continue;
+                        var health = error is ProviderAccessException access ? access.Health : SourceHealth.Offline;
+                        var last = previous ?? new(account.Id, account.Subject, account.Scope, DateTimeOffset.UtcNow, [], null);
+                        state.Snapshots[account.Id] = last with { Health = health, Message = ConnectAccountPage.SafeMessage(error) };
+                        var count = failures.GetValueOrDefault(account.Id) + 1; failures[account.Id] = count;
+                        nextRefresh[account.Id] = error is ProviderAccessException { RetryAt: { } retry } ? retry : DateTimeOffset.UtcNow.AddSeconds(Math.Min(1800, 60 * Math.Pow(2, Math.Min(5, count))));
+                        if (error is ProviderAccessException { RetryAt: { } retryAfter }) throttledUntil[account.Id] = retryAfter;
+                        continue;
+                    }
                     if (!Current()) continue;
-                    state.Snapshots[account.Id] = snapshot; failures[account.Id] = 0;
-                    await AppServices.Current.Store.RecordSnapshotAsync(snapshot);
-                    if (!Current()) continue;
+                    failures[account.Id] = 0;
                     nextRefresh[account.Id] = RefreshSchedule.AfterSuccess(snapshot, account.Provider, DateTimeOffset.UtcNow);
-                    await EvaluateAlertsAsync(account, previous, snapshot);
-                }
-                catch (Exception error)
-                {
-                    if (!Current()) continue;
-                    var health = error is ProviderAccessException access ? access.Health : SourceHealth.Offline;
-                    var last = previous ?? new(account.Id, account.Subject, account.Scope, DateTimeOffset.UtcNow, [], null);
-                    state.Snapshots[account.Id] = last with { Health = health, Message = ConnectAccountPage.SafeMessage(error) };
-                    var count = failures.GetValueOrDefault(account.Id) + 1; failures[account.Id] = count;
-                    nextRefresh[account.Id] = error is ProviderAccessException { RetryAt: { } retry } ? retry : DateTimeOffset.UtcNow.AddSeconds(Math.Min(1800, 60 * Math.Pow(2, Math.Min(5, count))));
-                    if (error is ProviderAccessException { RetryAt: { } retryAfter }) throttledUntil[account.Id] = retryAfter;
+                    try
+                    {
+                        state.Snapshots[account.Id] = snapshot;
+                        await AppServices.Current.Store.RecordSnapshotAsync(snapshot);
+                        if (!Current()) continue;
+                        await EvaluateAlertsAsync(account, previous, snapshot);
+                    }
+                    catch
+                    {
+                        if (!Current()) continue;
+                        // Keep the pre-alert baseline so a failed intent write can retry its crossing.
+                        var last = previous ?? new(account.Id, account.Subject, account.Scope, DateTimeOffset.UtcNow, [], null);
+                        state.Snapshots[account.Id] = last with { Health = SourceHealth.Stale, Message = "Local history could not be saved; retaining previous values. Check available space and folder access." };
+                    }
                 }
                 finally { pendingReads.Remove(account.Id); readCompletions.Remove(account.Id); ended.TrySetResult(); }
             }

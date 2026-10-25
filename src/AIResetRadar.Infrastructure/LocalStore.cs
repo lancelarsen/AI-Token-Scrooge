@@ -4,12 +4,12 @@ using AIResetRadar.Core;
 namespace AIResetRadar.Infrastructure;
 
 /// <summary>Non-secret local state. Tokens belong exclusively in ISecretStore.</summary>
-public sealed class LocalStore
+public sealed partial class LocalStore
 {
     readonly string connectionString;
     readonly SemaphoreSlim gate = new(1, 1);
     readonly TimeProvider clock;
-    public async Task WriteMonitoringStateAsync(IReadOnlyList<AIResetRadar.Core.ProviderAccount> accounts, IReadOnlyList<AIResetRadar.Core.QuotaSnapshot> snapshots, IReadOnlyList<AIResetRadar.Core.ProviderAccount>? retired = null, CancellationToken ct = default)
+    public async Task<IReadOnlyList<AlertEvent>> WriteMonitoringStateAsync(IReadOnlyList<ProviderAccount> accounts, IReadOnlyList<QuotaSnapshot> snapshots, IReadOnlyList<ProviderAccount>? retired = null, IReadOnlyList<AlertEvent>? alerts = null, CancellationToken ct = default)
     {
         var values = new Dictionary<string, string> { ["accounts"] = JsonSerializer.Serialize(accounts), ["snapshots"] = JsonSerializer.Serialize(snapshots) };
         if (retired is not null) values["retired"] = JsonSerializer.Serialize(retired);
@@ -23,7 +23,14 @@ public sealed class LocalStore
                 command.CommandText = "INSERT INTO state(key,value) VALUES($key,$value) ON CONFLICT(key) DO UPDATE SET value=excluded.value";
                 command.Parameters.AddWithValue("$key", item.Key); command.Parameters.AddWithValue("$value", item.Value); await command.ExecuteNonQueryAsync(ct);
             }
-            transaction.Commit();
+            List<AlertEvent> inserted = [];
+            if (alerts is { Count: > 0 })
+            {
+                var events = await ReadAlertsAsync(connection, transaction, ct);
+                foreach (var alert in alerts) if (AddAlert(events, alert)) inserted.Add(events[^1]);
+                if (inserted.Count > 0) await WriteAlertsAsync(connection, transaction, events, ct);
+            }
+            transaction.Commit(); return inserted;
         }
         finally { gate.Release(); }
     }
@@ -111,15 +118,22 @@ public sealed class LocalStore
     }
     async Task PruneAsync(SqliteConnection connection, CancellationToken ct)
     {
+        using var transaction = connection.BeginTransaction();
         await using var command = connection.CreateCommand();
+        command.Transaction = transaction;
         command.CommandText = "DELETE FROM history WHERE observed_at < $cutoff";
         command.Parameters.AddWithValue("$cutoff", HistoryRetention.Cutoff(clock.GetUtcNow()).ToUnixTimeMilliseconds()); await command.ExecuteNonQueryAsync(ct);
         command.Parameters.Clear(); command.CommandText = "SELECT value FROM state WHERE key='alerts'";
-        if (await command.ExecuteScalarAsync(ct) is not string json) return;
-        var alerts = JsonSerializer.Deserialize<AlertEvent[]>(json) ?? [];
-        var retained = HistoryRetention.PruneAlerts(alerts, clock.GetUtcNow());
-        if (retained.Length == alerts.Length) return;
-        command.CommandText = "UPDATE state SET value=$value WHERE key='alerts'"; command.Parameters.AddWithValue("$value", JsonSerializer.Serialize(retained));
-        await command.ExecuteNonQueryAsync(ct);
+        if (await command.ExecuteScalarAsync(ct) is string json)
+        {
+            var alerts = JsonSerializer.Deserialize<AlertEvent[]>(json) ?? [];
+            var retained = HistoryRetention.PruneAlerts(alerts, clock.GetUtcNow());
+            if (retained.Length != alerts.Length)
+            {
+                command.CommandText = "UPDATE state SET value=$value WHERE key='alerts'"; command.Parameters.AddWithValue("$value", JsonSerializer.Serialize(retained));
+                await command.ExecuteNonQueryAsync(ct);
+            }
+        }
+        transaction.Commit();
     }
 }

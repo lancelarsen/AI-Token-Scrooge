@@ -12,6 +12,7 @@ public sealed partial class MainPage
     async Task CommitConnectionAsync(ProviderAccount incoming, QuotaSnapshot snapshot, ProviderAccount? original)
     {
         ProviderAccount accepted; ProviderAccount? retired = null; QuotaSnapshot? previous;
+        IReadOnlyList<AlertEvent> recorded;
         await accountChanges.WaitAsync();
         try
         {
@@ -27,7 +28,8 @@ public sealed partial class MainPage
             // Persist the credential reference and snapshot together before adopting either in the UI.
             var retire = retired is not null && CredentialKey(retired) != CredentialKey(accepted);
             var pending = retire ? retiredCredentials.Append(retired!).DistinctBy(CredentialKey).ToArray() : retiredCredentials.ToArray();
-            await AppServices.Current.Store.WriteMonitoringStateAsync(accounts, snapshots, pending);
+            var alerts = accepted.Enabled ? AlertEvaluator.Evaluate(accepted, previous, snapshot, preferences, DateTimeOffset.UtcNow) : [];
+            recorded = await AppServices.Current.Store.WriteMonitoringStateAsync(accounts, snapshots, pending, alerts);
             retiredCredentials.Clear(); retiredCredentials.AddRange(pending);
             if (index >= 0) state.Accounts[index] = accepted; else state.Accounts.Add(accepted);
             state.Snapshots[accepted.Id] = snapshot;
@@ -35,9 +37,9 @@ public sealed partial class MainPage
         }
         finally { accountChanges.Release(); }
         _ = CleanupRetiredAsync();
-        try { if (accepted.Enabled) await EvaluateAlertsAsync(accepted, previous, snapshot); }
-        catch { freshness.Text = "Account saved. Alert history could not be updated."; }
         Render(); UpdateTray();
+        try { if (accepted.Enabled) await EvaluateAlertsAsync(accepted, previous, snapshot, recorded); }
+        catch { freshness.Text = "Account saved. Alert history could not be updated."; }
     }
     async Task CleanupRetiredAsync()
     {

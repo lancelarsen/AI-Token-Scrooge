@@ -4,6 +4,7 @@ using Xunit;
 
 namespace AIResetRadar.Infrastructure.Tests
 {
+    [Collection("App orchestration")]
     public sealed class RetirementOrchestrationTests
     {
         [Theory]
@@ -45,21 +46,42 @@ namespace AIResetRadar.App
     public sealed partial class MainPage
     {
         readonly Presentation.DashboardState state = new();
+        readonly RadarSettings preferences = new();
+        readonly List<AlertEvent> alertHistory = [];
+        readonly Dictionary<string, DateTimeOffset> snoozed = [];
         readonly Dictionary<string, DateTimeOffset> nextRefresh = [], throttledUntil = [];
         readonly Dictionary<string, int> failures = [];
         readonly TestLabel freshness = new();
         sealed class TestLabel { public string? Text { get; set; } }
-        public MainPage(LocalStore store, Services.TestCredentialMonitor monitor, ProviderAccount? live, ProviderAccount retired, bool demo)
+        public MainPage(LocalStore store, Services.TestCredentialMonitor monitor, ProviderAccount? live, ProviderAccount? retired, bool demo)
         {
             Services.AppServices.Current = new() { Store = store, Monitor = monitor };
+            Platforms.Windows.NotificationService.Current = new();
             if (live is not null) state.Accounts.Add(live);
-            retiredCredentials.Add(retired);
+            if (retired is not null) retiredCredentials.Add(retired);
             if (demo) state.LoadDemo(DateTimeOffset.UtcNow);
         }
         public Task RunCleanupAsync() => CleanupRetiredAsync();
+        public async Task WaitForCleanupAsync() { await cleanupGate.WaitAsync(); cleanupGate.Release(); }
+        public void SetSnapshotForTest(QuotaSnapshot snapshot) => state.Snapshots[snapshot.AccountId] = snapshot;
+        public Task CommitForTestAsync(ProviderAccount account, QuotaSnapshot snapshot, ProviderAccount? original) => CommitConnectionAsync(account, snapshot, original);
+        public Task<bool> RecordIntentForTestAsync(AlertEvent alert) => RecordAlertIntentAsync(alert);
+        public IReadOnlyList<AlertEvent> AlertHistoryForTest => alertHistory;
         void Render() { }
         void UpdateTray() { }
-        Task EvaluateAlertsAsync(ProviderAccount account, QuotaSnapshot? previous, QuotaSnapshot current) => Task.CompletedTask;
+        void ShowBanner(AlertEvent alert) { }
+    }
+}
+
+namespace AIResetRadar.App.Platforms.Windows
+{
+    public sealed class NotificationService
+    {
+        public static NotificationService Current { get; set; } = new();
+        public List<AlertEvent> Attempts { get; } = [];
+        public Action<AlertEvent>? OnShow { get; set; }
+        public bool Show(AlertEvent alert, RadarSettings settings)
+        { Attempts.Add(alert); OnShow?.Invoke(alert); return true; }
     }
 }
 

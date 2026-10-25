@@ -82,27 +82,4 @@ public sealed partial class MainPage
         if (status.Notice is not null) text += " · " + status.Notice; if (state.IsDemo) text = "DEMO · " + text;
         tray?.Update(text, warning, exhausted, unknown);
     }
-    async Task EvaluateAlertsAsync(ProviderAccount account, QuotaSnapshot? previous, QuotaSnapshot current)
-    {
-        var now = DateTimeOffset.UtcNow;
-        var lease = new AccountRefreshLease(account);
-        bool Current() => lease.IsCurrent(state.Accounts.FirstOrDefault(a => a.Id == account.Id));
-        foreach (var alert in AlertEvaluator.Evaluate(account, previous, current, preferences, now))
-        {
-            if (!Current()) return;
-            if (alertHistory.Any(e => e.Key == alert.Key)) continue;
-            // Persist intent before Windows delivery so a restart cannot replay the same logical event.
-            var index = alertHistory.Count;
-            alertHistory.Add(alert);
-            await AppServices.Current.Store.WriteAsync("alerts", alertHistory.ToArray());
-            if (!Current()) return;
-            var canDeliver = preferences.Notifications && !AlertEvaluator.IsQuiet(preferences, now, TimeZoneInfo.Local) && (!snoozed.TryGetValue(account.Id, out var until) || until <= now);
-            var sent = canDeliver && NotificationService.Current.Show(alert, preferences);
-            index = alertHistory.FindIndex(e => e.Key == alert.Key);
-            if (index >= 0) alertHistory[index] = alert with { Delivered = sent };
-            if (canDeliver) ShowBanner(alert);
-        }
-        alertHistory.RemoveAll(e => e.CreatedAt < HistoryRetention.Cutoff(now));
-        await AppServices.Current.Store.WriteAsync("alerts", alertHistory);
-    }
 }

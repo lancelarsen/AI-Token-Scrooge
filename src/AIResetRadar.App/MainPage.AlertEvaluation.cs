@@ -1,0 +1,29 @@
+using AIResetRadar.App.Platforms.Windows;
+using AIResetRadar.Core;
+namespace AIResetRadar.App;
+
+public sealed partial class MainPage
+{
+    async Task EvaluateAlertsAsync(ProviderAccount account, QuotaSnapshot? previous, QuotaSnapshot current, IReadOnlyList<AlertEvent>? recorded = null)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var lease = new AccountRefreshLease(account);
+        var deliveryStatusFailed = false;
+        bool Current() => lease.IsCurrent(state.Accounts.FirstOrDefault(a => a.Id == account.Id));
+        foreach (var alert in recorded ?? AlertEvaluator.Evaluate(account, previous, current, preferences, now))
+        {
+            if (!Current()) return;
+            // Persist intent before Windows delivery so a restart cannot replay the same logical event.
+            if (recorded is null) { if (!await RecordAlertIntentAsync(alert)) continue; }
+            else { alertHistory.RemoveAll(e => e.Key == alert.Key); alertHistory.Add(alert); }
+            if (!Current()) return;
+            var canDeliver = preferences.Notifications && !AlertEvaluator.IsQuiet(preferences, now, TimeZoneInfo.Local) && (!snoozed.TryGetValue(account.Id, out var until) || until <= now);
+            var sent = canDeliver && NotificationService.Current.Show(alert, preferences);
+            if (canDeliver) ShowBanner(alert);
+            try { await MarkAlertDeliveredAsync(alert, sent); }
+            catch { deliveryStatusFailed = true; }
+        }
+        alertHistory.RemoveAll(e => e.CreatedAt < HistoryRetention.Cutoff(now));
+        if (deliveryStatusFailed) throw new IOException("Windows delivery status could not be saved for one or more alerts.");
+    }
+}
