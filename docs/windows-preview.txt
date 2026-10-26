@@ -1,0 +1,61 @@
+AI TOKEN SCROOGE
+Never Waste a Token!
+
+WINDOWS PREVIEW
+
+1. Extract the complete ZIP into a permanent folder.
+2. Open AIResetRadar.App.exe normally, without Run as administrator.
+   The executable keeps its original name for upgrade compatibility.
+3. Choose Add account, then OpenAI Codex or GitHub Copilot.
+   Complete sign-in in your browser. GitHub authorization currently shows
+   AI Reset Radar, the registered sign-in app for AI Token Scrooge.
+   Use the Copy code button when GitHub asks for the displayed device code.
+
+OpenAI monitoring requires a local Codex installation. This preview monitors
+Codex usage limits, not general ChatGPT model quotas or OpenAI API billing.
+GitHub personal allowance is detected when available; billing data can lag.
+Its entitlement lookup uses an internal GitHub endpoint that may change.
+Unavailable limits remain unknown; manual allowances are labeled.
+
+READING THE DASHBOARD
+
+Each account has one section with its nickname and reported plan. Separate
+meters within that section are separate quota windows, such as 5-hour and
+weekly limits. Each has its own reset time. Click a meter for details.
+Provider-reported plan names do not establish a subscription price.
+The Reset Horizon also shows earned-reset expirations when supplied.
+Scrooge only reads usage: it does not redeem resets or make AI requests.
+
+BACKGROUND MONITORING
+
+Settings > Open quick view opens compact account sections.
+Closing the main window keeps monitoring active when close-to-tray is enabled.
+Use the notification-area icon's Exit Scrooge command to stop monitoring.
+The icon may be under Windows' hidden-icons arrow.
+Launch at Windows sign-in is optional and off by default. If you move this
+folder, run the app from its new location and re-save that setting if enabled.
+
+NOTIFICATIONS
+
+Settings includes thresholds, quiet hours, snooze, privacy, Alert history,
+and Send test notification. Windows notification settings and Do Not Disturb
+can affect delivery. Elevated applications cannot display these notifications.
+Windows notification clicks while hidden or closed remain release-test gates.
+
+SAVED ACCOUNTS
+
+Data is stored under %LOCALAPPDATA%\AIResetRadar. GitHub credentials are
+protected for the current Windows user. OpenAI accounts use separate app-owned
+Codex profiles. Settings lets you rename, disable, reconnect or remove each
+connection. Removing one connection does not remove other saved accounts.
+GitHub authorization can also be revoked in GitHub's account settings.
+Deleting the extracted program folder alone does not remove saved connections.
+
+PREVIEW STATUS
+
+This is an unsigned portable preview, not a finished installer. Two OpenAI
+accounts and one personal GitHub Copilot account have refreshed successfully
+together. Full renewal/removal isolation, Windows notification activation,
+tray/startup recovery, DPI/accessibility, longer resource testing, and clean
+Windows-user installation/removal acceptance remain incomplete.
+The app can still have defects. Demo mode is labeled and uses synthetic data.
