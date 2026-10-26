@@ -3,7 +3,7 @@ public static class ProviderLinks
 {
     public static Uri? Usage(ProviderAccount account) => account.Provider switch
     {
-        "OpenAI" => new("https://chatgpt.com/codex/settings/usage"),
+        "OpenAI" => new("https://chatgpt.com/settings/usage?tab=overview"),
         "GitHub Copilot" when account.Scope.StartsWith("organization:", StringComparison.OrdinalIgnoreCase) =>
             new($"https://github.com/organizations/{Uri.EscapeDataString(account.Scope[13..])}/settings/billing"),
         "GitHub Copilot" => new("https://github.com/settings/billing"),

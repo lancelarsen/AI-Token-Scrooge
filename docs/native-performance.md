@@ -12,6 +12,8 @@ The current native session showed sluggish editing and sustained CPU use. A fres
 | Plain MAUI one-label window, longer warm-up | 0.969 | 15 | 211.3 MB |
 | Plain MAUI list of 100 labels | 8.594 | 12 | 348.3 MB |
 | Dashboard without tray/timer integration, different title | 8.641 | 12 | 311.4 MB |
+| Connected OpenAI dashboard, previous validation build | 7.812 | 10 | 535.5 MB |
+| Latest Release at a new executable path, before new window inspection | 3.953 | 10 | 314.6 MB |
 
 The plain-list experiment bypasses MainPage, quota controls, provider reads and tray integration. It retains MAUI resources and Windows app/notification initialization. The temporary startup branches were removed from production source after measurement. An ignored copy is at `artifacts/native-qa/App.performance-probe.cs`.
 
@@ -23,4 +25,4 @@ Next evidence needed: native CPU stacks and a comparison without an active autom
 
 The current host is not elevated; WPR reports no active recording. No system-wide trace was started. Installed WinDbg/CDB/WPA tools were not found in the checked SDK/Visual Studio locations. A local ignored `artifacts/stack-probe` utility uses Microsoft's signed DbgEng 20260319.1511.0 and ClrDebug 0.4.2. It verifies the exact owned executable path and uses noninvasive, no-suspend mode, with no memory dump or variable inspection. One hot-thread read returned only a WinUI export-offset frame and an unresolved frame; a symbol-enabled attempt exited 1 without a usable stack. Radar remained running and responsive. This is insufficient to identify the hot native function.
 
-Microsoft's [1.8 release notes](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/release-notes/windows-app-sdk-1-8) list 1.8.12 (1.8.260921001) as newer servicing than the app's current 1.8.9. They do not establish a fix for this observed CPU issue. No unverified framework override was promoted into the app. Further native measurement remains required when the manual sign-in handoff is finished.
+Microsoft's [1.8 release notes](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/release-notes/windows-app-sdk-1-8) list 1.8.12 (1.8.260921001) as newer servicing than the app's current 1.8.9. They do not establish a fix for this observed CPU issue. No unverified framework override was promoted into the app. The completed OpenAI sign-in and restart check still show elevated load; differing samples do not establish an improvement or a cause. Further native measurement remains required.

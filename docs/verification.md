@@ -1,6 +1,6 @@
 # Implementation evidence and remaining gates
 
-Updated October 25, 2026. The build goal remains active. Fixtures and builds do not substitute for authenticated account or native UI acceptance.
+Updated October 25, 2026. The build goal remains incomplete. Fixtures and builds do not substitute for authenticated account or native UI acceptance.
 
 ## Verified
 
@@ -13,6 +13,8 @@ Updated October 25, 2026. The build goal remains active. Fixtures and builds do 
 
 ## Native observations already obtained
 
+- One real OpenAI account is connected. Native weekly usage (5% used / 95% left) and both earned-reset expirations match the signed-in provider page: October 29, 2:39 PM CDT and November 6, 5:41 PM CST. The weekly reset displays November 1, 8:49 AM with the correct -06:00 offset across DST. No five-hour quota was supplied. This proves one account's current values, not independent account isolation or renewal.
+- Restarting the owned app from the validation build into the latest self-contained Release build preserved a non-secret fingerprint of account/subject/scope/credential references. The saved account refreshed with healthy status and a new observation, without another sign-in. The latest native provider action reached `/settings/usage?tab=overview` directly after the old route redirected to Home. No credential values were read or copied.
 - Real Windows Computer Use observed the dashboard, four demo rows, timeline, Settings and accessibility labels. References: `design/references/approved-ui.png` and CreatorMicroModelKeys editor/settings screenshots.
 - Compact startup requested **800x700**; the captured client was approximately **789x694**. Rows reflowed and the timeline scrolled horizontally. Choosing **Least remaining** put the 18%-remaining Copilot row first.
 - A native click on **Send test notification** persisted one event; Windows returned a nonzero notification ID. A separate store read confirmed one Windows-accepted event. This does not prove a visible popup under Focus Assist.
@@ -30,20 +32,20 @@ Updated October 25, 2026. The build goal remains active. Fixtures and builds do 
 - Settings saves are serialized and restore the previous Windows startup value/type if preference persistence fails. A rollback failure has a specific user-facing warning. The production save method is tested with real SQLite and a simulated startup service, including enable/disable, missing registration, denied writes, failed rollback, successful save and demo isolation. The original rejected-write test failed before the fix. These tests do not change the real Run key or prove startup at Windows sign-in.
 - **Resource acceptance is open.** The older 0.0 CPU-seconds/15-second sample predates the current servicing/inspection session. Current measurements show sustained load, also reproducible in a plain 100-label MAUI window with no Radar dashboard or tray logic. See `native-performance.md`; this must not be reported as fixed.
 
-Current ignored native evidence is under `artifacts/native-qa/evidence`, including `dashboard-desktop.png`, `dashboard-compact.png`, `weekly-exact-timestamps.png`, `reserve-only-details.png`, `test-notification-banner.png`, and compact unknown/exhausted/offline/reset-due captures. Auth dialogs are handled by the user and are not captured for evidence.
+Current ignored native evidence is under `artifacts/native-qa/evidence`, including `live-dashboard.png`, `live-dashboard-after-restart.png`, `live-earned-resets.png`, `provider-usage-overview.png`, `provider-earned-resets.png`, `dashboard-desktop.png`, `dashboard-compact.png`, `weekly-exact-timestamps.png`, `reserve-only-details.png`, `test-notification-banner.png`, and compact unknown/exhausted/offline/reset-due captures. Auth dialogs are handled by the user and are not captured for evidence. Live details containing email/workspace identifiers were not saved as screenshots.
 
 ## Distribution
 
-`scripts/Build-Windows.ps1 -Package` provides the test/publish/package recipe. `scripts/Package-Windows.ps1` rejects obvious local-state/credential files, checks required self-contained files in the ZIP, and writes a SHA-256 manifest. Current preview input is `artifacts/publish/next-win-x64`, preserving the running sign-in copy in `validation-win-x64`. The ZIP is unsigned; it is not a completed installer or clean-user acceptance result.
+`scripts/Build-Windows.ps1 -Package` provides the test/publish/package recipe. `scripts/Package-Windows.ps1` rejects obvious local-state/credential files, checks required self-contained files in the ZIP, and writes a SHA-256 manifest. Current preview input and running native build are `artifacts/publish/next-win-x64`. The ZIP is unsigned; it is not a completed installer or clean-user acceptance result.
 
 ## Required open gates
 
-- Authenticated Codex usage/window/reserve comparison; two independent signed-in accounts, renewal, restart, rejected reconnect and removal isolation, including the existing external Codex/IDE login.
+- Two independent signed-in Codex accounts, renewal, rejected reconnect and removal isolation, including the existing external Codex/IDE login. One account's usage/reserve comparison and restart reuse passed as described above.
 - Authenticated GitHub personal/organization access, allowance/discount/overage reconciliation and billing latency. Official billing endpoint documentation was rechecked; actual account coverage remains absent.
 - Remaining keyboard/Narrator, 100/150/200% DPI, permission/auth/partial states and final resource/soak acceptance. Desktop/compact observations above are limited to the current monitor and scale.
 - Tray quick view/positioning, hide/restore/Exit, Explorer restart, startup, network/power/clock recovery and child shutdown during real sessions.
 - Notification View/Snooze/Dismiss, exact-window/cold activation, OS-disabled notifications, quiet hours, restart deduplication and persistent-delivery interleavings.
-- Transport/process/DB fault matrix, cleanup-retry failures, signed-in provider usage-page handoff and the final requirement audit. Retention independent of successful collection and provider-link selection now have automated coverage; browser identity and actual access still require live checks.
+- Transport/process/DB fault matrix, cleanup-retry failures, GitHub provider usage-page handoff and the final requirement audit. Retention independent of successful collection and provider-link selection have automated coverage; live OpenAI handoff passed for one account only.
 - Clean-user extraction/launch/notifications/removal, final packaging/signing decision and README walkthrough.
 
 Live acceptance remains open until checked with authenticated accounts. No credential contents were copied into evidence.

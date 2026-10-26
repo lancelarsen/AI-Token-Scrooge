@@ -7,7 +7,8 @@ public class ProviderLinkTests
         var account = new ProviderAccount("id", "OpenAI", "Work", "private@example.invalid", "workspace", CredentialId: "secret-reference");
         var uri = ProviderLinks.Usage(account)!;
         Assert.Equal("https", uri.Scheme); Assert.Equal("chatgpt.com", uri.Host);
-        Assert.DoesNotContain(account.Subject, uri.AbsoluteUri); Assert.DoesNotContain(account.CredentialId!, uri.AbsoluteUri); Assert.Empty(uri.Query);
+        Assert.DoesNotContain(account.Subject, uri.AbsoluteUri); Assert.DoesNotContain(account.CredentialId!, uri.AbsoluteUri);
+        Assert.Equal("/settings/usage", uri.AbsolutePath); Assert.Equal("?tab=overview", uri.Query);
     }
     [Fact] public void OrganizationBillingUsesAnEscapedPathOnTheGitHubOrigin()
     {
