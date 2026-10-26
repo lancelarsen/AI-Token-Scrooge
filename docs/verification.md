@@ -37,7 +37,7 @@ Current ignored native evidence is under `artifacts/native-qa/evidence`, includi
 
 ## Distribution
 
-`scripts/Build-Windows.ps1 -Package` provides the test/publish/package recipe. `scripts/Package-Windows.ps1` rejects obvious local-state/credential files, checks required self-contained files in the ZIP, and writes a SHA-256 manifest. The latest preview input and running build are `artifacts/publish/github-allowance-win-x64`. The ZIP contains the registered public client ID and 593 files; its SHA-256 is `7588474B9E36684B3E944CE91C988683CA570DB28FA6B117F74FD09FD15483F3`. It includes the focus workaround and covered-dashboard render deferral described below. The ZIP is unsigned; it is not a completed installer or clean-user acceptance result.
+`scripts/Build-Windows.ps1 -Package` provides the test/publish/package recipe. `scripts/Package-Windows.ps1` rejects obvious local-state/credential files, checks required self-contained files in the ZIP, and writes a SHA-256 manifest. The latest preview input and running build are `artifacts/publish/github-scope-win-x64`. The ZIP contains the registered public client ID and 593 files; its SHA-256 is `917E9CCCE5326319BCBB80FE0E3686F5E254BB56450586DED4815C99959B8FB1`. It includes the focus workaround and covered-dashboard render deferral described below. The ZIP is unsigned; it is not a completed installer or clean-user acceptance result.
 
 ## GitHub sign-in focus crash investigation
 
