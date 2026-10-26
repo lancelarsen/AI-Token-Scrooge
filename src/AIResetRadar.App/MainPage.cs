@@ -73,10 +73,26 @@ public sealed partial class MainPage : ContentPage
                 new Label { Text = "Your AI capacity, in one quiet place.", FontSize = 24, FontFamily = "Segoe UI Semibold" },
                 new Label { Text = "Connect OpenAI Codex or GitHub Copilot to see usage, upcoming resets and earned-reset expirations.", TextColor = Color.FromArgb("#B6B8C8") }, demo }});
         }
-        foreach (var row in state.Rows)
+        foreach (var accountRows in state.Rows.GroupBy(row => row.Account.Id))
         {
-            var view = new QuotaRowView(row, async r => await OpenDetailsAsync(r));
-            rowViews.Add(view); body.Children.Add(view);
+            var first = accountRows.First();
+            var section = new VerticalStackLayout { Spacing = 0 };
+            var accountHeading = new HorizontalStackLayout { Spacing = 14, Padding = new Thickness(24, 16, 24, 8) };
+            accountHeading.Children.Add(new Image { Source = first.Account.Provider == "OpenAI" ? "openai.png" : "github.png", WidthRequest = 36, HeightRequest = 36 });
+            accountHeading.Children.Add(new Label { Text = first.Account.Provider, FontSize = 20, FontFamily = "Segoe UI Semibold", VerticalOptions = LayoutOptions.Center });
+            accountHeading.Children.Add(new Border { Padding = new Thickness(11, 3), VerticalOptions = LayoutOptions.Center,
+                Stroke = Color.FromArgb("#51476D"), BackgroundColor = Color.FromArgb("#2C293E"),
+                StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 15 },
+                Content = new Label { Text = first.AccountLabel, FontSize = 12, TextColor = Color.FromArgb("#C3ADF8") } });
+            section.Children.Add(accountHeading);
+            foreach (var row in accountRows)
+            {
+                if (section.Children.Count > 1) section.Children.Add(new BoxView { HeightRequest = 1, Margin = new Thickness(24, 0), Color = Color.FromArgb("#383B46") });
+                var view = new QuotaRowView(row, async r => await OpenDetailsAsync(r), grouped: true);
+                rowViews.Add(view); section.Children.Add(view);
+            }
+            body.Children.Add(new Border { Content = section, Padding = 0, Stroke = Color.FromArgb("#383B46"), BackgroundColor = Color.FromArgb("#1C1E24"),
+                StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 13 } });
         }
         foreach (var account in state.Accounts.Where(a => !a.Enabled || !state.Snapshots.TryGetValue(a.Id, out var snapshot) || snapshot.Windows.Count == 0))
         {

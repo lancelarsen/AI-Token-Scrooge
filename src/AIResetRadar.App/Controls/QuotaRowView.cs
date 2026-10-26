@@ -12,12 +12,13 @@ public sealed class QuotaRowView : Border
     readonly DateTimeOffset? resetsAt;
     bool? wideLayout;
     public void UpdateClock(DateTimeOffset now) => countdown.Text = ResetTime.Countdown(resetsAt, now);
-    public QuotaRowView(QuotaRow row, Action<QuotaRow> open)
+    public QuotaRowView(QuotaRow row, Action<QuotaRow> open, bool grouped = false)
     {
         var warning = row.IsWarning;
         resetsAt = row.Window.ResetsAt;
         Stroke = Color.FromArgb("#383B46"); BackgroundColor = Color.FromArgb("#1C1E24");
         StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 13 };
+        if (grouped) { Stroke = Colors.Transparent; BackgroundColor = Colors.Transparent; }
         Padding = new Thickness(0); MinimumHeightRequest = 102;
         var root = new Grid { ColumnDefinitions = [new(new GridLength(4)), new(GridLength.Star)] };
         root.Add(new BoxView { Color = warning ? Color.FromArgb("#EAAA51") : Colors.Transparent });
@@ -28,11 +29,11 @@ public sealed class QuotaRowView : Border
         heading.Children.Add(new Border { Padding = new Thickness(11, 3), Stroke = Color.FromArgb("#51476D"), BackgroundColor = Color.FromArgb("#2C293E"),
             StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 15 },
             Content = new Label { Text = row.AccountLabel, TextColor = Color.FromArgb("#C3ADF8"), FontSize = 12 } });
-        accountText.Children.Add(heading);
+        if (!grouped) accountText.Children.Add(heading);
         accountText.Children.Add(new Label { Text = row.Window.Name, TextColor = Color.FromArgb("#BEC1D2"), FontSize = 14 });
         if (row.SourceNote != "") accountText.Children.Add(new Label { Text = row.SourceNote, FontSize = 11, TextColor = Color.FromArgb("#A5A8BA") });
         var account = new HorizontalStackLayout { Spacing = 16, VerticalOptions = LayoutOptions.Center };
-        account.Children.Add(row.Account.Provider == "OpenAI" ? new Image { Source = "openai.png", WidthRequest = 44, HeightRequest = 44 } :
+        if (!grouped) account.Children.Add(row.Account.Provider == "OpenAI" ? new Image { Source = "openai.png", WidthRequest = 44, HeightRequest = 44 } :
             new Image { Source = "github.png", WidthRequest = 44, HeightRequest = 44 });
         account.Children.Add(accountText); identity = account;
         bar = new UsageBar(row.Window.Fill, row.UsedText, row.LeftText, warning) { VerticalOptions = LayoutOptions.Center };

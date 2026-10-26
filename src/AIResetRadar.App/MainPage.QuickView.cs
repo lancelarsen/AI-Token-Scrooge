@@ -39,7 +39,7 @@ public sealed partial class MainPage
         var now = DateTimeOffset.Now;
         var rows = state.Rows.Select(row => new
         {
-            Title = $"{row.Account.Provider} / {row.AccountLabel} · {row.Window.Name}",
+            AccountId = row.Account.Id, AccountTitle = $"{row.Account.Provider} / {row.AccountLabel}", Title = row.Window.Name,
             row.Window.Fill, row.UsedText, row.LeftText, row.IsWarning, row.SourceNote,
             Reset = ResetTime.Countdown(row.Window.ResetsAt, now)
         }).ToArray();
@@ -49,12 +49,19 @@ public sealed partial class MainPage
         quickSignature = signature;
         quickContent.Children.Clear();
         if (state.IsDemo) quickContent.Children.Add(new Label { Text = "Demo data", TextColor = Color.FromArgb("#B5A0F4") });
-        foreach (var row in rows)
+        foreach (var group in rows.GroupBy(row => row.AccountId))
         {
-            quickContent.Children.Add(new Label { Text = row.Title });
-            quickContent.Children.Add(new UsageBar(row.Fill, row.UsedText, row.LeftText, row.IsWarning));
-            if (!string.IsNullOrEmpty(row.SourceNote)) quickContent.Children.Add(new Label { Text = row.SourceNote, FontSize = 12, TextColor = Color.FromArgb("#B6B8C8") });
-            quickContent.Children.Add(new Label { Text = row.Reset, TextColor = Color.FromArgb("#B5A0F4"), FontSize = 12 });
+            var section = new VerticalStackLayout { Spacing = 12 };
+            section.Children.Add(new Label { Text = group.First().AccountTitle, FontFamily = "Segoe UI Semibold" });
+            foreach (var row in group)
+            {
+                section.Children.Add(new Label { Text = row.Title, FontSize = 12 });
+                section.Children.Add(new UsageBar(row.Fill, row.UsedText, row.LeftText, row.IsWarning));
+                if (!string.IsNullOrEmpty(row.SourceNote)) section.Children.Add(new Label { Text = row.SourceNote, FontSize = 12, TextColor = Color.FromArgb("#B6B8C8") });
+                section.Children.Add(new Label { Text = row.Reset, TextColor = Color.FromArgb("#B5A0F4"), FontSize = 12 });
+            }
+            quickContent.Children.Add(new Border { Content = section, Padding = 14, Stroke = Color.FromArgb("#383B46"), BackgroundColor = Color.FromArgb("#1C1E24"),
+                StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 13 } });
         }
         if (rows.Length == 0) quickContent.Children.Add(new Label { Text = state.Accounts.Count == 0 ? "Connect an account in the dashboard to start monitoring." : "No quota windows available. Open the dashboard to check account status." });
         if (events.Length > 0)
