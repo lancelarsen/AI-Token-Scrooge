@@ -163,3 +163,9 @@ Live acceptance remains open until checked with authenticated accounts. No crede
 - In the normal-size current icon-timeline preview, Tab visibly focused the available-reset summary, then the first timeline event (OpenAI / Personal · Plus, Codex 5-hour). The event had a clear white focus outline and its native tooltip appeared on keyboard focus.
 - Return opened the matching Plus 5-hour quota dialog, confirmed through its accessibility title and quota/reset text. Escape dismissed it, confirmed by a fresh accessibility observation after the initial stale frame. Returned to dashboard without changing settings.
 - This specific keyboard flow passes and does not reproduce the previous focus/Enter mismatch. It does not establish full keyboard traversal, focus preservation through actual data refreshes, Narrator, or multiple DPI acceptance. No code changes or test reruns needed.
+
+### 2026-10-25 — live notification submission and persistence
+
+- Used Settings > Send test notification in the current icon-timeline preview, without changing notification preferences. The Settings page closed and the in-app Scrooge notification test banner appeared with View account, Snooze 1 hour and Dismiss. No delivery-error dialog appeared.
+- Read-only inspection of the latest test event in the app database confirmed CreatedAt 2026-10-26T03:44:40.8683648Z and Delivered=true. NotificationService sets success only when Windows returns a nonzero notification ID; this demonstrates API acceptance and persisted delivery status, not proof of visible OS display.
+- No ShellExperienceHost/notification window was exposed by the native tool's window inventory. Windows popup appearance, its View/Snooze buttons, notification-center presence and cold activation remain unverified. Dismissed the in-app test banner afterward; its history record remains. No code changes or test reruns needed.
