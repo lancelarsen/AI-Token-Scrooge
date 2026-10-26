@@ -52,7 +52,9 @@ public sealed partial class ConnectAccountPage : ContentPage
         form.Children.Add(nickname);
         if (!codex) ConfigureGitHubForm(form);
         else connect.Text = "Sign in with OpenAI";
-        form.Children.Add(status); form.Children.Add(connect); form.Children.Add(cancel);
+        form.Children.Add(status); form.Children.Add(connect);
+        if (!codex) form.Children.Add(githubPrompt);
+        form.Children.Add(cancel);
         connect.Clicked += async (_, _) => await ConnectAsync();
         Content = new ScrollView { Content = form };
     }

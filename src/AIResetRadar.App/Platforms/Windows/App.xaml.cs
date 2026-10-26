@@ -13,13 +13,15 @@ public partial class App : MauiWinUIApplication
         }
         _ = AIResetRadar.App.Platforms.Windows.NotificationService.Current;
         UnhandledException += (_, e) => {
+            var recoveredFocusEvent = AIResetRadar.App.Platforms.Windows.FocusEventFailure.IsKnown(e.Exception);
+            if (recoveredFocusEvent) e.Handled = true;
             // Keep provider messages and credentials out of diagnostics. The HRESULT
             // distinguishes WinUI focus/projection failures with identical stacks.
             try
             {
                 var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AIResetRadar");
                 Directory.CreateDirectory(path);
-                File.WriteAllText(Path.Combine(path, "last-crash.log"),
+                File.WriteAllText(Path.Combine(path, recoveredFocusEvent ? "last-focus-recovery.log" : "last-crash.log"),
                     $"{DateTimeOffset.UtcNow:O}\n{e.Exception.GetType().Name} HRESULT=0x{e.Exception.HResult:X8}\n{e.Exception.StackTrace}");
             }
             catch { /* Diagnostic failure must not replace the original exception. */ }

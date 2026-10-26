@@ -20,9 +20,18 @@ public sealed partial class ConnectAccountPage
         githubPrompt.Children.Add(githubCode);
         SemanticProperties.SetDescription(githubCode, "GitHub sign-in code. Enter this code only on github.com.");
         var copy = new Button { Text = "Copy code" };
-        copy.Clicked += async (_, _) => { if (githubChallenge is { } challenge) await Clipboard.Default.SetTextAsync(challenge.UserCode); };
+        copy.Clicked += async (_, _) =>
+        {
+            if (githubChallenge is not { } challenge) return;
+            try
+            {
+                await Clipboard.Default.SetTextAsync(challenge.UserCode);
+                status.Text = "Code copied. Paste it into GitHub to continue.";
+            }
+            catch { status.Text = "Could not copy the code. Enter the code shown below directly on GitHub."; }
+        };
         var open = new Button { Text = "Open GitHub" }; open.Clicked += async (_, _) => await OpenGitHubAsync();
-        githubPrompt.Children.Add(copy); githubPrompt.Children.Add(open); form.Children.Add(githubPrompt);
+        githubPrompt.Children.Add(copy); githubPrompt.Children.Add(open);
         var organizationReconnect = reconnect?.Scope.StartsWith("organization:", StringComparison.Ordinal) == true;
         githubMode.IsVisible = !organizationReconnect;
         SetGitHubMode(organizationReconnect);

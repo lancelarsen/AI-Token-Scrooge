@@ -47,9 +47,17 @@ The diagnostic build adds timestamp and HRESULT without exception messages or pr
 
 Source inspection also found background refresh rebuilding the covered dashboard controls. Rendering is now deferred while the dashboard is hidden by a modal, then requested on return; collection and tray updates continue. Release compilation passed with zero warnings/errors. This change is not yet in the running diagnostic build or preview ZIP and still requires native navigation/background-refresh verification. It is not established as a fix for the observed crash.
 
+### October 25 GitHub sign-in correction
+
+The subsequent diagnostic crash at 20:05:14 CDT identified `COMException` HRESULT `0x80004005` from `IFocusManagerLostFocusEventArgsMethods.get_OldFocusedElement` in MAUI `ViewHandler.FocusManager_LostFocus`. A Windows-only workaround now handles only this HRESULT with either the exact GotFocus/NewFocusedElement or LostFocus/OldFocusedElement getter/callback pair. Other exceptions retain the ordinary fatal behavior. Recovered events use a separate bounded last-focus-recovery log without exception messages, codes, or credentials. The framework source inspected was MAUI 10.0.120 `src/Core/src/Handlers/View/ViewHandler.Windows.cs`.
+
+The GitHub prompt now follows the sign-in button, with Copy code and Open GitHub underneath. Clipboard failures produce actionable text rather than escaping the async click handler; successful copy confirms the action. All 108 tests passed (51 Core, 57 Infrastructure), including rejection of unrelated HRESULTs, callbacks, operations and exception types. Release publish succeeded to `artifacts/publish/github-focus-fix-win-x64`.
+
+In that native build, Sign in with GitHub reached the waiting-for-approval state and browser handoff without terminating the app. Native accessibility order confirmed Sign in → Copy code → Open GitHub; invoking Copy code confirmed success without reading or emitting clipboard contents. The established connection-page graphite/lavender design was retained. No device-code screenshot was saved. The first handoff/copy retry passed; intermittent crash resolution, narrow/DPI layout, full authorization and longer focus/navigation checks remain unproven.
+
 ## Required open gates
 
-- Reproduce and resolve the WinUI focus crash; verify covered-dashboard render deferral and return from modal pages in the native app.
+- Verify the focus-event workaround over repeated browser handoffs and modal returns; verify covered-dashboard render deferral and return from modal pages in the native app.
 
 - Two independent signed-in Codex accounts, renewal, rejected reconnect and removal isolation, including the existing external Codex/IDE login. One account's usage/reserve comparison and restart reuse passed as described above.
 - Authenticated GitHub personal/organization access, allowance/discount/overage reconciliation and billing latency. Official billing endpoint documentation was rechecked; actual account coverage remains absent.
