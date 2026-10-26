@@ -12,6 +12,8 @@ public sealed partial class MainPage : ContentPage
     readonly Button settings = MakeButton("Settings", "\uE713");
     readonly Grid root = new() { RowDefinitions = [new(GridLength.Auto), new(new GridLength(1)), new(GridLength.Star)] };
     readonly List<QuotaRowView> rowViews = [];
+    bool dashboardVisible = true;
+    bool renderPending;
     public MainPage()
     {
         Title = "AI Reset Radar";
@@ -26,11 +28,22 @@ public sealed partial class MainPage : ContentPage
         if (Environment.GetCommandLineArgs().Contains("--demo")) state.LoadDemo(DateTimeOffset.Now);
         var args = Environment.GetCommandLineArgs(); var scenario = Array.IndexOf(args, "--scenario");
         if (scenario >= 0 && scenario + 1 < args.Length) state.ApplyDemoScenario(args[scenario + 1]);
-        Appearing += async (_, _) => await InitializeAsync();
+        Appearing += async (_, _) =>
+        {
+            dashboardVisible = true;
+            // Modal removal may still be completing during Appearing.
+            if (renderPending) Dispatcher.Dispatch(Render);
+            await InitializeAsync();
+        };
+        Disappearing += (_, _) => dashboardVisible = false;
         Render();
     }
     void Render()
     {
+        // Refresh continues collecting data behind connection/settings pages.
+        // Preserve the covered visual tree and its focus targets until we return.
+        if (!dashboardVisible || Navigation.ModalStack.Count > 0) { renderPending = true; return; }
+        renderPending = false;
         state.Settings = preferences;
         body.Children.Clear();
         rowViews.Clear();

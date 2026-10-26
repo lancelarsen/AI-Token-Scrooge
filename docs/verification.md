@@ -37,9 +37,19 @@ Current ignored native evidence is under `artifacts/native-qa/evidence`, includi
 
 ## Distribution
 
-`scripts/Build-Windows.ps1 -Package` provides the test/publish/package recipe. `scripts/Package-Windows.ps1` rejects obvious local-state/credential files, checks required self-contained files in the ZIP, and writes a SHA-256 manifest. Current preview input and running native build are `artifacts/publish/next-win-x64`. The ZIP is unsigned; it is not a completed installer or clean-user acceptance result.
+`scripts/Build-Windows.ps1 -Package` provides the test/publish/package recipe. `scripts/Package-Windows.ps1` rejects obvious local-state/credential files, checks required self-contained files in the ZIP, and writes a SHA-256 manifest. The latest preview input is `artifacts/publish/github-signin-win-x64`; its registered public client ID was verified inside the ZIP. The running diagnostic build is `artifacts/publish/github-signin-diagnostic-win-x64`. The ZIP is unsigned; it is not a completed installer or clean-user acceptance result.
+
+## GitHub sign-in focus crash investigation
+
+Windows Application event 1000 recorded the configured preview crashing at 19:50:59 CDT on October 25, 2026, in `Microsoft.UI.Xaml.dll` with exception code `0xc000027b`. Radar's sanitized stack showed `COMException` from `IFocusManagerGotFocusEventArgsMethods.get_NewFocusedElement`, called by MAUI `ViewHandler.FocusManager_GotFocus`. The original log omitted the HRESULT, so it does not establish the precise underlying COM failure or a fix.
+
+The diagnostic build adds timestamp and HRESULT without exception messages or provider data; diagnostic-write failures cannot replace the original exception. It reopened successfully, and the user's Sign in with GitHub action reached GitHub's device authorization page. Authorization and billing success are still unverified.
+
+Source inspection also found background refresh rebuilding the covered dashboard controls. Rendering is now deferred while the dashboard is hidden by a modal, then requested on return; collection and tray updates continue. Release compilation passed with zero warnings/errors. This change is not yet in the running diagnostic build or preview ZIP and still requires native navigation/background-refresh verification. It is not established as a fix for the observed crash.
 
 ## Required open gates
+
+- Reproduce and resolve the WinUI focus crash; verify covered-dashboard render deferral and return from modal pages in the native app.
 
 - Two independent signed-in Codex accounts, renewal, rejected reconnect and removal isolation, including the existing external Codex/IDE login. One account's usage/reserve comparison and restart reuse passed as described above.
 - Authenticated GitHub personal/organization access, allowance/discount/overage reconciliation and billing latency. Official billing endpoint documentation was rechecked; actual account coverage remains absent.
