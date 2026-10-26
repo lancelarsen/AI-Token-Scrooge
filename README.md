@@ -1,4 +1,8 @@
-# AI Reset Radar
+# AI Token Scrooge
+
+**Never Waste a Token!**
+
+Formerly AI Reset Radar. Existing account storage, executable names and startup identifiers retain `AIResetRadar` for upgrade compatibility. GitHub authorization still displays the registered **AI Reset Radar** app; the connection screen explains this. The desktop window and tray menu use AI Token Scrooge.
 
 A native Windows .NET MAUI desktop monitor for AI usage windows and expiring earned resets. The selected dark design is preserved in `design/references/approved-ui.png`.
 
@@ -32,7 +36,7 @@ Preview-only error cases use `--demo --scenario unknown`, `offline`, `auth`, `pe
 
 The app initially opens without accounts. **Add account** offers OpenAI Codex or GitHub Copilot. OpenAI sign-in happens in your own browser. GitHub's default **Sign in with GitHub** shows a short code and opens GitHub for approval. The developer must configure the one-time app registration described in `docs/github-sign-in.md`; normal users do not create tokens. Credentials are protected with Windows DPAPI and renewed when needed. **Use an access token instead** retains advanced personal/organization connections through a masked field. Personal billing requires Plan read permission; organization-funded usage needs authorized organization billing access. Removing a connection deletes its local credentials; GitHub App authorization can also be revoked in GitHub settings. GitHub usage may lag, and a usage report alone does not establish your allowance. General ChatGPT model quotas and OpenAI API billing are separate products and are not included.
 
-The tray icon's menu opens Radar, refreshes usage or exits. **Settings → Open quick view** also opens the compact usage window without locating the tray icon. Its values, source warnings and upcoming events update while it stays open. Closing the main window keeps the monitor running when close-to-tray is enabled. **Exit Radar** ends monitoring. Startup at Windows sign-in is off by default. Windows may place tray icons in its overflow menu. Native popup appearance and delivery depend on Windows settings and Focus Assist; history remains available in Radar.
+The tray icon's menu opens Scrooge, refreshes usage or exits. **Settings → Open quick view** also opens the compact usage window without locating the tray icon. Its values, source warnings and upcoming events update while it stays open. Closing the main window keeps the monitor running when close-to-tray is enabled. **Exit Scrooge** ends monitoring. Startup at Windows sign-in is off by default. Windows may place tray icons in its overflow menu. Native popup appearance and delivery depend on Windows settings and Focus Assist; history remains available in Scrooge.
 
 ## Data and credentials
 

@@ -37,10 +37,10 @@ public sealed class NotificationService : IDisposable
         try
         {
             if (AppNotificationManager.Default.Setting != AppNotificationSetting.Enabled)
-            { Problem = "Windows has disabled popup notifications for Radar. Events remain available in Alert history."; return false; }
+            { Problem = "Windows has disabled popup notifications for Scrooge. Events remain available in Alert history."; return false; }
             Problem = null;
             var builder = new AppNotificationBuilder().AddArgument("action", "view").AddArgument("account", alert.AccountId).AddArgument("window", alert.WindowId ?? "")
-                .AddText(settings.Privacy ? "AI usage alert" : alert.Title).AddText(settings.Privacy ? "Open Radar to see account details." : alert.Detail)
+                .AddText(settings.Privacy ? "AI usage alert" : alert.Title).AddText(settings.Privacy ? "Open Scrooge to see account details." : alert.Detail)
                 .AddButton(new AppNotificationButton("View account").AddArgument("action", "view").AddArgument("account", alert.AccountId).AddArgument("window", alert.WindowId ?? ""))
                 .AddButton(new AppNotificationButton("Snooze 1 hour").AddArgument("action", "snooze").AddArgument("account", alert.AccountId));
             if (!settings.Sound) builder.MuteAudio();
@@ -49,7 +49,7 @@ public sealed class NotificationService : IDisposable
             if (notification.Id == 0) Problem = "Windows did not confirm notification acceptance. Check Windows notification settings.";
             return notification.Id != 0;
         }
-        catch { Problem = "Windows could not deliver this notification. Check Windows notification settings for Radar."; return false; }
+        catch { Problem = "Windows could not deliver this notification. Check Windows notification settings for Scrooge."; return false; }
     }
     public void Dispose() { try { AppNotificationManager.Default.NotificationInvoked -= OnInvoked; AppNotificationManager.Default.Unregister(); } catch { } }
 }

@@ -17,7 +17,8 @@ public sealed partial class MainPage
         }
         quickContent = new VerticalStackLayout { Spacing = 16 };
         var content = new VerticalStackLayout { Padding = 20, Spacing = 16 };
-        content.Children.Add(new Label { Text = "AI Reset Radar", FontSize = 23, FontFamily = "Segoe UI Semibold" });
+        content.Children.Add(new Label { Text = "AI Token Scrooge", FontSize = 23, FontFamily = "Segoe UI Semibold" });
+        content.Children.Add(new Label { Text = "Never Waste a Token!", FontSize = 12, TextColor = Color.FromArgb("#C3ADF8") });
         content.Children.Add(quickContent);
         var open = new Button { Text = "Open dashboard", BackgroundColor = Color.FromArgb("#7169CA") };
         open.Clicked += (_, _) => { ShowMain(); if (quickWindow is not null) Application.Current!.CloseWindow(quickWindow); };
@@ -27,7 +28,7 @@ public sealed partial class MainPage
         quickWindow = new Window(new ContentPage
         {
             BackgroundColor = Color.FromArgb("#141519"), Content = new ScrollView { Content = content }
-        }) { Title = "Radar quick view", Width = 480, Height = 650, MinimumWidth = 420, MinimumHeight = 400 };
+        }) { Title = "Scrooge quick view", Width = 480, Height = 650, MinimumWidth = 420, MinimumHeight = 400 };
         quickWindow.Destroying += (_, _) => { quickWindow = null; quickContent = null; quickSignature = null; };
         Application.Current!.OpenWindow(quickWindow);
     }

@@ -5,7 +5,7 @@ public partial class App : Application
     protected override Window CreateWindow(IActivationState? activationState)
     {
         var page = new MainPage();
-        var window = new Window(page) { Title = "AI Reset Radar", Width = 1440, Height = 1024, MinimumWidth = 800, MinimumHeight = 650 };
+        var window = new Window(page) { Title = "AI Token Scrooge", Width = 1440, Height = 1024, MinimumWidth = 800, MinimumHeight = 650 };
         if (Environment.GetCommandLineArgs().Contains("--compact")) { window.Width = 800; window.Height = 700; }
         window.HandlerChanged += (_, _) =>
         {

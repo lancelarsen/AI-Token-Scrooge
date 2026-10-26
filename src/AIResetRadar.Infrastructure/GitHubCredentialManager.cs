@@ -69,7 +69,7 @@ public sealed class GitHubCredentialManager(ISecretStore secrets, GitHubUsageCli
         try { await secrets.SaveAsync(id, Encode(record)); pending.TryRemove(id, out _); }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or CryptographicException)
         {
-            throw new ProviderAccessException("Windows could not save the renewed GitHub sign-in. Retry refresh before closing Radar.", SourceHealth.Stale);
+            throw new ProviderAccessException("Windows could not save the renewed GitHub sign-in. Retry refresh before closing Scrooge.", SourceHealth.Stale);
         }
     }
 

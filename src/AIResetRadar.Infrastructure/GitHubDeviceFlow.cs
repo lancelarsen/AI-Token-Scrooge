@@ -121,7 +121,7 @@ public sealed class GitHubDeviceFlow(HttpClient http, TimeProvider clock, Func<T
         throw new ProviderAccessException(error switch {
             "access_denied" => "GitHub sign-in was declined. You can try again.",
             "expired_token" or "token_expired" => "The GitHub sign-in code expired. Start sign-in again.",
-            "device_flow_disabled" or "incorrect_client_credentials" => "GitHub browser sign-in needs the app registration configured by Radar's developer.",
+            "device_flow_disabled" or "incorrect_client_credentials" => "GitHub browser sign-in needs the app registration configured by Scrooge's developer.",
             "bad_refresh_token" => "GitHub sign-in expired. Reconnect this account.",
             _ => "GitHub could not complete sign-in. Try again."
         }, SourceHealth.AuthenticationRequired);

@@ -58,7 +58,7 @@ public sealed class GitHubUsageClient(HttpClient http, TimeProvider clock)
         {
             if (retry is null && response.Headers.TryGetValues("X-RateLimit-Reset", out var resetValues) && long.TryParse(resetValues.FirstOrDefault(), out var reset) && reset is > 0 and <= 253402300799)
                 retry = DateTimeOffset.FromUnixTimeSeconds(reset);
-            throw new ProviderAccessException("GitHub asked Radar to wait before refreshing.", SourceHealth.Stale,
+            throw new ProviderAccessException("GitHub asked Scrooge to wait before refreshing.", SourceHealth.Stale,
                 retry > clock.GetUtcNow() ? retry : clock.GetUtcNow().AddMinutes(5));
         }
         if (response.StatusCode == HttpStatusCode.Unauthorized) throw new ProviderAccessException("GitHub sign-in expired. Reconnect this account.", SourceHealth.AuthenticationRequired);

@@ -54,7 +54,7 @@ public sealed class SettingsPage : ContentPage
                 catch { syncing = true; enabled.IsToggled = Latest().Enabled; syncing = false; await AccountError(); }
             };
             var remove = new Button { Text = "Remove connection", IsEnabled = !demo };
-            remove.Clicked += async (_, _) => await AccountAction(async () => { if (await DisplayAlertAsync("Remove connection?", "Radar will remove only its own saved connection for this account.", "Remove", "Cancel")) { await update(Latest(), true); form.Children.Remove(rename); form.Children.Remove(remove); form.Children.Remove(rules); form.Children.Remove(signIn); form.Children.Remove(providerPages); form.Children.Remove(browserNotice); if (enabled.Parent is View enabledRow) form.Children.Remove(enabledRow); } });
+            remove.Clicked += async (_, _) => await AccountAction(async () => { if (await DisplayAlertAsync("Remove connection?", "Scrooge will remove only its own saved connection for this account.", "Remove", "Cancel")) { await update(Latest(), true); form.Children.Remove(rename); form.Children.Remove(remove); form.Children.Remove(rules); form.Children.Remove(signIn); form.Children.Remove(providerPages); form.Children.Remove(browserNotice); if (enabled.Parent is View enabledRow) form.Children.Remove(enabledRow); } });
             form.Children.Add(remove);
         }
         var status = new Label { TextColor = Color.FromArgb("#EAAA51") }; form.Children.Add(status);
@@ -87,7 +87,7 @@ public sealed class SettingsPage : ContentPage
         row.Add(new Label { Text = title, VerticalOptions = LayoutOptions.Center }); row.Add(toggle, 1); form.Children.Add(row); return toggle;
     }
     async Task AccountAction(Func<Task> action) { try { await action(); } catch { await AccountError(); } }
-    Task AccountError() => DisplayAlertAsync("Account update unavailable", "Radar could not save this change. Check local folder access and retry.", "Close");
+    Task AccountError() => DisplayAlertAsync("Account update unavailable", "Scrooge could not save this change. Check local folder access and retry.", "Close");
     Entry Field(string title, string value)
     {
         form.Children.Add(new Label { Text = title, TextColor = Color.FromArgb("#B6B8C8") });

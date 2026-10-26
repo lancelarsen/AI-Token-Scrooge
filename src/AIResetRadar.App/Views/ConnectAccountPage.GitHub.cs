@@ -16,7 +16,7 @@ public sealed partial class ConnectAccountPage
         form.Children.Add(unit); form.Children.Add(allowance);
         githubMode.Clicked += (_, _) => SetGitHubMode(!useGitHubToken);
         form.Children.Add(githubMode); form.Children.Add(token); form.Children.Add(organization);
-        githubPrompt.Children.Add(new Label { Text = "Enter this code on GitHub, then approve AI Reset Radar.", HorizontalTextAlignment = TextAlignment.Center });
+        githubPrompt.Children.Add(new Label { Text = "Enter this code on GitHub, then approve AI Reset Radar (the registered sign-in app for AI Token Scrooge).", HorizontalTextAlignment = TextAlignment.Center });
         githubPrompt.Children.Add(githubCode);
         SemanticProperties.SetDescription(githubCode, "GitHub sign-in code. Enter this code only on github.com.");
         var copy = new Button { Text = "Copy code" };
@@ -44,7 +44,7 @@ public sealed partial class ConnectAccountPage
         connect.Text = useToken ? "Connect account" : "Sign in with GitHub";
         explanation.Text = useToken ?
             "Advanced connection: use a fine-grained token with Plan read permission for personal billing. Organization billing requires authorized administration access. Your token stays protected on this PC." :
-            "Sign in through GitHub in your browser. Radar reads your personal Copilot usage and protects this account's sign-in on this PC.";
+            "Sign in through GitHub in your browser. Scrooge reads your personal Copilot usage and protects this account's sign-in on this PC.";
         status.Text = !useToken && AppServices.Current.GitHubClientId is null ? "Browser sign-in is awaiting the one-time GitHub app registration for this preview." : "";
     }
 
@@ -64,7 +64,7 @@ public sealed partial class ConnectAccountPage
             limit = parsed;
         }
         if (useGitHubToken && string.IsNullOrWhiteSpace(token.Text)) { status.Text = "Enter the access token in this protected field."; return; }
-        if (!useGitHubToken && AppServices.Current.GitHubClientId is null) { status.Text = "Browser sign-in needs the one-time GitHub app registration completed by Radar's developer."; return; }
+        if (!useGitHubToken && AppServices.Current.GitHubClientId is null) { status.Text = "Browser sign-in needs the one-time GitHub app registration completed by Scrooge's developer."; return; }
         if (pendingAccount is not null) { await AppServices.Current.Monitor.DisconnectAsync(pendingAccount); pendingAccount = null; }
         nickname.IsEnabled = allowance.IsEnabled = unit.IsEnabled = organization.IsEnabled = token.IsEnabled = githubMode.IsEnabled = false;
         try
@@ -80,7 +80,7 @@ public sealed partial class ConnectAccountPage
                 var challenge = await AppServices.Current.GitHubSignIn.BeginAsync(AppServices.Current.GitHubClientId!, lifetime.Token);
                 lifetime.Token.ThrowIfCancellationRequested(); githubChallenge = challenge;
                 githubCode.Text = challenge.UserCode; githubPrompt.IsVisible = true;
-                status.Text = "Complete sign-in in your browser. Radar will connect when you approve access.";
+                status.Text = "Complete sign-in in your browser. Scrooge will connect when you approve access.";
                 await OpenGitHubAsync();
                 var credentials = await AppServices.Current.GitHubSignIn.WaitAsync(challenge, lifetime.Token);
                 status.Text = "Checking GitHub identity and billing access…";

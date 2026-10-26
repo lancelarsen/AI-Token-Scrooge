@@ -109,7 +109,7 @@ public sealed partial class LocalStore
             await connection.OpenAsync(ct);
             await using var command = connection.CreateCommand();
             command.CommandText = "PRAGMA user_version";
-            if (Convert.ToInt64(await command.ExecuteScalarAsync(ct)) > 2) throw new InvalidDataException("This database was created by a newer Radar version. Update Radar before opening it.");
+            if (Convert.ToInt64(await command.ExecuteScalarAsync(ct)) > 2) throw new InvalidDataException("This database was created by a newer Scrooge version. Update Scrooge before opening it.");
             command.CommandText = "CREATE TABLE IF NOT EXISTS state(key TEXT PRIMARY KEY,value TEXT NOT NULL); CREATE TABLE IF NOT EXISTS history(account_id TEXT NOT NULL,observed_at INTEGER NOT NULL,value TEXT NOT NULL,PRIMARY KEY(account_id,observed_at)); CREATE INDEX IF NOT EXISTS history_observed ON history(observed_at); PRAGMA user_version=2;";
             await command.ExecuteNonQueryAsync(ct);
             await PruneAsync(connection, ct); return connection;

@@ -28,7 +28,7 @@ public sealed class CodexConnection : IAsyncDisposable
         var connection = new CodexConnection(Process.Start(start) ?? throw new IOException("Could not start Codex."));
         try
         {
-            await connection.CallAsync("initialize", new { clientInfo = new { name = "ai_reset_radar", title = "AI Reset Radar", version = "0.1.0" }, capabilities = new { experimentalApi = true } }, ct);
+            await connection.CallAsync("initialize", new { clientInfo = new { name = "ai_reset_radar", title = "AI Token Scrooge", version = "0.1.0" }, capabilities = new { experimentalApi = true } }, ct);
             await connection.WriteAsync(new { method = "initialized" }, ct); return connection;
         }
         catch { await connection.DisposeAsync(); throw; }

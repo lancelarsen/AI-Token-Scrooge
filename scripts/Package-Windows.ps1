@@ -13,7 +13,7 @@ foreach ($file in $entries) {
 }
 $releaseDirectory = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../artifacts/releases'))
 New-Item -ItemType Directory -Force -Path $releaseDirectory | Out-Null
-$destination = Join-Path $releaseDirectory 'AIResetRadar-0.1.0-win-x64-preview.zip'
+$destination = Join-Path $releaseDirectory 'AITokenScrooge-0.1.0-win-x64-preview.zip'
 if (Test-Path -LiteralPath $destination) { Remove-Item -LiteralPath $destination -Force }
 [System.IO.Compression.ZipFile]::CreateFromDirectory($source, $destination, [System.IO.Compression.CompressionLevel]::Optimal, $false)
 $archive = [System.IO.Compression.ZipFile]::OpenRead($destination)
@@ -34,5 +34,5 @@ $manifest = [ordered]@{
     Signed = $false
     Acceptance = 'Preview only; live account, final native UI, lifecycle, and clean-user acceptance remain open.'
 }
-$manifest | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $releaseDirectory 'AIResetRadar-0.1.0-win-x64-preview.manifest.json')
+$manifest | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $releaseDirectory 'AITokenScrooge-0.1.0-win-x64-preview.manifest.json')
 $manifest | ConvertTo-Json -Depth 5

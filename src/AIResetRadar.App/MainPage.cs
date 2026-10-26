@@ -16,12 +16,15 @@ public sealed partial class MainPage : ContentPage
     bool renderPending;
     public MainPage()
     {
-        Title = "AI Reset Radar";
+        Title = "AI Token Scrooge";
         Background = new LinearGradientBrush([new(Color.FromArgb("#1B1C20"), 0), new(Color.FromArgb("#141519"), 1)], new(0, 0), new(1, 1));
         var header = new Grid { Padding = new Thickness(32, 18), ColumnSpacing = 14, RowSpacing = 8,
             ColumnDefinitions = [new(new GridLength(66)), new(GridLength.Star), new(GridLength.Auto), new(GridLength.Auto)], RowDefinitions = [new(GridLength.Auto), new(GridLength.Auto)] };
         var icon = new Image { Source = "radar.png", WidthRequest = 66, HeightRequest = 66 }; header.Add(icon); Grid.SetRowSpan(icon, 2);
-        header.Add(new Label { Text = "AI Reset Radar", FontSize = 32, FontFamily = "Segoe UI Semibold", VerticalOptions = LayoutOptions.Center }, 1);
+        header.Add(new VerticalStackLayout { Spacing = 2, VerticalOptions = LayoutOptions.Center, Children = {
+            new Label { Text = "AI Token Scrooge", FontSize = 32, FontFamily = "Segoe UI Semibold" },
+            new Label { Text = "Never Waste a Token!", FontSize = 13, TextColor = Color.FromArgb("#C3ADF8") }
+        } }, 1);
         header.Add(refresh, 2); header.Add(settings, 3); header.Add(freshness, 1, 1); Grid.SetColumnSpan(freshness, 3);
         root.Add(header); root.Add(new BoxView { Color = Color.FromArgb("#363842") }, 0, 1); root.Add(new ScrollView { Content = body }, 0, 2); Content = root;
         refresh.Clicked += async (_, _) => await RefreshAsync(); settings.Clicked += async (_, _) => await OpenSettingsAsync();

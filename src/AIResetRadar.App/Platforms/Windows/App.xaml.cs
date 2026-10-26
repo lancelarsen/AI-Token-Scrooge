@@ -7,7 +7,9 @@ public partial class App : MauiWinUIApplication
         instance = new Mutex(true, "Local\\AIResetRadar.Desktop", out var created);
         if (!created)
         {
-            var hwnd = FindWindow(null, "AI Reset Radar");
+            var hwnd = FindWindow(null, "AI Token Scrooge");
+            // Restore an older running preview during an upgrade, too.
+            if (hwnd == 0) hwnd = FindWindow(null, "AI Reset Radar");
             if (hwnd != 0) { ShowWindow(hwnd, 9); SetForegroundWindow(hwnd); }
             Environment.Exit(0);
         }

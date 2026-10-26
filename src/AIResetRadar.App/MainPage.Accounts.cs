@@ -61,7 +61,7 @@ public sealed partial class MainPage
                     try { await AppServices.Current.Store.WriteAsync("retired", retiredCredentials.Where(a => CredentialKey(a) != CredentialKey(retired)).ToArray()); retiredCredentials.RemoveAll(a => CredentialKey(a) == CredentialKey(retired)); }
                     finally { accountChanges.Release(); }
                 }
-                catch { freshness.Text = "Previous sign-in cleanup is pending. Radar will retry while monitoring."; }
+                catch { freshness.Text = "Previous sign-in cleanup is pending. Scrooge will retry while monitoring."; }
             }
         }
         finally { cleanupGate.Release(); }

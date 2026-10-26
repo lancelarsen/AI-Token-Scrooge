@@ -41,7 +41,7 @@ public sealed partial class ConnectAccountPage : ContentPage
         var cancel = new Button { Text = "Cancel" }; cancel.Clicked += async (_, _) => await CloseAsync();
         var form = new VerticalStackLayout { Padding = 32, Spacing = 18, MaximumWidthRequest = 640, HorizontalOptions = LayoutOptions.Center };
         form.Children.Add(new Label { Text = Title, FontSize = 26, FontFamily = "Segoe UI Semibold" });
-        explanation.Text = "Sign in through OpenAI in your browser. Radar keeps this account in its own protected Codex profile and only reads usage limits.";
+        explanation.Text = "Sign in through OpenAI in your browser. Scrooge keeps this account in its own protected Codex profile and only reads usage limits.";
         form.Children.Add(explanation);
         var help = new Button { Text = "Usage and access help" };
         help.Clicked += async (_, _) => {

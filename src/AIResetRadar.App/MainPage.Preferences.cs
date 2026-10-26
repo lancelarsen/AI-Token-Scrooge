@@ -26,7 +26,7 @@ public sealed partial class MainPage
                     if (original is not null)
                     {
                         try { StartupService.Restore(original); }
-                        catch { throw new SettingsSaveException("Settings could not be saved, and the previous Windows startup setting could not be restored. Review Radar in Windows startup settings.", error); }
+                        catch { throw new SettingsSaveException("Settings could not be saved, and the previous Windows startup setting could not be restored. Review Scrooge in Windows startup settings.", error); }
                     }
                     if (startupChanged && !startupApplied) throw new SettingsSaveException("Windows startup could not be changed. Settings were not saved.", error);
                     throw;

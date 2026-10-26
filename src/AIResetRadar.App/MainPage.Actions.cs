@@ -32,7 +32,7 @@ public sealed partial class MainPage
             }
             else AIResetRadar.App.Platforms.Windows.NotificationService.Current.AccountsLoaded();
         }
-        catch { await DisplayAlertAsync("Local storage unavailable", "Radar could not load its local account data. Check available disk space and folder access before connecting accounts.", "OK"); }
+        catch { await DisplayAlertAsync("Local storage unavailable", "Scrooge could not load its local account data. Check available disk space and folder access before connecting accounts.", "OK"); }
     }
     readonly Dictionary<string, int> failures = [];
     readonly Dictionary<string, DateTimeOffset> throttledUntil = [];
@@ -92,7 +92,7 @@ public sealed partial class MainPage
             }
             await SaveAsync(); Render(); UpdateTray();
         }
-        catch { freshness.Text = "Radar could not save local monitoring state. Check available space and folder access."; }
+        catch { freshness.Text = "Scrooge could not save local monitoring state. Check available space and folder access."; }
         finally { refresh.IsEnabled = true; refreshing.Release(); _ = CleanupRetiredAsync(); }
     }
     async Task SaveAsync()

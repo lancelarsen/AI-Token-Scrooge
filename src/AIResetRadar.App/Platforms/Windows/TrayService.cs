@@ -24,9 +24,9 @@ public sealed class TrayService : IDisposable
         explorerRestart = RegisterWindowMessage("TaskbarCreated"); taskbarCreated = RegisterWindowMessage("TaskbarButtonCreated");
         brandIcon = LoadImage(0, Path.Combine(AppContext.BaseDirectory, "app.ico"), 1, 32, 32, 0x10);
         data = new() { Size = (uint)Marshal.SizeOf<NotifyIconData>(), Window = hwnd, Id = 1, Flags = 1 | 2 | 4, Message = Callback,
-            Icon = brandIcon, Tip = "AI Reset Radar · Monitoring", Info = "", InfoTitle = "" };
+            Icon = brandIcon, Tip = "AI Token Scrooge · Monitoring", Info = "", InfoTitle = "" };
         if (!SetWindowSubclass(hwnd, callback, 1, 0)) throw new InvalidOperationException("Windows tray integration could not attach to the app window.");
-        if (!Shell_NotifyIcon(0, ref data)) throw new InvalidOperationException("Windows did not create the Radar tray icon.");
+        if (!Shell_NotifyIcon(0, ref data)) throw new InvalidOperationException("Windows did not create the Scrooge tray icon.");
     }
     public void Update(string tip, bool warning, bool exhausted, bool unknown)
     {
@@ -57,7 +57,7 @@ public sealed class TrayService : IDisposable
         var menu = CreatePopupMenu();
         try
         {
-            AppendMenu(menu, 0, 1, "Open AI Reset Radar"); AppendMenu(menu, 0, 2, "Refresh usage"); AppendMenu(menu, 0x800, 0, ""); AppendMenu(menu, 0, 3, "Exit Radar");
+            AppendMenu(menu, 0, 1, "Open AI Token Scrooge"); AppendMenu(menu, 0, 2, "Refresh usage"); AppendMenu(menu, 0x800, 0, ""); AppendMenu(menu, 0, 3, "Exit Scrooge");
             GetCursorPos(out var point); SetForegroundWindow(hwnd);
             var selected = TrackPopupMenuEx(menu, 0x100 | 0x2, point.X, point.Y, hwnd, 0);
             if (selected == 1) Open?.Invoke(); else if (selected == 2) Refresh?.Invoke(); else if (selected == 3) Exit?.Invoke();
