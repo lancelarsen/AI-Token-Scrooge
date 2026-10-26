@@ -11,6 +11,7 @@ public sealed class TrayService : IDisposable
     readonly uint taskbarCreated;
     readonly nint brandIcon;
     NotifyIconData data;
+    (string Tip, bool Warning, bool Exhausted, bool Unknown)? lastStatus;
     public event Action? Open;
     public event Action? QuickView;
     public event Action? Refresh;
@@ -29,9 +30,12 @@ public sealed class TrayService : IDisposable
     }
     public void Update(string tip, bool warning, bool exhausted, bool unknown)
     {
-        data.Tip = tip.Length > 127 ? tip[..127] : tip;
+        var displayTip = tip.Length > 127 ? tip[..127] : tip;
+        var status = (displayTip, warning, exhausted, unknown);
+        if (lastStatus == status) return;
+        data.Tip = displayTip;
         data.Icon = warning || exhausted || unknown ? LoadIcon(0, exhausted ? 32513 : warning ? 32515 : 32516) : brandIcon;
-        Shell_NotifyIcon(1, ref data);
+        if (Shell_NotifyIcon(1, ref data)) lastStatus = status;
         TaskbarOverlay.Set(hwnd, warning || exhausted || unknown ? data.Icon : 0, tip);
     }
     nint WindowProc(nint window, uint message, nuint wParam, nint lParam, nuint id, nuint reference)

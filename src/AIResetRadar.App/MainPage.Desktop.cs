@@ -58,25 +58,6 @@ public sealed partial class MainPage
         UpdateTray();
     }
     void ShowMain() { nativeWindow?.AppWindow.Show(); nativeWindow?.Activate(); }
-    void ShowQuickView()
-    {
-        if (quickWindow is not null) { if (quickWindow.Handler?.PlatformView is Microsoft.UI.Xaml.Window current) current.Activate(); return; }
-        var content = new VerticalStackLayout { Padding = 20, Spacing = 16 };
-        content.Children.Add(new Label { Text = "AI Reset Radar", FontSize = 23, FontFamily = "Segoe UI Semibold" });
-        if (state.IsDemo) content.Children.Add(new Label { Text = "Demo data", TextColor = Color.FromArgb("#B5A0F4") });
-        foreach (var row in state.Rows)
-        {
-            content.Children.Add(new Label { Text = $"{row.Account.Provider} / {row.Account.Nickname} · {row.Window.Name}" });
-            content.Children.Add(new UsageBar(row.Window.Fill, row.UsedText, row.LeftText, row.IsWarning));
-            content.Children.Add(new Label { Text = ResetTime.Countdown(row.Window.ResetsAt, DateTimeOffset.Now), TextColor = Color.FromArgb("#B5A0F4"), FontSize = 12 });
-        }
-        if (!state.Rows.Any()) content.Children.Add(new Label { Text = "Connect an account in the dashboard to start monitoring." });
-        var open = new Button { Text = "Open dashboard", BackgroundColor = Color.FromArgb("#7169CA") };
-        open.Clicked += (_, _) => { ShowMain(); if (quickWindow is not null) Application.Current!.CloseWindow(quickWindow); }; content.Children.Add(open);
-        quickWindow = new Window(new ContentPage { BackgroundColor = Color.FromArgb("#141519"), Content = new ScrollView { Content = content } }) { Title = "Radar quick view", Width = 480, Height = 650, MinimumWidth = 420, MinimumHeight = 400 };
-        quickWindow.Destroying += (_, _) => quickWindow = null;
-        Application.Current!.OpenWindow(quickWindow);
-    }
     void UpdateTray()
     {
         var rows = state.Rows.ToArray();
@@ -88,5 +69,6 @@ public sealed partial class MainPage
         var text = limiting is null ? "AI Reset Radar" : $"Radar · {limiting.Account.Nickname} / {limiting.Window.Name}: {limiting.LeftText}";
         if (status.Notice is not null) text += " · " + status.Notice; if (state.IsDemo) text = "DEMO · " + text;
         tray?.Update(text, warning, exhausted, unknown);
+        UpdateQuickView();
     }
 }
