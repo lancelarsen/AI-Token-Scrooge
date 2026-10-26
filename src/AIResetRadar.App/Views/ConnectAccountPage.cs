@@ -8,7 +8,7 @@ public sealed partial class ConnectAccountPage : ContentPage
 {
     readonly Entry nickname = new() { Placeholder = "Account nickname (Personal, Work…)", Text = "Personal" };
     readonly Entry token = new() { Placeholder = "Fine-grained personal access token", IsPassword = true };
-    readonly Entry allowance = new() { Placeholder = "Monthly allowance (optional; user-entered)", Keyboard = Keyboard.Numeric };
+    readonly Entry allowance = new() { Placeholder = "Fallback allowance (optional; detected automatically when available)", Keyboard = Keyboard.Numeric };
     readonly Entry organization = new() { Placeholder = "Organization billing owner (optional)" };
     readonly Picker unit = new() { ItemsSource = new[] { "AI credits", "Legacy premium requests" }, SelectedIndex = 0, TextColor = Colors.White };
     readonly Label status = new() { TextColor = Color.FromArgb("#B6B8C8") };

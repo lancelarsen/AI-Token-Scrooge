@@ -50,7 +50,24 @@ public static class ProviderMapping
         }
     }
 
-    public static QuotaSnapshot GitHub(ProviderAccount account, JsonElement response, DateTimeOffset observed)
+    public static decimal? GitHubAllowance(JsonElement response, UsageUnit unit)
+    {
+        if (response.ValueKind != JsonValueKind.Object ||
+            !response.TryGetProperty("token_based_billing", out var billing) ||
+            billing.ValueKind is not (JsonValueKind.True or JsonValueKind.False) ||
+            (billing.GetBoolean() ? UsageUnit.Credits : UsageUnit.Requests) != unit ||
+            !response.TryGetProperty("quota_snapshots", out var snapshots) || snapshots.ValueKind != JsonValueKind.Object ||
+            !snapshots.TryGetProperty("premium_interactions", out var quota) || quota.ValueKind != JsonValueKind.Object ||
+            !quota.TryGetProperty("unlimited", out var unlimited) || unlimited.ValueKind != JsonValueKind.False ||
+            !quota.TryGetProperty("entitlement", out var value)) return null;
+        decimal amount;
+        var valid = value.ValueKind == JsonValueKind.Number ? value.TryGetDecimal(out amount) :
+            decimal.TryParse(value.ValueKind == JsonValueKind.String ? value.GetString() : null,
+                System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out amount);
+        return valid && amount >= 0 ? amount : null;
+    }
+
+    public static QuotaSnapshot GitHub(ProviderAccount account, JsonElement response, DateTimeOffset observed, decimal? providerAllowance = null)
     {
         if (!response.TryGetProperty("usageItems", out var items) || items.ValueKind != JsonValueKind.Array)
             throw new InvalidDataException("Billing response did not include usage data.");
@@ -73,9 +90,10 @@ public static class ProviderMapping
         var reset = new DateTimeOffset(new DateTime(utc.Year, utc.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(1));
         var label = account.Unit == UsageUnit.Requests ? "Premium requests · Monthly" : "AI credits · Monthly";
         return new(account.Id, account.Subject, account.Scope, observed,
-            [new("copilot/monthly", label, account.Unit, used, account.Allowance, reset, null,
-                account.Allowance.HasValue ? AllowanceProvenance.Manual : AllowanceProvenance.Unknown)], null,
-            Message: used is null ? "The report did not establish usage in the selected unit. Capacity is unavailable." : "Billing reports may lag; allowance is user-entered when supplied.");
+            [new("copilot/monthly", label, account.Unit, used, providerAllowance ?? account.Allowance, reset, null,
+                providerAllowance.HasValue ? AllowanceProvenance.Provider : account.Allowance.HasValue ? AllowanceProvenance.Manual : AllowanceProvenance.Unknown)], null,
+            Message: used is null ? "The report did not establish usage in the selected unit. Capacity is unavailable." : providerAllowance.HasValue ?
+                "Allowance reported by GitHub; billing usage may lag." : "Automatic allowance unavailable; a user-entered allowance is used when supplied. Billing reports may lag.");
     }
 
     public static string? Text(JsonElement element, string key) => element.TryGetProperty(key, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;

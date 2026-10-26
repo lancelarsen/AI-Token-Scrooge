@@ -7,7 +7,7 @@ A native Windows .NET MAUI desktop monitor for AI usage windows and expiring ear
 - Per-account quota rows with Used/Left text inside taller bars, lavender normal states and amber warning states.
 - Chronological automatic-reset and earned-credit-expiry timeline; independent quota windows and accounts.
 - Codex app-server connection using separate app-owned profiles and OS keyring storage; read-only monitoring transport.
-- GitHub Copilot browser sign-in for personal billing, with an advanced token option for personal or organization billing. Browser sign-in requires the one-time developer registration; live acceptance is still pending. Monthly allowance is optional and explicitly user-entered.
+- GitHub Copilot browser sign-in for personal billing, with an advanced token option for personal or organization billing. Personal allowance is detected from GitHub's entitlement data when available; manual allowance remains a labeled fallback. The entitlement endpoint is internal and may change; full live acceptance remains pending.
 - SQLite metadata, last-known snapshots, settings and alert history; GitHub secrets protected with current-user Windows DPAPI.
 - Tray quick view/menu, close-to-tray, taskbar status overlays, optional sign-in startup, refresh/backoff, native Windows notifications and in-app banners.
 - Quiet hours, snooze, privacy mode, per-account/window alert rules and thresholds, and notification test.
