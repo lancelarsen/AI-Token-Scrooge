@@ -1,7 +1,7 @@
 param([Parameter(Mandatory)][string]$PublishDirectory)
 $ErrorActionPreference = 'Stop'
 $source = (Resolve-Path -LiteralPath $PublishDirectory).Path
-foreach ($name in @('AIResetRadar.App.exe','AIResetRadar.App.dll','AIResetRadar.App.runtimeconfig.json','coreclr.dll','Microsoft.UI.Xaml.dll')) {
+foreach ($name in @('AIResetRadar.App.exe','AIResetRadar.App.dll','AIResetRadar.App.runtimeconfig.json','github-app.json','coreclr.dll','Microsoft.UI.Xaml.dll')) {
     if (-not (Test-Path -LiteralPath (Join-Path $source $name) -PathType Leaf)) { throw "Missing self-contained publish file: $name" }
 }
 $entries = @(Get-ChildItem -LiteralPath $source -Recurse -Force)
@@ -18,7 +18,7 @@ if (Test-Path -LiteralPath $destination) { Remove-Item -LiteralPath $destination
 [System.IO.Compression.ZipFile]::CreateFromDirectory($source, $destination, [System.IO.Compression.CompressionLevel]::Optimal, $false)
 $archive = [System.IO.Compression.ZipFile]::OpenRead($destination)
 try {
-    foreach ($name in @('AIResetRadar.App.exe','AIResetRadar.App.dll','coreclr.dll','Microsoft.UI.Xaml.dll')) {
+    foreach ($name in @('AIResetRadar.App.exe','AIResetRadar.App.dll','github-app.json','coreclr.dll','Microsoft.UI.Xaml.dll')) {
         if ($archive.Entries.FullName -notcontains $name) { throw "The archive is missing $name" }
     }
     if (@($archive.Entries | Where-Object { $_.Name.Length -gt 0 }).Count -ne $files.Count) { throw 'Archive and publish file counts differ.' }
