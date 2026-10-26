@@ -6,6 +6,13 @@ namespace AIResetRadar.App;
 public sealed partial class MainPage
 {
     Border? banner;
+    string? bannerAccountId;
+    void DismissBanner(string accountId)
+    {
+        if (bannerAccountId != accountId) return;
+        if (banner is not null) root.Children.Remove(banner);
+        banner = null; bannerAccountId = null;
+    }
     void ShowBanner(AlertEvent alert)
     {
         if (banner is not null) root.Children.Remove(banner);
@@ -13,6 +20,7 @@ public sealed partial class MainPage
         detail.Children.Add(new Label { Text = preferences.Privacy ? "AI usage alert" : alert.Title, FontFamily = "Segoe UI Semibold", FontSize = 15 });
         detail.Children.Add(new Label { Text = preferences.Privacy ? "Open Scrooge to see details." : alert.Detail, FontSize = 12, TextColor = Color.FromArgb("#B6B8C8") });
         var actions = new HorizontalStackLayout { Spacing = 8 };
+        Border? displayedBanner = null;
         var view = new Button { Text = "View account", BackgroundColor = Color.FromArgb("#7169CA") };
         var snooze = new Button { Text = "Snooze 1 hour" }; var dismiss = new Button { Text = "Dismiss" };
         view.Clicked += (_, _) => { OpenAccount(alert.AccountId, alert.WindowId); Dismiss(); };
@@ -26,7 +34,13 @@ public sealed partial class MainPage
             StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 14 }, MaximumWidthRequest = 520,
             HorizontalOptions = LayoutOptions.End, VerticalOptions = LayoutOptions.End, Margin = new Thickness(20) };
         root.Add(banner, 0, 2);
-        void Dismiss() { if (banner is not null) root.Children.Remove(banner); banner = null; }
+        bannerAccountId = alert.AccountId;
+        displayedBanner = banner;
+        void Dismiss()
+        {
+            // A completed snooze must not dismiss a newer banner shown while saving.
+            if (ReferenceEquals(banner, displayedBanner)) DismissBanner(alert.AccountId);
+        }
     }
     async Task OpenHistoryAsync()
     {

@@ -90,6 +90,7 @@ public sealed partial class MainPage
             catch { state.Accounts[index] = latest with { }; throw; }
         }
         finally { accountChanges.Release(); }
+        if (remove || !edit.Enabled) DismissBanner(edit.Id);
         Render(); UpdateTray();
         _ = CleanupRetiredAsync();
     }

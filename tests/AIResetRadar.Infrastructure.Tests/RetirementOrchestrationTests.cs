@@ -63,6 +63,11 @@ namespace AIResetRadar.App
             if (demo) state.LoadDemo(DateTimeOffset.UtcNow);
         }
         public Task RunCleanupAsync() => CleanupRetiredAsync();
+        public Task EditForTestAsync(ProviderAccount edit) => UpdateAccountAsync(edit, false);
+        public void AddAccountForTest(ProviderAccount account) => state.Accounts.Add(account);
+        public void TrackReadForTest(string id, CancellationTokenSource read) => pendingReads[id] = read;
+        public List<string> DismissedBannersForTest { get; } = [];
+        void DismissBanner(string id) => DismissedBannersForTest.Add(id);
         public Task SavePreferencesForTestAsync(RadarSettings settings) => SaveSettingsAsync(settings);
         public RadarSettings PreferencesForTest => preferences;
         public Task<bool> SnoozeForTestAsync(string account) => SaveSnoozeAsync(account);
