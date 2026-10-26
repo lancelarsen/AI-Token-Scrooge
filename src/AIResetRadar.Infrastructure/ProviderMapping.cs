@@ -53,6 +53,7 @@ public static class ProviderMapping
     public static decimal? GitHubAllowance(JsonElement response, UsageUnit unit)
     {
         if (response.ValueKind != JsonValueKind.Object ||
+            Text(response, "copilot_plan") is not ("individual" or "individual_pro" or "individual_max" or "individual_edu") ||
             !response.TryGetProperty("token_based_billing", out var billing) ||
             billing.ValueKind is not (JsonValueKind.True or JsonValueKind.False) ||
             (billing.GetBoolean() ? UsageUnit.Credits : UsageUnit.Requests) != unit ||

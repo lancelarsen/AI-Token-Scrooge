@@ -19,7 +19,7 @@ public class GitHubUsageTests
         using var http = new HttpClient(new Handler(request => request.RequestUri!.AbsolutePath switch
         {
             "/user" => Json("""{"id":42,"login":"sample"}"""),
-            "/copilot_internal/user" => available ? Json("""{"token_based_billing":true,"quota_snapshots":{"premium_interactions":{"entitlement":20000,"unlimited":false}}}""") : new(HttpStatusCode.Forbidden),
+            "/copilot_internal/user" => available ? Json("""{"copilot_plan":"individual_max","token_based_billing":true,"quota_snapshots":{"premium_interactions":{"entitlement":20000,"unlimited":false}}}""") : new(HttpStatusCode.Forbidden),
             _ => Json("""{"usageItems":[{"unitType":"credits","grossQuantity":228.8}]}""")
         }));
         var result = await new GitHubUsageClient(http, TimeProvider.System).ReadAsync(new("a", "GitHub Copilot", "Personal", "42", "personal", Allowance: 100), "test-token", default);
@@ -40,7 +40,7 @@ public class GitHubUsageTests
     [InlineData("true", "false", "\"bad\"", UsageUnit.Credits, -1)]
     public void AllowanceRequiresMatchingUnitsAndFiniteAllocation(string billing, string unlimited, string amount, UsageUnit unit, int expected)
     {
-        using var data = System.Text.Json.JsonDocument.Parse("{\"token_based_billing\":" + billing + ",\"quota_snapshots\":{\"premium_interactions\":{\"entitlement\":" + amount + ",\"unlimited\":" + unlimited + "}}}");
+        using var data = System.Text.Json.JsonDocument.Parse("{\"copilot_plan\":\"individual_max\",\"token_based_billing\":" + billing + ",\"quota_snapshots\":{\"premium_interactions\":{\"entitlement\":" + amount + ",\"unlimited\":" + unlimited + "}}}");
         Assert.Equal(expected < 0 ? (decimal?)null : expected, ProviderMapping.GitHubAllowance(data.RootElement, unit));
     }
 
@@ -61,6 +61,34 @@ public class GitHubUsageTests
             .ReadAsync(new("a", "GitHub Copilot", "Personal", "42", "personal", Allowance: 20000), "test-token", default));
         Assert.Equal(expected, error.Health);
         if (status == HttpStatusCode.TooManyRequests) Assert.True(error.RetryAt > DateTimeOffset.UtcNow.AddMinutes(2));
+    }
+
+    [Theory]
+    [InlineData("business")]
+    [InlineData("enterprise")]
+    [InlineData("future_plan")]
+    [InlineData(null)]
+    public async Task PersonalBillingCannotBorrowAnOrganizationOrUnidentifiedEntitlement(string? plan)
+    {
+        using var http = new HttpClient(new Handler(request => request.RequestUri!.AbsolutePath switch
+        {
+            "/user" => Json("""{"id":42,"login":"sample"}"""),
+            "/copilot_internal/user" => Json(System.Text.Json.JsonSerializer.Serialize(new
+            {
+                copilot_plan = plan, token_based_billing = true,
+                quota_snapshots = new { premium_interactions = new { entitlement = 20000, unlimited = false } }
+            })),
+            _ => Json("""{"usageItems":[{"unitType":"credits","grossQuantity":25}]}""")
+        }));
+        var client = new GitHubUsageClient(http, TimeProvider.System);
+        foreach (decimal? manual in new decimal?[] { null, 100 })
+        {
+            var result = await client.ReadAsync(new("a", "GitHub Copilot", "Personal", "42", "personal", Allowance: manual), "test-token", default);
+            var window = Assert.Single(result.Windows);
+            Assert.Equal(manual, window.Limit);
+            Assert.Equal(manual.HasValue ? AllowanceProvenance.Manual : AllowanceProvenance.Unknown, window.AllowanceSource);
+            Assert.Equal(25m, window.Used);
+        }
     }
 
     [Fact] public async Task TokenIdentityMismatchCannotAttachBillingData()
