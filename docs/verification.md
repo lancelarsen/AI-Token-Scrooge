@@ -109,3 +109,11 @@ Latest background-only check of the allowance build (PID 85448) recorded 0.453 C
 - Clean-user extraction/launch/notifications/removal, final packaging/signing decision and README walkthrough.
 
 Live acceptance remains open until checked with authenticated accounts. No credential contents were copied into evidence.
+
+### 2026-10-25 — preserve controls during unchanged timer ticks
+
+- Investigating the inconclusive keyboard check identified a concrete source issue: RefreshAsync rebuilt the entire dashboard after every timer invocation, including ticks where no provider read was due. Background calls also disabled/re-enabled the Refresh button, potentially disturbing focus on it.
+- DashboardState now supplies a render signature covering accounts, snapshots, preferences, sort, demo state, reset summary and current timeline events. An unchanged signature updates row countdowns without clearing/recreating the dashboard. New observations and account edits rebuild detail callbacks; reset and credit-expiry boundaries invalidate the signature. The header still updates, and covered/modal rendering remains deferred. Only explicit refresh disables the Refresh button.
+- Verification: 142 tests passed (59 Core, 83 Infrastructure), including countdown stability, reset/expiry boundary invalidation, and new-observation/account-edit invalidation. Release self-contained publish and archive validation passed (594 files). Running preview: artifacts/publish/stable-dashboard-win-x64. All three enabled accounts refreshed Healthy at 2026-10-26 03:16:26–30 UTC with matching subject/scope bindings. Process 55100 reported Responding=True.
+- Native check limitation: initial activation and one fresh-window recovery both failed with `foreground window did not report a process id`. Stopped UI input after the recovery failure. No live focus/timer stability pass is claimed; the preceding inconsistent keyboard behavior remains open, and actual provider updates still rebuild controls.
+- Updated preview ZIP SHA256: C0824C458D76C928F97CB9EBDF11EF933FE298572FA11B16EA05608A9285BF15. Managed App assembly SHA256: EF165BC9BCA41F7C491D8603A305BAA28F5F3445D194252879A45149E23DD268. Unsigned preview acceptance remains incomplete.

@@ -21,6 +21,12 @@ public sealed class DashboardState
     public bool IsDemo { get; private set; }
     public string Sort { get; set; } = "Next reset";
     public RadarSettings Settings { get; set; } = new();
+    public string RenderSignature(DateTimeOffset now) => System.Text.Json.JsonSerializer.Serialize(new
+    {
+        Accounts, Snapshots, Settings, Sort, IsDemo,
+        Summary = ResetSummary.Evaluate(Accounts, Snapshots, now),
+        Events = Events(now).ToArray()
+    });
     public IEnumerable<QuotaRow> Rows
     {
         get

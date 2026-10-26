@@ -39,7 +39,7 @@ public sealed partial class MainPage
     async Task RefreshAsync(bool force = true)
     {
         if (!await refreshing.WaitAsync(0)) return;
-        refresh.IsEnabled = false;
+        if (force) refresh.IsEnabled = false;
         try
         {
             alertHistory.RemoveAll(e => e.CreatedAt < HistoryRetention.Cutoff(DateTimeOffset.UtcNow));
@@ -93,7 +93,7 @@ public sealed partial class MainPage
             await SaveAsync(); Render(); UpdateTray();
         }
         catch { freshness.Text = "Scrooge could not save local monitoring state. Check available space and folder access."; }
-        finally { refresh.IsEnabled = true; refreshing.Release(); _ = CleanupRetiredAsync(); }
+        finally { if (force) refresh.IsEnabled = true; refreshing.Release(); _ = CleanupRetiredAsync(); }
     }
     async Task SaveAsync()
     {

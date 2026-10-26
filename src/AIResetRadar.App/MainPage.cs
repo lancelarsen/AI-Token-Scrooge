@@ -14,6 +14,7 @@ public sealed partial class MainPage : ContentPage
     readonly List<QuotaRowView> rowViews = [];
     bool dashboardVisible = true;
     bool renderPending;
+    string? renderSignature;
     public MainPage()
     {
         Title = "AI Token Scrooge";
@@ -48,10 +49,17 @@ public sealed partial class MainPage : ContentPage
         if (!dashboardVisible || Navigation.ModalStack.Count > 0) { renderPending = true; return; }
         renderPending = false;
         state.Settings = preferences;
-        body.Children.Clear();
-        rowViews.Clear();
+        var now = DateTimeOffset.Now;
+        var signature = state.RenderSignature(now) + ":" + retiredCredentials.Count;
         freshness.Text = state.IsDemo ? "DEMO DATA · Live monitoring paused" : state.Snapshots.Count == 0 ? "Connect an account to start monitoring" : $"Updated {state.Snapshots.Values.Max(s => s.ObservedAt).ToLocalTime():h:mm tt} · {DateTimeOffset.Now:ddd, MMM d, yyyy}";
         if (retiredCredentials.Count > 0) freshness.Text += " · Previous sign-in cleanup pending";
+        if (signature == renderSignature)
+        {
+            foreach (var row in rowViews) row.UpdateClock(now);
+            return;
+        }
+        body.Children.Clear();
+        rowViews.Clear();
         var heading = new Grid { ColumnDefinitions = [new(GridLength.Star), new(GridLength.Auto)], ColumnSpacing = 20 };
         heading.Add(new VerticalStackLayout { Spacing = 5, Children = { new Label { Text = "Reset Horizon", FontSize = 28, FontFamily = "Segoe UI Semibold" },
             new Label { Text = "Upcoming quota resets and credit expirations across your accounts.", TextColor = Color.FromArgb("#B6B8C8"), FontSize = 15 } }});
@@ -100,6 +108,7 @@ public sealed partial class MainPage : ContentPage
             var accountStatus = new Button { Text = $"{account.Provider} / {account.Nickname} · {(!account.Enabled ? "Monitoring disabled" : snapshot?.Message ?? "Waiting for usage data")} · Manage account", HeightRequest = -1, MinimumHeightRequest = 70 };
             accountStatus.Clicked += async (_, _) => await OpenSettingsAsync(); body.Children.Add(accountStatus);
         }
+        renderSignature = signature;
     }
     static Button MakeButton(string text, string glyph) => new() { Text = text, ContentLayout = new Button.ButtonContentLayout(Button.ButtonContentLayout.ImagePosition.Left, 9), ImageSource = glyph switch
     {
