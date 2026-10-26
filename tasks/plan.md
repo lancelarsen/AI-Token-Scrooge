@@ -178,7 +178,9 @@ Checkpoints after each phase: targeted tests/build pass and the slice works in t
 | Visual direction | Selected: round 2 image 7, Quiet Warning; exact target is `design/references/approved-ui.png`. See `../design/selection.md`. |
 | Distribution | Local x64 first; MSIX signing/channel to be settled before distribution. |
 
-Deferred: macOS/mobile, cloud sync, general web scraping/browser-cookie access, undocumented private provider endpoints, automatic account switching, reset redemption, top-ups, predictive time-to-exhaustion, and additional providers beyond the extension contract. Monitoring permission does not authorize consuming an earned reset.
+Deferred: macOS/mobile, cloud sync, general web scraping/browser-cookie access, undocumented private provider endpoints except the limited GitHub entitlement lookup below, automatic account switching, reset redemption, top-ups, predictive time-to-exhaustion, and additional providers beyond the extension contract. Monitoring permission does not authorize consuming an earned reset.
+
+October 25 allowance refinement: following the user's request to discover total GitHub allowance automatically, Radar queries `api.github.com/copilot_internal/user` using its own identity-verified GitHub connection. This exception is limited to finite, unit-compatible personal-plan entitlement data; it does not permit browser-cookie access or borrowing credentials from another app. The endpoint is internal and may change. Manual/unknown fallback, scope checks and provenance remain required; see `../docs/github-sign-in.md` for live evidence and limitations.
 
 ## Planning-pass verification limits
 
