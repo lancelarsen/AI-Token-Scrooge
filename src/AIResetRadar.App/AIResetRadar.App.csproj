@@ -11,6 +11,7 @@
     <WindowsPackageType>None</WindowsPackageType>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <ApplicationIcon>Resources/app.ico</ApplicationIcon>
     <ApplicationManifest>Platforms/Windows/app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>

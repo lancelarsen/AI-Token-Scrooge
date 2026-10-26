@@ -1,1 +1,63 @@
-<maui:MauiWinUIApplication x:Class="AIResetRadar.App.WinUI.App" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:maui="using:Microsoft.Maui" />
+<maui:MauiWinUIApplication x:Class="AIResetRadar.App.WinUI.App"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:maui="using:Microsoft.Maui" xmlns:controls="using:Microsoft.UI.Xaml.Controls">
+ <maui:MauiWinUIApplication.Resources>
+  <ResourceDictionary>
+   <ResourceDictionary.ThemeDictionaries>
+    <ResourceDictionary x:Key="Dark">
+   <SolidColorBrush x:Key="AccentFillColorDefaultBrush" Color="#7560CE" />
+   <SolidColorBrush x:Key="AccentFillColorSecondaryBrush" Color="#8973DB" />
+   <SolidColorBrush x:Key="AccentFillColorTertiaryBrush" Color="#6553B8" />
+   <SolidColorBrush x:Key="TextOnAccentFillColorPrimaryBrush" Color="#FFFFFF" />
+   <SolidColorBrush x:Key="ContentDialogBackground" Color="#222329" />
+   <SolidColorBrush x:Key="ContentDialogForeground" Color="#F2F1F5" />
+   <SolidColorBrush x:Key="ContentDialogBorderBrush" Color="#65577F" />
+   <SolidColorBrush x:Key="ContentDialogTopOverlay" Color="#222329" />
+   <SolidColorBrush x:Key="ContentDialogSeparatorBorderBrush" Color="#3B3D47" />
+   <SolidColorBrush x:Key="ToolTipBackground" Color="#222329" />
+   <SolidColorBrush x:Key="ToolTipForeground" Color="#F2F1F5" />
+   <SolidColorBrush x:Key="ToolTipBorderBrush" Color="#65577F" />
+   <SolidColorBrush x:Key="MenuFlyoutPresenterBackground" Color="#222329" />
+   <SolidColorBrush x:Key="FlyoutPresenterBackground" Color="#222329" />
+   <SolidColorBrush x:Key="ComboBoxDropDownBackground" Color="#222329" />
+   <SolidColorBrush x:Key="ComboBoxDropDownBorderBrush" Color="#65577F" />
+    </ResourceDictionary>
+   </ResourceDictionary.ThemeDictionaries>
+   <ResourceDictionary.MergedDictionaries><controls:XamlControlsResources /></ResourceDictionary.MergedDictionaries>
+   <Color x:Key="SystemAccentColor">#B5A0F4</Color>
+   <SolidColorBrush x:Key="AccentFillColorDefaultBrush" Color="#7560CE" />
+   <SolidColorBrush x:Key="AccentFillColorSecondaryBrush" Color="#8973DB" />
+   <SolidColorBrush x:Key="AccentFillColorTertiaryBrush" Color="#6553B8" />
+   <SolidColorBrush x:Key="TextOnAccentFillColorPrimaryBrush" Color="#FFFFFF" />
+   <CornerRadius x:Key="OverlayCornerRadius">16</CornerRadius>
+   <CornerRadius x:Key="ControlCornerRadius">10</CornerRadius>
+   <SolidColorBrush x:Key="ContentDialogBackground" Color="#222329" />
+   <SolidColorBrush x:Key="ContentDialogForeground" Color="#F2F1F5" />
+   <SolidColorBrush x:Key="ContentDialogBorderBrush" Color="#65577F" />
+   <SolidColorBrush x:Key="ContentDialogTopOverlay" Color="#222329" />
+   <SolidColorBrush x:Key="ContentDialogSeparatorBorderBrush" Color="#3B3D47" />
+   <SolidColorBrush x:Key="ToolTipBackground" Color="#222329" />
+   <SolidColorBrush x:Key="ToolTipForeground" Color="#F2F1F5" />
+   <SolidColorBrush x:Key="ToolTipBorderBrush" Color="#65577F" />
+   <SolidColorBrush x:Key="MenuFlyoutPresenterBackground" Color="#222329" />
+   <SolidColorBrush x:Key="FlyoutPresenterBackground" Color="#222329" />
+   <SolidColorBrush x:Key="ComboBoxDropDownBackground" Color="#222329" />
+   <SolidColorBrush x:Key="ComboBoxDropDownBorderBrush" Color="#65577F" />
+   <DataTemplate x:Key="ScroogeDialogTitle">
+    <TextBlock Text="{Binding}" Foreground="#C3ADF8" FontWeight="SemiBold" FontSize="22" TextWrapping="Wrap" />
+   </DataTemplate>
+   <Style TargetType="ContentDialog" BasedOn="{StaticResource DefaultContentDialogStyle}">
+    <Setter Property="CornerRadius" Value="16" />
+    <Setter Property="TitleTemplate" Value="{StaticResource ScroogeDialogTitle}" />
+    <Setter Property="FontFamily" Value="Segoe UI" />
+   </Style>
+   <Style TargetType="ToolTip" BasedOn="{StaticResource DefaultToolTipStyle}">
+    <Setter Property="Background" Value="#222329" /><Setter Property="Foreground" Value="#F2F1F5" />
+    <Setter Property="BorderBrush" Value="#65577F" /><Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="12" /><Setter Property="Padding" Value="14,10" />
+    <Setter Property="FontSize" Value="13" /><Setter Property="FontFamily" Value="Segoe UI" />
+   </Style>
+  </ResourceDictionary>
+ </maui:MauiWinUIApplication.Resources>
+</maui:MauiWinUIApplication>

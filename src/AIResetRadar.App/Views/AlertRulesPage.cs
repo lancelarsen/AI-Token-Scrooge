@@ -17,7 +17,7 @@ public sealed class AlertRulesPage : ContentPage
         var exhausted = Toggle("Exhausted capacity alerts"); var restored = Toggle("Confirmed restored capacity alerts");
         var expiry = Toggle("Earned reset expiry reminders (24 hours / 1 hour)");
         var status = new Label { TextColor = Color.FromArgb("#EAAA51") }; form.Children.Add(status);
-        var done = new Button { Text = "Save rules", BackgroundColor = Color.FromArgb("#7169CA") };
+        var done = new AIResetRadar.App.Controls.ActionButton { Text = "Save rules" };
         done.Clicked += async (_, _) =>
         {
             decimal? lowValue = null, criticalValue = null;
@@ -32,7 +32,7 @@ public sealed class AlertRulesPage : ContentPage
             finally { done.IsEnabled = true; }
         };
         form.Children.Add(done);
-        var inherit = new Button { Text = "Use default rules" };
+        var inherit = new AIResetRadar.App.Controls.ActionButton { Text = "Use default rules" };
         inherit.Clicked += async (_, _) =>
         {
             var id = WindowId(); var candidate = rules.Where(r => r.AccountId != account.Id || r.WindowId != id).ToArray();
@@ -40,7 +40,7 @@ public sealed class AlertRulesPage : ContentPage
             try { await save(candidate); await Navigation.PopModalAsync(); } catch { status.Text = "Rules could not be saved."; }
         };
         form.Children.Add(inherit);
-        var close = new Button { Text = "Close" }; close.Clicked += async (_, _) => await Navigation.PopModalAsync(); form.Children.Add(close);
+        var close = new AIResetRadar.App.Controls.ActionButton { Text = "Close" }; close.Clicked += async (_, _) => await Navigation.PopModalAsync(); form.Children.Add(close);
         scopes.SelectedIndexChanged += (_, _) => Load();
         Content = new ScrollView { Content = form }; Load();
         string? WindowId() => scopes.SelectedIndex <= 0 ? null : windows[scopes.SelectedIndex - 1].Id;

@@ -19,14 +19,33 @@ public sealed partial class MainPage : ContentPage
     {
         Title = "AI Token Scrooge";
         Background = new LinearGradientBrush([new(Color.FromArgb("#1B1C20"), 0), new(Color.FromArgb("#141519"), 1)], new(0, 0), new(1, 1));
-        var header = new Grid { Padding = new Thickness(32, 18), ColumnSpacing = 14, RowSpacing = 8,
-            ColumnDefinitions = [new(new GridLength(66)), new(GridLength.Star), new(GridLength.Auto), new(GridLength.Auto)], RowDefinitions = [new(GridLength.Auto), new(GridLength.Auto)] };
-        var icon = new Image { Source = "radar.png", WidthRequest = 66, HeightRequest = 66 }; header.Add(icon); Grid.SetRowSpan(icon, 2);
-        header.Add(new VerticalStackLayout { Spacing = 2, VerticalOptions = LayoutOptions.Center, Children = {
-            new Label { Text = "AI Token Scrooge", FontSize = 32, FontFamily = "Segoe UI Semibold" },
-            new Label { Text = "Never Waste a Token!", FontSize = 13, TextColor = Color.FromArgb("#C3ADF8") }
-        } }, 1);
-        header.Add(refresh, 2); header.Add(settings, 3); header.Add(freshness, 1, 1); Grid.SetColumnSpan(freshness, 3);
+        var header = new Grid { Padding = new Thickness(32, 18), ColumnSpacing = 24, RowSpacing = 12,
+            ColumnDefinitions = [new(GridLength.Star), new(GridLength.Auto)], RowDefinitions = [new(GridLength.Auto), new(GridLength.Auto)] };
+        var brand = new HorizontalStackLayout { Spacing = 14, VerticalOptions = LayoutOptions.Center, Children = {
+            new Image { Source = "token_baron.png", WidthRequest = 66, HeightRequest = 66 },
+            new VerticalStackLayout { Spacing = 0, HeightRequest = 66, VerticalOptions = LayoutOptions.Center, Children = {
+                new Label { Text = "AI Token Scrooge", FontSize = 32, FontFamily = "Segoe UI Semibold", HeightRequest = 40, VerticalTextAlignment = TextAlignment.Center },
+                new Label { Text = "Never Waste a Token!", FontSize = 16, HeightRequest = 26, VerticalTextAlignment = TextAlignment.Center, TextColor = Color.FromArgb("#C3ADF8") }
+            } }
+        } };
+        freshness.VerticalOptions = LayoutOptions.Center;
+        var actions = new Grid { ColumnSpacing = 14, VerticalOptions = LayoutOptions.Center,
+            ColumnDefinitions = [new(GridLength.Star), new(GridLength.Auto), new(GridLength.Auto)] };
+        actions.Add(freshness); actions.Add(refresh, 1); actions.Add(settings, 2);
+        refresh.VerticalOptions = settings.VerticalOptions = LayoutOptions.Center;
+        header.Add(brand); header.Add(actions, 1);
+        bool? headerWide = null;
+        SizeChanged += (_, _) =>
+        {
+            var wide = Width >= 1100;
+            if (headerWide == wide) return;
+            headerWide = wide;
+            header.RowSpacing = wide ? 0 : 12;
+            actions.WidthRequest = wide ? 500 : -1;
+            Grid.SetColumnSpan(brand, wide ? 1 : 2);
+            Grid.SetColumn(actions, wide ? 1 : 0); Grid.SetRow(actions, wide ? 0 : 1);
+            Grid.SetColumnSpan(actions, wide ? 1 : 2);
+        };
         root.Add(header); root.Add(new BoxView { Color = Color.FromArgb("#363842") }, 0, 1); root.Add(new ScrollView { Content = body }, 0, 2); Content = root;
         refresh.Clicked += async (_, _) => await RefreshAsync(); settings.Clicked += async (_, _) => await OpenSettingsAsync();
         if (Environment.GetCommandLineArgs().Contains("--demo")) state.LoadDemo(DateTimeOffset.Now);
@@ -51,7 +70,7 @@ public sealed partial class MainPage : ContentPage
         state.Settings = preferences;
         var now = DateTimeOffset.Now;
         var signature = state.RenderSignature(now) + ":" + retiredCredentials.Count;
-        freshness.Text = state.IsDemo ? "DEMO DATA · Live monitoring paused" : state.Snapshots.Count == 0 ? "Connect an account to start monitoring" : $"Updated {state.Snapshots.Values.Max(s => s.ObservedAt).ToLocalTime():h:mm tt} · {DateTimeOffset.Now:ddd, MMM d, yyyy}";
+        freshness.Text = state.IsDemo ? "DEMO DATA · Live monitoring paused" : state.Snapshots.Count == 0 ? "Connect an account to start monitoring" : UpdatedLabel(state.Snapshots.Values.Max(s => s.ObservedAt));
         if (retiredCredentials.Count > 0) freshness.Text += " · Previous sign-in cleanup pending";
         if (signature == renderSignature)
         {
@@ -60,13 +79,7 @@ public sealed partial class MainPage : ContentPage
         }
         body.Children.Clear();
         rowViews.Clear();
-        var heading = new Grid { ColumnDefinitions = [new(GridLength.Star), new(GridLength.Auto)], ColumnSpacing = 20 };
-        heading.Add(new VerticalStackLayout { Spacing = 5, Children = { new Label { Text = "Reset Horizon", FontSize = 28, FontFamily = "Segoe UI Semibold" },
-            new Label { Text = "Purple: quota refresh � Amber: earned reset expires � Hover or click an icon for details.", TextColor = Color.FromArgb("#B6B8C8"), FontSize = 15 } }});
-        var summary = ResetSummary.Evaluate(state.Accounts, state.Snapshots, DateTimeOffset.UtcNow);
-        var reserve = MakeButton(summary.ReportedCount is not { } count ? "Available resets · Count not reported" : $"{count} Codex resets {(summary.IsLastReported ? "last reported" : "available")}", "\uE8B7"); reserve.Clicked += async (_, _) => await OpenReserveAsync();
-        heading.Add(new VerticalStackLayout { Spacing = 5, Padding = new Thickness(0, 0, 0, 3), Children = { reserve, new Label { Text = summary.HasExpiredDetails ? "Expiry reached · Awaiting provider confirmation" : summary.EarliestExpiry is { } expiry ? $"Earliest known expiry {expiry.ToLocalTime():MMM d · h:mm tt}" : "Expiry details may be unavailable", FontSize = 12, TextColor = Color.FromArgb("#B6B8C8"), HorizontalTextAlignment = TextAlignment.End } }}, 1);
-        body.Children.Add(heading); body.Children.Add(new HorizonView(state.Events(DateTimeOffset.Now), e => OpenAccount(e.AccountId, e.WindowId)));
+        body.Children.Add(new HorizonView(state.Events(DateTimeOffset.Now), e => OpenAccount(e.AccountId, e.WindowId)));
         var toolbar = new Grid { ColumnDefinitions = [new(GridLength.Star), new(GridLength.Auto), new(GridLength.Auto)], ColumnSpacing = 12 };
         toolbar.Add(new Label { Text = "Accounts", FontSize = 24, FontFamily = "Segoe UI Semibold", VerticalOptions = LayoutOptions.Center });
         var add = MakeButton(state.IsDemo ? "Exit demo" : "Add account", "\uE710"); add.Clicked += async (_, _) => { if (state.IsDemo) { state.ClearDemo(); initialized = false; await InitializeAsync(); } else await AddAccountAsync(); };
@@ -88,24 +101,43 @@ public sealed partial class MainPage : ContentPage
             foreach (var row in accountRows)
             {
                 if (!firstWindow) section.Children.Add(new BoxView { HeightRequest = 1, Margin = new Thickness(24, 0), Color = Color.FromArgb("#383B46") });
-                var view = new QuotaRowView(row, async r => await OpenDetailsAsync(r), grouped: true, showAccount: firstWindow);
+                var view = new QuotaRowView(row, r => OpenAccount(r.Account.Id, r.Window.Id), grouped: true, showAccount: firstWindow);
                 rowViews.Add(view); section.Children.Add(view);
                 firstWindow = false;
             }
-            body.Children.Add(new Border { Content = section, Padding = 0, Stroke = Color.FromArgb("#383B46"), BackgroundColor = Color.FromArgb("#1C1E24"),
+            body.Children.Add(new Border { Content = WithAccountSettings(section, accountRows.First().Account), Padding = 0, Stroke = Color.FromArgb("#383B46"), BackgroundColor = Color.FromArgb("#1C1E24"),
                 StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 13 } });
         }
         foreach (var account in state.Accounts.Where(a => !a.Enabled || !state.Snapshots.TryGetValue(a.Id, out var snapshot) || snapshot.Windows.Count == 0))
         {
             state.Snapshots.TryGetValue(account.Id, out var snapshot);
-            var accountStatus = new Button { Text = $"{account.Provider} / {account.Nickname} · {(!account.Enabled ? "Monitoring disabled" : snapshot?.Message ?? "Waiting for usage data")} · Manage account", HeightRequest = -1, MinimumHeightRequest = 70 };
-            accountStatus.Clicked += async (_, _) => await OpenSettingsAsync(); body.Children.Add(accountStatus);
+            var accountStatus = new AIResetRadar.App.Controls.ActionButton { Text = $"{account.Provider} / {account.Nickname} · {(!account.Enabled ? "Monitoring disabled" : snapshot?.Message ?? "Waiting for usage data")} · Manage account", HeightRequest = -1, MinimumHeightRequest = 70 };
+            accountStatus.Clicked += async (_, _) => await OpenAccountSettingsAsync(account.Id); body.Children.Add(WithAccountSettings(accountStatus, account));
         }
         renderSignature = signature;
     }
-    static Button MakeButton(string text, string glyph) => new() { Text = text, ContentLayout = new Button.ButtonContentLayout(Button.ButtonContentLayout.ImagePosition.Left, 9), ImageSource = glyph switch
+    static string UpdatedLabel(DateTimeOffset observed)
     {
-        "\uE72C" => ImageSource.FromFile("refresh.png"), "\uE713" => ImageSource.FromFile("settings.png"),
-        _ => new FontImageSource { FontFamily = "Segoe Fluent Icons", Glyph = glyph, Color = Color.FromArgb("#B5A0F4"), Size = 20 }
-    } };
+        var local = observed.ToLocalTime();
+        var zone = TimeZoneInfo.Local.Id is "Central Standard Time" or "America/Chicago"
+            ? (TimeZoneInfo.Local.IsDaylightSavingTime(local) ? "CDT" : "CST") : $"UTC{local:zzz}";
+        var day = local.Day;
+        var suffix = day is 11 or 12 or 13 ? "th" : (day % 10) switch { 1 => "st", 2 => "nd", 3 => "rd", _ => "th" };
+        return $"Updated {local:h:mm tt} {zone}\n{local:dddd, MMM} {day}{suffix}";
+    }
+    View WithAccountSettings(View content, AIResetRadar.Core.ProviderAccount account)
+    {
+        var layout = new Grid { ColumnDefinitions = [new(GridLength.Star), new(GridLength.Auto)] };
+        layout.Add(content);
+        var gear = MakeButton("Settings", "\uE713");
+        gear.HeightRequest = 44;
+        gear.VerticalOptions = LayoutOptions.Start; gear.Margin = new Thickness(0, 20, 12, 0);
+        var description = $"Settings for {account.Provider} / {account.Nickname} · {PlanLabels.Display(account.Provider, state.Snapshots.GetValueOrDefault(account.Id)?.PlanType)}";
+        SemanticProperties.SetDescription(gear, description);
+        ToolTipProperties.SetText(gear, description);
+        gear.Clicked += async (_, _) => await OpenAccountSettingsAsync(account.Id);
+        layout.Add(gear, 1);
+        return layout;
+    }
+    static Button MakeButton(string text, string glyph) => new AIResetRadar.App.Controls.ActionButton { Text = text };
 }

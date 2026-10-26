@@ -32,7 +32,7 @@ public sealed partial class MainPage
             }
             else AIResetRadar.App.Platforms.Windows.NotificationService.Current.AccountsLoaded();
         }
-        catch { await DisplayAlertAsync("Local storage unavailable", "Scrooge could not load its local account data. Check available disk space and folder access before connecting accounts.", "OK"); }
+        catch { await AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, "Local storage unavailable", "Scrooge could not load its local account data. Check available disk space and folder access before connecting accounts.", "OK"); }
     }
     readonly Dictionary<string, int> failures = [];
     readonly Dictionary<string, DateTimeOffset> throttledUntil = [];
@@ -104,15 +104,23 @@ public sealed partial class MainPage
     }
     async Task AddAccountAsync()
     {
-        var provider = await DisplayActionSheetAsync("Connect account", "Cancel", null, "OpenAI Codex", "GitHub Copilot");
+        var provider = await AIResetRadar.App.Services.ThemedDialogs.ChooseAsync(this, "Connect account", "OpenAI Codex", "GitHub Copilot", "Claude");
+        if (provider == "Claude") { await Navigation.PushModalAsync(new ConnectClaudePage((account, snapshot) => CommitConnectionAsync(account, snapshot, null))); return; }
         if (provider is not ("OpenAI Codex" or "GitHub Copilot")) return;
         await Navigation.PushModalAsync(new ConnectAccountPage(provider == "OpenAI Codex", (account, snapshot) => CommitConnectionAsync(account, snapshot, null)));
     }
     async Task OpenSettingsAsync() => await Navigation.PushModalAsync(new SettingsPage(state.Accounts, state.Snapshots, preferences, state.IsDemo,
         SaveSettingsAsync,
-        UpdateAccountAsync, OpenHistoryAsync, TestNotificationAsync, ReconnectAsync, ShowQuickView));
+        UpdateAccountAsync, OpenHistoryAsync, TestNotificationAsync, ReconnectAsync, ShowQuickView, reserves: OpenReserveAsync));
+    async Task OpenAccountSettingsAsync(string accountId)
+    {
+        if (!state.Accounts.Any(a => a.Id == accountId)) return;
+        await Navigation.PushModalAsync(new SettingsPage(state.Accounts, state.Snapshots, preferences, state.IsDemo,
+            SaveSettingsAsync, UpdateAccountAsync, OpenHistoryAsync, TestNotificationAsync, ReconnectAsync, ShowQuickView, accountId, OpenReserveAsync));
+    }
     async Task ReconnectAsync(ProviderAccount original)
     {
+        if (original.Provider == "Claude") { await Navigation.PushModalAsync(new ConnectClaudePage((account, snapshot) => CommitConnectionAsync(account, snapshot, original), original)); return; }
         await Navigation.PushModalAsync(new ConnectAccountPage(original.Provider == "OpenAI", (account, snapshot) => CommitConnectionAsync(account, snapshot, original), original));
     }
     void OpenAccount(string id, string? windowId = null)
@@ -121,14 +129,14 @@ public sealed partial class MainPage
         { _ = OpenReserveAsync(id); return; }
         var row = state.Rows.FirstOrDefault(r => r.Account.Id == id && (string.IsNullOrEmpty(windowId) || r.Window.Id == windowId));
         if (row is not null) _ = OpenDetailsAsync(row);
-        else _ = DisplayAlertAsync("Usage details unavailable", "This account or quota window is no longer available. Refresh the dashboard to check current connections.", "Close");
+        else _ = AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, "Usage details unavailable", "This account or quota window is no longer available. Refresh the dashboard to check current connections.", "Close");
     }
     async Task OpenDetailsAsync(QuotaRow row)
     {
         var details = $"{row.Window.Name}\n{row.UsedText} · {row.LeftText}\nResets: {ResetTime.Exact(row.Window.ResetsAt)}\n\nAccount: {row.Account.Login ?? row.Account.Subject}\nScope: {row.Account.Scope}\nLast successful fetch: {ResetTime.Exact(row.Snapshot.ObservedAt)}\nProvider data as of: {ResetTime.Exact(row.Snapshot.ProviderDataAt)}\n\n{row.SourceNote}";
-        if (state.IsDemo || ProviderLinks.Usage(row.Account) is null) { await DisplayAlertAsync($"{row.Account.Provider} / {row.AccountLabel}", details, "Close"); return; }
-        if (await DisplayAlertAsync($"{row.Account.Provider} / {row.AccountLabel}", details + "\n\nProvider pages use your browser's sign-in. Check its account and workspace before comparing.", "Open provider usage", "Close") && !await ProviderNavigation.OpenAsync(row.Account))
-            await DisplayAlertAsync("Provider page unavailable", "Open your provider's usage page in your browser, or use Usage and access help in Settings.", "Close");
+        if (state.IsDemo || ProviderLinks.Usage(row.Account) is null) { await AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, $"{row.Account.Provider} / {row.AccountLabel}", details, "Close"); return; }
+        if (await AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, $"{row.Account.Provider} / {row.AccountLabel}", details + "\n\nProvider pages use your browser's sign-in. Check its account and workspace before comparing.", "Open provider usage", "Close") && !await ProviderNavigation.OpenAsync(row.Account))
+            await AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, "Provider page unavailable", "Open your provider's usage page in your browser, or use Usage and access help in Settings.", "Close");
     }
     Task OpenReserveAsync(string? accountId = null)
     {
@@ -139,6 +147,6 @@ public sealed partial class MainPage
                 (reserve.HasPartialDetails ? "Provider supplied only partial credit details.\n" : "") +
                 string.Join("\n", reserve.Credits?.Select(c => $"• {c.ExpiresAt?.ToLocalTime().ToString("f") ?? "Expiry unavailable"} · {(c.ExpiresAt <= DateTimeOffset.UtcNow ? "Expired locally — checking provider" : c.Status)}") ?? ["Credit details unavailable"]);
         }).Where(s => s != null);
-        return DisplayAlertAsync("Available resets", string.Join("\n\n", lines) is { Length: > 0 } details ? details : "Your provider has not reported earned reset availability.", "Close");
+        return AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, "Available resets", string.Join("\n\n", lines) is { Length: > 0 } details ? details : "Your provider has not reported earned reset availability.", "Close");
     }
 }

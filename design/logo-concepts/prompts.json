@@ -1,0 +1,65 @@
+{
+  "tool": "Built-in image_gen",
+  "concepts": [
+    {
+      "id": "01",
+      "name": "The Token Baron",
+      "idea": "A bold minimalist circular token wearing a jaunty Victorian top hat. A tiny squared AI sparkle cut into the token, no face. Clever and slightly mischievous, thrift and Scrooge personality. Strong solid silhouette.",
+      "prompt": "Use case: logo-brand. Create ONE distinct logo concept presentation for the Windows app AI Token Scrooge, slogan Never Waste a Token! Concept 01: The Token Baron. A bold minimalist circular token wearing a jaunty Victorian top hat. A tiny squared AI sparkle cut into the token, no face. Clever and slightly mischievous, thrift and Scrooge personality. Strong solid silhouette. Square composition, flat vector-like professional logo design on solid charcoal #141519. Palette lavender #B5A0F4, purple #7560CE, pale ivory and restrained amber #EAAA51. One large centered icon with ample negative space, bold simple shapes readable at 32px, no shadows, no 3D, no stock mockup, no existing company logos. Bottom caption in crisp small sans serif exactly \"01  The Token Baron\". Under it smaller text exactly \"AI Token Scrooge\". Do not add other text. Distinctive polished app branding, balanced optical weight."
+    },
+    {
+      "id": "02",
+      "name": "The Silicon Piggy Bank",
+      "idea": "A friendly geometric piggy-bank silhouette with a simple microchip-shaped coin entering the slot. Pig body in lavender, one amber coin, tiny square eye. No circuitry clutter. Instantly recognizable savings plus AI.",
+      "prompt": "Use case: logo-brand. Create ONE distinct logo concept presentation for the Windows app AI Token Scrooge, slogan Never Waste a Token! Concept 02: The Silicon Piggy Bank. A friendly geometric piggy-bank silhouette with a simple microchip-shaped coin entering the slot. Pig body in lavender, one amber coin, tiny square eye. No circuitry clutter. Instantly recognizable savings plus AI. Square composition, flat vector-like professional logo design on solid charcoal #141519. Palette lavender #B5A0F4, purple #7560CE, pale ivory and restrained amber #EAAA51. One large centered icon with ample negative space, bold simple shapes readable at 32px, no shadows, no 3D, no stock mockup, no existing company logos. Bottom caption in crisp small sans serif exactly \"02  The Silicon Piggy Bank\". Under it smaller text exactly \"AI Token Scrooge\". Do not add other text. Distinctive polished app branding, balanced optical weight."
+    },
+    {
+      "id": "03",
+      "name": "The Scrooge S",
+      "idea": "An elegant thick ribbon capital S formed by two interlocking token arcs, with one small amber square token tucked inside the upper curve. Premium abstract monogram. No dollar-sign bar; this is an S, not a currency symbol.",
+      "prompt": "Use case: logo-brand. Create ONE distinct logo concept presentation for the Windows app AI Token Scrooge, slogan Never Waste a Token! Concept 03: The Scrooge S. An elegant thick ribbon capital S formed by two interlocking token arcs, with one small amber square token tucked inside the upper curve. Premium abstract monogram. No dollar-sign bar; this is an S, not a currency symbol. Square composition, flat vector-like professional logo design on solid charcoal #141519. Palette lavender #B5A0F4, purple #7560CE, pale ivory and restrained amber #EAAA51. One large centered icon with ample negative space, bold simple shapes readable at 32px, no shadows, no 3D, no stock mockup, no existing company logos. Bottom caption in crisp small sans serif exactly \"03  The Scrooge S\". Under it smaller text exactly \"AI Token Scrooge\". Do not add other text. Distinctive polished app branding, balanced optical weight."
+    },
+    {
+      "id": "04",
+      "name": "The Time Vault",
+      "idea": "A compact rounded-square vault door whose circular dial is also a clock, just two bold hands and three broad spokes. Small amber token at its center. Communicates guarded allowance and reset timing. Strong geometric outline.",
+      "prompt": "Use case: logo-brand. Create ONE distinct logo concept presentation for the Windows app AI Token Scrooge, slogan Never Waste a Token! Concept 04: The Time Vault. A compact rounded-square vault door whose circular dial is also a clock, just two bold hands and three broad spokes. Small amber token at its center. Communicates guarded allowance and reset timing. Strong geometric outline. Square composition, flat vector-like professional logo design on solid charcoal #141519. Palette lavender #B5A0F4, purple #7560CE, pale ivory and restrained amber #EAAA51. One large centered icon with ample negative space, bold simple shapes readable at 32px, no shadows, no 3D, no stock mockup, no existing company logos. Bottom caption in crisp small sans serif exactly \"04  The Time Vault\". Under it smaller text exactly \"AI Token Scrooge\". Do not add other text. Distinctive polished app branding, balanced optical weight."
+    },
+    {
+      "id": "05",
+      "name": "The Wise Keeper",
+      "idea": "A minimal geometric owl head with two large simple eyes, one eye subtly resembling a monocle and the other an AI sparkle. Two wing-like curves cradle a single amber token underneath. Wise, frugal, endearing; no detailed feathers.",
+      "prompt": "Use case: logo-brand. Create ONE distinct logo concept presentation for the Windows app AI Token Scrooge, slogan Never Waste a Token! Concept 05: The Wise Keeper. A minimal geometric owl head with two large simple eyes, one eye subtly resembling a monocle and the other an AI sparkle. Two wing-like curves cradle a single amber token underneath. Wise, frugal, endearing; no detailed feathers. Square composition, flat vector-like professional logo design on solid charcoal #141519. Palette lavender #B5A0F4, purple #7560CE, pale ivory and restrained amber #EAAA51. One large centered icon with ample negative space, bold simple shapes readable at 32px, no shadows, no 3D, no stock mockup, no existing company logos. Bottom caption in crisp small sans serif exactly \"05  The Wise Keeper\". Under it smaller text exactly \"AI Token Scrooge\". Do not add other text. Distinctive polished app branding, balanced optical weight."
+    },
+    {
+      "id": "06",
+      "name": "The Token Hourglass",
+      "idea": "A bold hourglass silhouette where three small square tokens descend through a narrow center into one neatly saved amber token. Lavender frame, dark negative-space chambers. Time and allowance conservation; extremely simple, no ornate decoration.",
+      "prompt": "Use case: logo-brand. Create ONE distinct logo concept presentation for Windows app AI Token Scrooge, slogan Never Waste a Token! Concept 06: The Token Hourglass. A bold hourglass silhouette where three small square tokens descend through a narrow center into one neatly saved amber token. Lavender frame, dark negative-space chambers. Time and allowance conservation; extremely simple, no ornate decoration. Square composition, flat vector-like professional logo on solid charcoal #141519. Palette lavender #B5A0F4, purple #7560CE, pale ivory and restrained amber #EAAA51. One large centered icon with ample negative space, bold simple shapes intended to read at 32px, no shadows, no 3D, no stock mockup, no existing company logos. Bottom caption in crisp small sans serif exactly \"06  The Token Hourglass\". Under it smaller text exactly \"AI Token Scrooge\". No other text. Distinctive polished app branding, balanced optical weight."
+    },
+    {
+      "id": "07",
+      "name": "The Last Token",
+      "idea": "One elegantly simplified curved hand pinching a single amber token between thumb and forefinger, forming a protective near-circle. The token has one small square cutout implying AI. A witty visual for never wasting the last token. No realistic anatomy, just a few bold graphic shapes.",
+      "prompt": "Use case: logo-brand. Create ONE distinct logo concept presentation for Windows app AI Token Scrooge, slogan Never Waste a Token! Concept 07: The Last Token. One elegantly simplified curved hand pinching a single amber token between thumb and forefinger, forming a protective near-circle. The token has one small square cutout implying AI. A witty visual for never wasting the last token. No realistic anatomy, just a few bold graphic shapes. Square composition, flat vector-like professional logo on solid charcoal #141519. Palette lavender #B5A0F4, purple #7560CE, pale ivory and restrained amber #EAAA51. One large centered icon with ample negative space, bold simple shapes intended to read at 32px, no shadows, no 3D, no stock mockup, no existing company logos. Bottom caption in crisp small sans serif exactly \"07  The Last Token\". Under it smaller text exactly \"AI Token Scrooge\". No other text. Distinctive polished app branding, balanced optical weight."
+    },
+    {
+      "id": "08",
+      "name": "The Clever Purse",
+      "idea": "A rounded vintage clasp coin purse shaped subtly like a chat bubble. Two amber clasp circles, lavender body, a single simple sparkle in the body. Combines conversational AI with frugality; charming but modern, no currency sign.",
+      "prompt": "Use case: logo-brand. Create ONE distinct logo concept presentation for Windows app AI Token Scrooge, slogan Never Waste a Token! Concept 08: The Clever Purse. A rounded vintage clasp coin purse shaped subtly like a chat bubble. Two amber clasp circles, lavender body, a single simple sparkle in the body. Combines conversational AI with frugality; charming but modern, no currency sign. Square composition, flat vector-like professional logo on solid charcoal #141519. Palette lavender #B5A0F4, purple #7560CE, pale ivory and restrained amber #EAAA51. One large centered icon with ample negative space, bold simple shapes intended to read at 32px, no shadows, no 3D, no stock mockup, no existing company logos. Bottom caption in crisp small sans serif exactly \"08  The Clever Purse\". Under it smaller text exactly \"AI Token Scrooge\". No other text. Distinctive polished app branding, balanced optical weight."
+    },
+    {
+      "id": "09",
+      "name": "The Token Squirrel",
+      "idea": "A clean friendly squirrel silhouette with a large curled tail forming a loose S, hugging one amber square AI token. Strong simple silhouette, one tiny eye, no fur details. A memorable mascot that saves its tokens for later.",
+      "prompt": "Use case: logo-brand. Create ONE distinct logo concept presentation for Windows app AI Token Scrooge, slogan Never Waste a Token! Concept 09: The Token Squirrel. A clean friendly squirrel silhouette with a large curled tail forming a loose S, hugging one amber square AI token. Strong simple silhouette, one tiny eye, no fur details. A memorable mascot that saves its tokens for later. Square composition, flat vector-like professional logo on solid charcoal #141519. Palette lavender #B5A0F4, purple #7560CE, pale ivory and restrained amber #EAAA51. One large centered icon with ample negative space, bold simple shapes intended to read at 32px, no shadows, no 3D, no stock mockup, no existing company logos. Bottom caption in crisp small sans serif exactly \"09  The Token Squirrel\". Under it smaller text exactly \"AI Token Scrooge\". No other text. Distinctive polished app branding, balanced optical weight."
+    },
+    {
+      "id": "10",
+      "name": "The Endless Token",
+      "idea": "An abstract circular reset arrow formed by one thick lavender ribbon wrapping around a single amber hexagonal token. The ribbon subtly forms an infinity loop through negative space. A restrained premium technology brand mark about renewal and conservation. No radar rings, no clock face.",
+      "prompt": "Use case: logo-brand. Create ONE distinct logo concept presentation for Windows app AI Token Scrooge, slogan Never Waste a Token! Concept 10: The Endless Token. An abstract circular reset arrow formed by one thick lavender ribbon wrapping around a single amber hexagonal token. The ribbon subtly forms an infinity loop through negative space. A restrained premium technology brand mark about renewal and conservation. No radar rings, no clock face. Square composition, flat vector-like professional logo on solid charcoal #141519. Palette lavender #B5A0F4, purple #7560CE, pale ivory and restrained amber #EAAA51. One large centered icon with ample negative space, bold simple shapes intended to read at 32px, no shadows, no 3D, no stock mockup, no existing company logos. Bottom caption in crisp small sans serif exactly \"10  The Endless Token\". Under it smaller text exactly \"AI Token Scrooge\". No other text. Distinctive polished app branding, balanced optical weight."
+    }
+  ]
+}

@@ -13,7 +13,7 @@ public sealed partial class ConnectAccountPage : ContentPage
     readonly Picker unit = new() { ItemsSource = new[] { "AI credits", "Legacy premium requests" }, SelectedIndex = 0, TextColor = Colors.White };
     readonly Label status = new() { TextColor = Color.FromArgb("#B6B8C8") };
     readonly Label explanation = new() { TextColor = Color.FromArgb("#B6B8C8") };
-    readonly Button connect = new() { Text = "Connect", BackgroundColor = Color.FromArgb("#7169CA") };
+    readonly Button connect = new AIResetRadar.App.Controls.ActionButton() { Text = "Connect" };
     readonly CancellationTokenSource lifetime = new();
     readonly bool codex;
     readonly Func<ProviderAccount, QuotaSnapshot, Task> connected;
@@ -38,12 +38,12 @@ public sealed partial class ConnectAccountPage : ContentPage
         }
         this.codex = codex; this.connected = connected; Title = codex ? "Connect OpenAI Codex" : "Connect GitHub Copilot";
         BackgroundColor = Color.FromArgb("#141519");
-        var cancel = new Button { Text = "Cancel" }; cancel.Clicked += async (_, _) => await CloseAsync();
+        var cancel = new AIResetRadar.App.Controls.ActionButton { Text = "Cancel" }; cancel.Clicked += async (_, _) => await CloseAsync();
         var form = new VerticalStackLayout { Padding = 32, Spacing = 18, MaximumWidthRequest = 640, HorizontalOptions = LayoutOptions.Center };
         form.Children.Add(new Label { Text = Title, FontSize = 26, FontFamily = "Segoe UI Semibold" });
         explanation.Text = "Sign in through OpenAI in your browser. Scrooge keeps this account in its own protected Codex profile and only reads usage limits.";
         form.Children.Add(explanation);
-        var help = new Button { Text = "Usage and access help" };
+        var help = new AIResetRadar.App.Controls.ActionButton { Text = "Usage and access help" };
         help.Clicked += async (_, _) => {
             var uri = ProviderLinks.Help(codex ? "OpenAI" : "GitHub Copilot");
             try { if (uri is not null) await Launcher.Default.OpenAsync(uri); } catch { status.Text = "Help could not open. Check your default browser."; }

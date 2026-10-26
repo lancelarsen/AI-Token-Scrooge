@@ -31,6 +31,22 @@ public class DashboardRenderTests
     }
 
     [Fact]
+    public void TimestampOnlyRefreshKeepsLayoutWhileDetailsUseLatestSnapshot()
+    {
+        var now = DateTimeOffset.Parse("2026-10-25T12:00:00Z");
+        var state = new DashboardState();
+        state.LoadDemo(now);
+        var original = state.RenderSignature(now);
+        var id = state.Accounts[0].Id;
+        var latest = state.Snapshots[id] with { ObservedAt = now.AddMinutes(1), ProviderDataAt = now.AddSeconds(45) };
+        state.Snapshots[id] = latest;
+        Assert.Equal(original, state.RenderSignature(now));
+        Assert.Same(latest, state.Rows.First(r => r.Account.Id == id).Snapshot);
+        state.Snapshots[id] = latest with { Health = SourceHealth.Offline, Message = "Unavailable" };
+        Assert.NotEqual(original, state.RenderSignature(now));
+    }
+
+    [Fact]
     public void NewObservationsAndAccountEditsInvalidateDetailCallbacks()
     {
         var now = DateTimeOffset.Parse("2026-10-25T12:00:00Z");

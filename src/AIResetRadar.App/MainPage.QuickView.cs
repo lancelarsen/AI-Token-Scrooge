@@ -20,7 +20,7 @@ public sealed partial class MainPage
         content.Children.Add(new Label { Text = "AI Token Scrooge", FontSize = 23, FontFamily = "Segoe UI Semibold" });
         content.Children.Add(new Label { Text = "Never Waste a Token!", FontSize = 12, TextColor = Color.FromArgb("#C3ADF8") });
         content.Children.Add(quickContent);
-        var open = new Button { Text = "Open dashboard", BackgroundColor = Color.FromArgb("#7169CA") };
+        var open = new AIResetRadar.App.Controls.ActionButton { Text = "Open dashboard" };
         open.Clicked += (_, _) => { ShowMain(); if (quickWindow is not null) Application.Current!.CloseWindow(quickWindow); };
         content.Children.Add(open);
         quickSignature = null;
@@ -40,7 +40,7 @@ public sealed partial class MainPage
         var rows = state.Rows.Select(row => new
         {
             AccountId = row.Account.Id, AccountTitle = $"{row.Account.Provider} / {row.AccountLabel}", Title = row.Window.Name,
-            row.Window.Fill, row.UsedText, row.LeftText, row.IsWarning, row.SourceNote,
+            row.Window.Fill, row.UsedText, row.LeftText, row.IsWarning, row.CardNote,
             Reset = ResetTime.Countdown(row.Window.ResetsAt, now)
         }).ToArray();
         var events = state.Events(now).Select(item => $"{item.Title} · {item.Detail}\n{item.At.ToLocalTime():MMM d, h:mm tt zzz}").ToArray();
@@ -57,7 +57,7 @@ public sealed partial class MainPage
             {
                 section.Children.Add(new Label { Text = row.Title, FontSize = 12 });
                 section.Children.Add(new UsageBar(row.Fill, row.UsedText, row.LeftText, row.IsWarning));
-                if (!string.IsNullOrEmpty(row.SourceNote)) section.Children.Add(new Label { Text = row.SourceNote, FontSize = 12, TextColor = Color.FromArgb("#B6B8C8") });
+                if (!string.IsNullOrEmpty(row.CardNote)) section.Children.Add(new Label { Text = row.CardNote, FontSize = 12, TextColor = Color.FromArgb("#B6B8C8") });
                 section.Children.Add(new Label { Text = row.Reset, TextColor = Color.FromArgb("#B5A0F4"), FontSize = 12 });
             }
             quickContent.Children.Add(new Border { Content = section, Padding = 14, Stroke = Color.FromArgb("#383B46"), BackgroundColor = Color.FromArgb("#1C1E24"),

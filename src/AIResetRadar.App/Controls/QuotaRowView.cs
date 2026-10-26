@@ -31,10 +31,10 @@ public sealed class QuotaRowView : Border
             Content = new Label { Text = row.AccountLabel, TextColor = Color.FromArgb("#C3ADF8"), FontSize = 12 } });
         if (showAccount) accountText.Children.Add(heading);
         accountText.Children.Add(new Label { Text = row.Window.Name, TextColor = Color.FromArgb("#BEC1D2"), FontSize = 14 });
-        if (row.SourceNote != "") accountText.Children.Add(new Label { Text = row.SourceNote, FontSize = 11, TextColor = Color.FromArgb("#A5A8BA") });
+        if (row.CardNote != "") accountText.Children.Add(new Label { Text = row.CardNote, FontSize = 11, TextColor = Color.FromArgb("#A5A8BA") });
         var account = new HorizontalStackLayout { Spacing = 16, VerticalOptions = LayoutOptions.Center };
         if (showAccount) account.Children.Add(row.Account.Provider == "OpenAI" ? new Image { Source = "openai.png", WidthRequest = 44, HeightRequest = 44 } :
-            new Image { Source = "github.png", WidthRequest = 44, HeightRequest = 44 });
+            new Image { Source = row.Account.Provider == "Claude" ? "claude.png" : "github.png", WidthRequest = 44, HeightRequest = 44 });
         else account.Children.Add(new BoxView { WidthRequest = 44, HeightRequest = 1, Color = Colors.Transparent });
         account.Children.Add(accountText); identity = account;
         bar = new UsageBar(row.Window.Fill, row.UsedText, row.LeftText, warning) { VerticalOptions = LayoutOptions.Center };

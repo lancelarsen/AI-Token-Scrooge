@@ -36,7 +36,7 @@ public sealed partial class MainPage
                 if (!await SaveSnoozeAsync(account))
                 {
                     ShowMain();
-                    await DisplayAlertAsync("Snooze not saved", "Alerts remain active. Check available space and folder access, then try Snooze again.", "Close");
+                    await AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, "Snooze not saved", "Alerts remain active. Check available space and folder access, then try Snooze again.", "Close");
                 }
             }
             else { ShowMain(); OpenAccount(account, quotaWindow); }

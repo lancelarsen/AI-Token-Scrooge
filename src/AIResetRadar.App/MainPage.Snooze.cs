@@ -18,6 +18,7 @@ public sealed partial class MainPage
                 catch { return false; }
             }
             snoozed[account] = until;
+            DismissBanner(account);
             return true;
         }
         finally { snoozeGate.Release(); }

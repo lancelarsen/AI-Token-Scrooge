@@ -52,3 +52,21 @@ Thus the burst overlaps refresh completion and is not simply continuous idle act
 Collected a 150-second trace of the verified icon-timeline process 54140 using installed dotnet-trace with dotnet-sampled-thread-time and a 32 MiB buffer. The legacy cpu-sampling profile was rejected because this version exposes kernel CPU sampling only through collect-linux. The supported Windows profile samples managed thread wall time, not CPU attribution. Trace completed normally; files remain local/ignored at artifacts/native-qa/icon-refresh.nettrace and icon-refresh-stacks.txt.
 
 The top report was dominated by thread waits and IApplicationStaticsMethods.Start (native application loop). Relevant sampled stacks included IObjectReference.Finalize, ComWrappers NativeObjectWrapper finalization, and automation GetChildrenCore/NavigateCore. MainPage.Render appeared at 0.02% inclusive sampled thread time in the top-100 report; that does not measure its CPU share or exclude native work it triggers. No clear managed rendering loop was identified that justifies a targeted code fix. This is consistent with earlier managed traces but does not explain or reproduce the previous CPU spike. Native CPU stacks and clean-session comparison remain required for resource acceptance; do not remove accessibility to improve measurements.
+
+## Snooze preview startup sample — October 26
+
+PID 45196, snooze-banner-win-x64: five samples over 120.14 seconds beginning at process launch. All reported responsive. CPU increased 24.438 seconds (20.34% of one core on average); the final 30-second interval consumed 1.359 CPU seconds. Working set after the initial process-launch sample ranged 373.32–423.39 MiB and ended at 373.32 MiB.
+
+No agent UI inspection occurred during sampling, but the existing automation service was not proven detached. ZIP packaging ran concurrently. This measures startup and early monitoring, not a controlled idle baseline; CPU remains unresolved. Raw results: artifacts/native-qa/snooze-preview-resources.json. After sampling, native inspection confirmed Plus, Max, and Pro account sections.
+
+## Timestamp-only render invalidation correction
+
+Source inspection found RenderSignature serialized ObservedAt and ProviderDataAt, forcing complete dashboard reconstruction on timestamp-only provider observations. These two metadata fields are now excluded from the visual signature; the header still updates on every Render call. Quota-row clicks now resolve account/window IDs through OpenAccount, which reads current state rather than the captured old snapshot. Plan, health, usage, reserve, event, account, day and offset changes still invalidate the visual signature.
+
+The new regression verifies stable signature for timestamp-only changes, latest snapshot access, and invalidation for offline status. All 88 Infrastructure tests passed. This is a targeted removal of unnecessary rebuilding, not evidence that the measured CPU regression is resolved. Native refresh/focus verification and comparable resource sampling remain required. The currently running snooze-banner preview predates this source change.
+
+## Settled stable-refresh sample — October 26
+
+PID 56816, stable-refresh-final-win-x64, five samples over 120.14 seconds after startup. All responsive. CPU increased 18.344 seconds (15.27% of one core). Working set ranged 387.21–410.05 MiB; handles ended at 1599 versus 1614 initially. No UI automation or packaging ran during the sample; the existing automation service was not proven detached. Raw data: artifacts/native-qa/stable-refresh-settled-resources.json.
+
+The render correction does not establish a CPU fix. WPR is installed and lists the CPU profile, but the current session is not elevated. Prepared scripts/Record-NativeCpu.ps1 for a bounded 60-second system-wide CPU trace; syntax validation passed, recording has not run. User approval for the UAC prompt and system-wide collection was requested. Native CPU attribution, rather than more counter sampling, is the next performance investigation step.

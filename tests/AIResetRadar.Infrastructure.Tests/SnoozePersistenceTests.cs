@@ -12,15 +12,18 @@ public sealed class SnoozePersistenceTests
         var page = new AIResetRadar.App.MainPage(store, new(), null, null, false);
         Assert.True(await page.SnoozeForTestAsync("existing"));
         var previous = page.SnoozesForTest["existing"];
+        Assert.Equal(new[] { "existing" }, page.DismissedBannersForTest);
         await ExecuteAsync(files.Path, "CREATE TRIGGER reject_snooze BEFORE UPDATE ON state WHEN NEW.key='snoozed' BEGIN SELECT RAISE(ABORT,'fixture failure'); END;");
         Assert.False(await page.SnoozeForTestAsync("existing"));
         Assert.False(await page.SnoozeForTestAsync("new"));
         Assert.Equal(previous, page.SnoozesForTest["existing"]);
         Assert.False(page.SnoozesForTest.ContainsKey("new"));
+        Assert.Equal(new[] { "existing" }, page.DismissedBannersForTest);
         var saved = await store.ReadAsync<Dictionary<string, DateTimeOffset>>("snoozed");
         Assert.Single(saved!); Assert.Equal(previous, saved!["existing"]);
         await ExecuteAsync(files.Path, "DROP TRIGGER reject_snooze;");
         Assert.True(await page.SnoozeForTestAsync("new"));
+        Assert.Equal(new[] { "existing", "new" }, page.DismissedBannersForTest);
         Assert.Equal(2, (await store.ReadAsync<Dictionary<string, DateTimeOffset>>("snoozed"))!.Count);
     }
 

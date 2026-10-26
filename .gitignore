@@ -10,3 +10,12 @@ artifacts/
 TestResults/
 *.log
 local-data/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.etl
+Credentials/
+Profiles/
+ClaudeProfiles/

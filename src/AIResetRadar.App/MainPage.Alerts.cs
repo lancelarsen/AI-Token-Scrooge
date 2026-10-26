@@ -21,13 +21,13 @@ public sealed partial class MainPage
         detail.Children.Add(new Label { Text = preferences.Privacy ? "Open Scrooge to see details." : alert.Detail, FontSize = 12, TextColor = Color.FromArgb("#B6B8C8") });
         var actions = new HorizontalStackLayout { Spacing = 8 };
         Border? displayedBanner = null;
-        var view = new Button { Text = "View account", BackgroundColor = Color.FromArgb("#7169CA") };
-        var snooze = new Button { Text = "Snooze 1 hour" }; var dismiss = new Button { Text = "Dismiss" };
+        var view = new AIResetRadar.App.Controls.ActionButton { Text = "View account" };
+        var snooze = new AIResetRadar.App.Controls.ActionButton { Text = "Snooze 1 hour" }; var dismiss = new AIResetRadar.App.Controls.ActionButton { Text = "Dismiss" };
         view.Clicked += (_, _) => { OpenAccount(alert.AccountId, alert.WindowId); Dismiss(); };
         snooze.Clicked += async (_, _) =>
         {
             if (await SaveSnoozeAsync(alert.AccountId)) Dismiss();
-            else await DisplayAlertAsync("Snooze not saved", "Alerts remain active. Check available space and folder access, then try Snooze again.", "Close");
+            else await AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, "Snooze not saved", "Alerts remain active. Check available space and folder access, then try Snooze again.", "Close");
         };
         dismiss.Clicked += (_, _) => Dismiss(); actions.Children.Add(view); actions.Children.Add(snooze); actions.Children.Add(dismiss); detail.Children.Add(actions);
         banner = new Border { Padding = 18, Content = detail, Stroke = Color.FromArgb("#55515F"), BackgroundColor = Color.FromArgb("#222329"),
@@ -52,10 +52,10 @@ public sealed partial class MainPage
         if (alertHistory.Count == 0) content.Children.Add(new Label { Text = "No alerts yet. Low capacity and expiring resets will appear here." });
         foreach (var alert in alertHistory.OrderByDescending(a => a.CreatedAt))
         {
-            var item = new Button { Text = $"{alert.CreatedAt.ToLocalTime():MMM d, h:mm tt} · {alert.Title}\n{alert.Detail}\n{(alert.Delivered ? "Sent to Windows" : "Recorded in history")}", HeightRequest = -1, MinimumHeightRequest = 80 };
+            var item = new AIResetRadar.App.Controls.ActionButton { Text = $"{alert.CreatedAt.ToLocalTime():MMM d, h:mm tt} · {alert.Title}\n{alert.Detail}\n{(alert.Delivered ? "Sent to Windows" : "Recorded in history")}", HeightRequest = -1, MinimumHeightRequest = 80 };
             item.Clicked += (_, _) => OpenAccount(alert.AccountId, alert.WindowId); content.Children.Add(item);
         }
-        var back = new Button { Text = "Close" }; back.Clicked += async (_, _) => await Navigation.PopModalAsync(); content.Children.Add(back);
+        var back = new AIResetRadar.App.Controls.ActionButton { Text = "Close" }; back.Clicked += async (_, _) => await Navigation.PopModalAsync(); content.Children.Add(back);
         page.Content = new ScrollView { Content = content }; await Navigation.PushModalAsync(page);
     }
     async Task TestNotificationAsync()
@@ -63,12 +63,12 @@ public sealed partial class MainPage
         var id = state.Accounts.FirstOrDefault()?.Id ?? "test";
         var alert = new AlertEvent("test/" + Guid.NewGuid().ToString("N"), id, null, "Scrooge notification test", "This is a test. Your account usage has not changed.", DateTimeOffset.UtcNow);
         try { if (!await RecordAlertIntentAsync(alert)) return; }
-        catch { await DisplayAlertAsync("Local history unavailable", "Scrooge could not record the test notification. Check available space and folder access, then try again.", "Close"); return; }
+        catch { await AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, "Local history unavailable", "Scrooge could not record the test notification. Check available space and folder access, then try again.", "Close"); return; }
         var sent = NotificationService.Current.Show(alert, preferences with { Notifications = true });
         var deliverySaved = true;
         try { await MarkAlertDeliveredAsync(alert, sent); } catch { deliverySaved = false; }
         await Navigation.PopModalAsync(); ShowBanner(alert);
-        if (!sent) await DisplayAlertAsync("Notification test", NotificationService.Current.Problem ?? "Windows did not confirm delivery. The test is recorded in history.", "OK");
-        else if (!deliverySaved) await DisplayAlertAsync("Notification test", "Windows accepted the notification, but Scrooge could not save the delivery status. The test will not be replayed.", "Close");
+        if (!sent) await AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, "Notification test", NotificationService.Current.Problem ?? "Windows did not confirm delivery. The test is recorded in history.", "OK");
+        else if (!deliverySaved) await AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, "Notification test", "Windows accepted the notification, but Scrooge could not save the delivery status. The test will not be replayed.", "Close");
     }
 }

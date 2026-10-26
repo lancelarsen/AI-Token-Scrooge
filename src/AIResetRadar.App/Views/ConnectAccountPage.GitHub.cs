@@ -5,7 +5,7 @@ namespace AIResetRadar.App.Views;
 
 public sealed partial class ConnectAccountPage
 {
-    readonly Button githubMode = new() { Text = "Use an access token instead" };
+    readonly Button githubMode = new AIResetRadar.App.Controls.ActionButton() { Text = "Use an access token instead" };
     readonly Label githubCode = new() { FontSize = 28, FontFamily = "Segoe UI Semibold", TextColor = Color.FromArgb("#B5A0F4"), HorizontalTextAlignment = TextAlignment.Center };
     readonly VerticalStackLayout githubPrompt = new() { Spacing = 10, IsVisible = false };
     GitHubDeviceChallenge? githubChallenge;
@@ -19,7 +19,7 @@ public sealed partial class ConnectAccountPage
         githubPrompt.Children.Add(new Label { Text = "Enter this code on GitHub, then approve AI Reset Radar (the registered sign-in app for AI Token Scrooge).", HorizontalTextAlignment = TextAlignment.Center });
         githubPrompt.Children.Add(githubCode);
         SemanticProperties.SetDescription(githubCode, "GitHub sign-in code. Enter this code only on github.com.");
-        var copy = new Button { Text = "Copy code" };
+        var copy = new AIResetRadar.App.Controls.ActionButton { Text = "Copy code" };
         copy.Clicked += async (_, _) =>
         {
             if (githubChallenge is not { } challenge) return;
@@ -30,7 +30,7 @@ public sealed partial class ConnectAccountPage
             }
             catch { status.Text = "Could not copy the code. Enter the code shown below directly on GitHub."; }
         };
-        var open = new Button { Text = "Open GitHub" }; open.Clicked += async (_, _) => await OpenGitHubAsync();
+        var open = new AIResetRadar.App.Controls.ActionButton { Text = "Open GitHub" }; open.Clicked += async (_, _) => await OpenGitHubAsync();
         githubPrompt.Children.Add(copy); githubPrompt.Children.Add(open);
         var organizationReconnect = reconnect?.Scope.StartsWith("organization:", StringComparison.Ordinal) == true;
         githubMode.IsVisible = !organizationReconnect;

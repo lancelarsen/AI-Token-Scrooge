@@ -180,3 +180,85 @@ Live acceptance remains open until checked with authenticated accounts. No crede
 - Updated docs/windows-preview.txt and the bundled README.txt with the daily timeline, purple refresh/amber expiry icon meaning, plan badges, hover/click details, horizontal scrolling and keyboard activation.
 - Rebuilt the unsigned preview ZIP. Compared SHA-256 of every non-directory archive entry to its publish-directory counterpart and checked source/archive counts: all 594 files match, with no omitted files. Each resolved archive-entry path was checked to remain within the publish root. This is a complete content-integrity check, not a clean-user launch or installation test.
 - Current package SHA256: A35318D710D36E7567276B0DA1EF5C4F456DC70DCFB32E17E556983247483AE0. App assembly unchanged: FDEB83798257EE09DED34C6AAA6F9BFBDB48E1E0A8D372581211B40B1F404E3D. No runtime changes or test reruns needed for the guide update.
+
+
+### Shared popup theme (2026-10-25)
+
+- Replaced alert, confirmation, provider-choice and nickname prompt calls with a shared WinUI dialog service. Dialogs use the dashboard charcoal/lavender palette, 16 px rounded corners, 10 px rounded action controls, lavender semibold titles, muted body copy and bold label prefixes. Queue serializes app-owned dialogs.
+- Applied dark resources to native tooltip, flyout, dropdown and dialog surfaces. Windows-owned notification and shell surfaces retain OS-controlled presentation.
+- Release publish succeeded to `artifacts/publish/themed-surfaces-win-x64`; 146 tests passed during the popup change. No product tests were added for the cosmetic styling.
+- Native desktop inspection verified the reset summary border, title, label hierarchy and purple Close button. Final build account chooser verified rounded border, lavender title, styled provider buttons, and Escape cancellation returning focus to Add account. Nickname submission, destructive confirmation, narrow/DPI dialog rendering and every error path have not been exercised in this pass.
+- Final native timeline tooltip also verified: rounded charcoal surface, muted lavender border and readable light text.
+
+### Account settings shortcuts (2026-10-25)
+- Added one gear per account group, outside quota-detail hit targets, plus a gear for disabled or unavailable accounts. Uses the existing dashboard Settings icon, rounded button styling and semantic tooltip.
+- Scoped SettingsPage filters the visible account by stable account ID while retaining the complete account list for rule validation. Global controls are omitted from this entry point; the existing global Settings entry remains unchanged.
+- Release publish and packaging passed. Native desktop check verified the Plus group has one gear beside two quota bars, opens only OpenAI / Personal / Plus controls, and Close returns to the dashboard. No account was modified. Narrow-width rendering and every provider's settings actions were not re-exercised in this pass.
+
+
+### Settings redesign and quiet-hours range (2026-10-25)
+- Settings now uses rounded charcoal cards with lavender headings matching the dashboard. Global notifications, quiet hours, capacity alerts and app behavior are grouped; per-account controls retain their scoped actions. Save/Close and validation remain visible below the scrolling content.
+- QuietHoursRange provides two draggable circles, a purple selected interval, muted remainder, time selectors for keyboard use and a live duration summary. A noon-to-noon axis keeps typical overnight hours contiguous. Uses the existing whole-hour settings model; matching endpoints are rejected when enabled. Low and critical capacity use percent sliders.
+- 146 existing tests passed (59 Core, 87 Infrastructure); Release publish passed. In an isolated 800x700 demo window, dragging start 22 to 20 and end 8 to 6 updated the visual interval and summary. Saving and reopening retained 20 to 6. Live account settings were not changed. Native screen-reader and DPI coverage remains open.
+- Final normal-session desktop check verified the redesigned cards, quiet-hours range and both capacity sliders at 1429x838. Your original quiet-hours setting remained disabled. Final preview packaged successfully.
+
+### Compact top bar (2026-10-25)
+- Moved the observed update time/date to the left of Refresh/Settings, vertically centered with the brand. Removed the desktop status row. Narrow windows move the complete status/button group below the brand. Timestamp derives both date and time from the observation, including Central daylight/standard designation and ordinal day.
+- Release publish passed. Native checks at 788x694 and 1429x838 confirmed no clipped header controls and the intended desktop alignment. Normal-size app left running.
+
+### Brand typography alignment (2026-10-25)
+- Centered the title/catchphrase block in the logo's 66 px height, using 40/26 px text rows with centered text. Catchphrase increased from 13 to 16 px.
+- Release publish passed and desktop appearance verified in the native app. An attempted native edge drag did not resize the window, so narrow-width typography was not re-verified in this pass; the preceding header reflow was checked at compact width.
+
+### Shared icon-and-text action buttons (2026-10-25)
+- Introduced ActionButton using the Refresh/Settings charcoal fill, subtle border, 10 px radius, 44 px height, lavender 20 px icon and 9 px icon/text gap. Applied across dashboard/account settings, global settings, connection flows, alert rules/history, banners and quick view. Account gears now include Settings text. Transparent quota/timeline hit targets remain chart interactions.
+- Shared native ContentDialog actions and provider choices use the same appearance and icon/text content. Added explicit native content composition after MAUI image rendering dropped icons in initial visual inspection. Dynamic action text updates recompose its matching icon and accessible name.
+- Release publish and all 146 tests passed. Native checks verified compact dashboard, provider-choice dialog with Cancel, OpenAI connection Help/Sign-in/Cancel (without signing in), desktop dashboard and Settings Save/Close. Window maximized for desktop verification. No account changes made. Windows-owned shell/notification buttons remain OS-rendered; not every historical alert or authentication state was exercised.
+
+### Integrated selected timeline (2026-10-26)
+- Implemented the selected header/legend/history-icon inside the rounded timeline panel, removed the top-right balance button and caption, and reduced/balanced first/last day insets. Existing daily event generation, provider/plan icons, tooltip and click routing remain.
+- Added Available resets to account settings when a reserve is reported, preserving access even without a known expiry to plot.
+- Release publish succeeded. Native inspection at 788x694 and maximized desktop verified the integrated header, compact scrolling and complete 13-day desktop horizon. Plus Settings -> Available resets opened only that account's reported balance and expiry. No account changes made.
+- The broader goal remains incomplete: notification shell visibility/actions/cold activation, real renewal and organization access, lifecycle/startup, clean-user distribution, accessibility/DPI and performance acceptance remain open. Logo selection remains with the user.
+
+## Account action accessibility follow-up — 2026-10-26
+
+- Native accessibility inspection found duplicate OpenAI account-settings names. Added the snapshot plan label; the running `account-accessibility-win-x64` build now exposes distinct Plus, Pro, and Max account-settings buttons.
+- Settings exposes named quiet-hours start/end combo boxes and named low/critical capacity sliders. Shared action icons and text remain visible in native dashboard and Settings captures. This is accessibility-tree inspection, not full Narrator acceptance.
+- Release self-contained publish passed. `git diff --check` passed (line-ending warnings only). Prior shared-button regression suite remains 146 passing tests; this follow-up changes only the account button description.
+
+## Wrapped action labels — 2026-10-26
+
+- Replaced the shared native horizontal content stack with an auto/star grid and wrapping label. Long history entries can grow vertically while retaining the shared icon and button styling.
+- Native isolated data-directory check at 788 x 694: a long title wrapped to two lines, the detail wrapped to three lines, and the final marker plus delivery status remained visible. Settings action rows and header buttons retained their icon/text layout. No production history was changed.
+- Release self-contained publish passed; restricted-sandbox build returned an infrastructure failure without compiler diagnostics, then the authorized build succeeded. Live-account monitoring was restored after the isolated check. Full Narrator, DPI, lifecycle, and clean-user acceptance remain open.
+
+## Consistent snooze surfaces — 2026-10-26
+
+- Successful shared snooze persistence now dismisses the matching in-app banner. This also covers Windows notification activation, which previously saved the snooze without clearing the banner. Other account banners remain protected by DismissBanner account matching.
+- SQLite failure/retry regression assertions verify no banner dismissal on failed writes and the correct account IDs on successful writes. All 87 Infrastructure tests passed. Actual Windows toast activation remains unverified; these tests exercise the production persistence method, not the OS notification shell.
+- This source fix is newer than the currently running wrapped-actions preview package.
+
+- Follow-up: the snooze fix is now running from `artifacts/publish/snooze-banner-win-x64` and included in the refreshed preview ZIP (SHA256 `5B36F7BFC02E161F82772B2A09D478D8A80275C335517DDA4B334EC31603DB99`). Native inspection confirmed all three live account sections after restart. See the new startup resource sample in docs/native-performance.md; performance acceptance remains open.
+
+## Stable-refresh native follow-up — 2026-10-26
+
+- Published and launched stable-refresh-final-win-x64. Native inspection caught and corrected UTF-8 mojibake in DashboardState.cs and MainPage.cs before final packaging. Account labels again render the middle-dot separator correctly.
+- After live refresh, opened the Plus 5-hour quota row. Its detail dialog reported Last successful fetch 2026-10-26 00:22:19 -05:00, matching the refreshed header minute. Escape returned to the dashboard. This verifies current detail routing, not control identity preservation across a timestamp-only refresh.
+- Preview ZIP SHA256: 72898E165A6E23CBC0DEA6A7CECE4A362E5C05FDEB7E2D8C37ECCB6DA744CABD. Release publish succeeded. Comparable CPU measurement and native timestamp-only focus preservation remain open.
+
+## Live single-instance and hidden-monitor verification — 2026-10-26
+
+- Running stable-refresh-final PID 56816. A second launch (PID 53388) exited 0; exactly one application process remained, with the original PID responsive. Raw result: artifacts/native-qa/single-instance-live.json.
+- Clicked the native title-bar Close button under the default CloseToTray=true setting. The dashboard disappeared from targetable windows while PID 56816 remained responsive.
+- With the dashboard still hidden, read-only SQLite history inspection observed a newer persisted observation after 15.02 seconds (1792992461373 to 1792992588742 Unix milliseconds). Raw result: artifacts/native-qa/hidden-refresh.json. This proves a hidden refresh occurred, not complete provider renewal or sleep/resume coverage.
+- Launching the executable again exited 0 and restored the same window ID 26677222 and original PID, with exactly one app process. Tray menu Exit, Explorer restart, sign-in startup, and cold notification activation remain separate open checks.
+
+## Selected Token Baron branding — October 26
+
+User selected logo concept 01. Prepared a transparent version with ImageGen, preserving the purple/gold top-hat coin and removing concept captions. Stored token_baron.png and converted it into a nine-resolution ICO (16 through 256 px). Header now uses the selected PNG; the ICO is embedded through ApplicationIcon and reused by existing window/taskbar and normal tray code. Warning/status tray behavior remains unchanged.
+
+Release publish succeeded; token-baron-win-x64 launched and reported responsive (PID 29484). Preview package refreshed. Native visual verification is pending: both native inspection tool runtimes failed with "failed to write kernel assets: The system cannot find the path specified". No visual runtime pass is claimed.
+
+### Reset Horizon scrollbar refinement — October 26, 2026
+Removed the permanent native horizontal scrollbar and corrected layout width against the actual viewport. Horizontal scrolling remains enabled; the header shows a scroll hint only when days overflow. Release publish passed (horizon-clean-win-x64). Native screenshots at 788-pixel compact width and full desktop width confirmed no white bar. Scrolling the compact timeline reached November 6 and both final events; maximizing restored Today through the final date with no overflow hint. Reference: existing Reset Horizon card and user-selected dark design. Claude Pro persisted and refreshed after restart with both grouped meters and timeline events.

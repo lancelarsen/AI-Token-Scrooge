@@ -5,6 +5,7 @@ namespace AIResetRadar.Infrastructure;
 public sealed class AccountMonitor(string directory, ISecretStore secrets, GitHubUsageClient github, TimeProvider clock, GitHubDeviceFlow? githubSignIn = null)
 {
     readonly GitHubCredentialManager githubCredentials = new(secrets, github, githubSignIn, clock);
+    public ClaudeClient Claude { get; } = new(directory, clock);
     public string ProfilePath(string id) => Guid.TryParse(id, out var guid) ? Path.Combine(directory, "Profiles", guid.ToString("N")) : throw new ArgumentException("Invalid account identity.");
     public async Task<CodexConnection> OpenCodexAsync(string id, CancellationToken ct = default) => await CodexConnection.StartAsync(
         CodexLocator.Find() ?? throw new FileNotFoundException("Install the Codex desktop app to connect an OpenAI account."), ProfilePath(id), ct);
@@ -46,6 +47,7 @@ public sealed class AccountMonitor(string directory, ISecretStore secrets, GitHu
 
     public async Task<QuotaSnapshot> RefreshAsync(ProviderAccount account, CancellationToken ct)
     {
+        if (account.Provider == "Claude") return await Claude.RefreshAsync(account, ct);
         if (account.Provider == "GitHub Copilot")
         {
             var token = await githubCredentials.ReadAccessTokenAsync(account, ct);
@@ -59,6 +61,7 @@ public sealed class AccountMonitor(string directory, ISecretStore secrets, GitHu
     }
     public async Task DisconnectAsync(ProviderAccount account, CancellationToken ct = default)
     {
+        if (account.Provider == "Claude") { await Claude.DisconnectAsync(account, ct); return; }
         if (account.Provider == "GitHub Copilot") await githubCredentials.RemoveAsync(account.CredentialId ?? account.Id, ct);
         else
         {
