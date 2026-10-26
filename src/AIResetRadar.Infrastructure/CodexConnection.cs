@@ -55,10 +55,10 @@ public sealed class CodexConnection : IAsyncDisposable
     {
         try
         {
-            while (await process.StandardOutput.ReadLineAsync(stopped.Token) is { } line)
+            await foreach (var line in BoundedLines.ReadAsync(process.StandardOutput, 2_000_000, stopped.Token))
             {
-                if (line.Length > 2_000_000) throw new InvalidDataException("Provider response exceeded the monitor's limit.");
                 using var json = JsonDocument.Parse(line); var root = json.RootElement;
+                if (root.ValueKind != JsonValueKind.Object) throw new InvalidDataException("Provider response was not a protocol object.");
                 if (root.TryGetProperty("id", out var id) && id.ValueKind == JsonValueKind.Number && id.TryGetInt32(out var value) && pending.TryGetValue(value, out var completion))
                 {
                     if (root.TryGetProperty("error", out _)) completion.TrySetException(new InvalidOperationException("Codex could not complete this monitoring request. Check sign-in and retry."));
@@ -68,11 +68,17 @@ public sealed class CodexConnection : IAsyncDisposable
             }
         }
         catch (Exception error) when (error is OperationCanceledException or IOException or JsonException or InvalidDataException) { }
-        finally { foreach (var completion in pending.Values) completion.TrySetException(new IOException("Codex connection ended. Reconnect to continue monitoring.")); }
+        finally
+        {
+            foreach (var completion in pending.Values) completion.TrySetException(new IOException("Codex connection ended. Reconnect to continue monitoring."));
+            // Also cancel requests added concurrently with EOF or a protocol failure.
+            await stopped.CancelAsync();
+        }
     }
     async Task DrainErrorsAsync()
     {
-        try { while (await process.StandardError.ReadLineAsync(stopped.Token) is not null) { } }
+        var buffer = new char[4096];
+        try { while (await process.StandardError.ReadAsync(buffer.AsMemory(), stopped.Token) != 0) { } }
         catch (Exception error) when (error is OperationCanceledException or IOException) { }
     }
     public async ValueTask DisposeAsync()
