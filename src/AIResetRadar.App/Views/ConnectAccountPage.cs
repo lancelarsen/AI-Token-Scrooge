@@ -4,7 +4,7 @@ using AIResetRadar.Infrastructure;
 using AIResetRadar.App.Services;
 namespace AIResetRadar.App.Views;
 
-public sealed class ConnectAccountPage : ContentPage
+public sealed partial class ConnectAccountPage : ContentPage
 {
     readonly Entry nickname = new() { Placeholder = "Account nickname (Personal, Work…)", Text = "Personal" };
     readonly Entry token = new() { Placeholder = "Fine-grained personal access token", IsPassword = true };
@@ -12,6 +12,7 @@ public sealed class ConnectAccountPage : ContentPage
     readonly Entry organization = new() { Placeholder = "Organization billing owner (optional)" };
     readonly Picker unit = new() { ItemsSource = new[] { "AI credits", "Legacy premium requests" }, SelectedIndex = 0, TextColor = Colors.White };
     readonly Label status = new() { TextColor = Color.FromArgb("#B6B8C8") };
+    readonly Label explanation = new() { TextColor = Color.FromArgb("#B6B8C8") };
     readonly Button connect = new() { Text = "Connect", BackgroundColor = Color.FromArgb("#7169CA") };
     readonly CancellationTokenSource lifetime = new();
     readonly bool codex;
@@ -22,6 +23,7 @@ public sealed class ConnectAccountPage : ContentPage
     readonly ProviderAccount? reconnect;
     string? loginId;
     bool signingIn;
+    bool connecting;
     bool committed, committing;
     ProviderAccount? pendingAccount;
 
@@ -39,8 +41,8 @@ public sealed class ConnectAccountPage : ContentPage
         var cancel = new Button { Text = "Cancel" }; cancel.Clicked += async (_, _) => await CloseAsync();
         var form = new VerticalStackLayout { Padding = 32, Spacing = 18, MaximumWidthRequest = 640, HorizontalOptions = LayoutOptions.Center };
         form.Children.Add(new Label { Text = Title, FontSize = 26, FontFamily = "Segoe UI Semibold" });
-        form.Children.Add(new Label { Text = codex ? "Sign in through OpenAI in your browser. Radar keeps this account in its own protected Codex profile and only reads usage limits." :
-            "Use a GitHub fine-grained token with Plan read permission for personal billing. Organization reports require authorized organization access. Your token is protected with Windows DPAPI.", TextColor = Color.FromArgb("#B6B8C8") });
+        explanation.Text = "Sign in through OpenAI in your browser. Radar keeps this account in its own protected Codex profile and only reads usage limits.";
+        form.Children.Add(explanation);
         var help = new Button { Text = "Usage and access help" };
         help.Clicked += async (_, _) => {
             var uri = ProviderLinks.Help(codex ? "OpenAI" : "GitHub Copilot");
@@ -48,7 +50,7 @@ public sealed class ConnectAccountPage : ContentPage
         };
         form.Children.Add(help);
         form.Children.Add(nickname);
-        if (!codex) { form.Children.Add(token); form.Children.Add(unit); form.Children.Add(allowance); form.Children.Add(organization); }
+        if (!codex) ConfigureGitHubForm(form);
         else connect.Text = "Sign in with OpenAI";
         form.Children.Add(status); form.Children.Add(connect); form.Children.Add(cancel);
         connect.Clicked += async (_, _) => await ConnectAsync();
@@ -57,8 +59,9 @@ public sealed class ConnectAccountPage : ContentPage
 
     async Task ConnectAsync()
     {
+        if (connecting) return;
         if (string.IsNullOrWhiteSpace(nickname.Text)) { status.Text = "Enter an account nickname."; return; }
-        connect.IsEnabled = false;
+        connecting = true; connect.IsEnabled = false;
         try
         {
             if (codex)
@@ -82,24 +85,11 @@ public sealed class ConnectAccountPage : ContentPage
             }
             else
             {
-                if (pendingAccount is not null) { await AppServices.Current.Monitor.DisconnectAsync(pendingAccount); pendingAccount = null; }
-                if (string.IsNullOrWhiteSpace(token.Text)) { status.Text = "Enter a GitHub token. Do not paste it into chat."; return; }
-                decimal? limit = null;
-                if (!string.IsNullOrWhiteSpace(allowance.Text))
-                {
-                    if (!decimal.TryParse(allowance.Text, out var parsed) || parsed <= 0) { status.Text = "Allowance must be a positive number, or blank."; return; }
-                    limit = parsed;
-                }
-                status.Text = "Checking GitHub identity and billing access…";
-                var result = await AppServices.Current.Monitor.ConnectGitHubAsync(nickname.Text.Trim(), token.Text.Trim(), limit,
-                    unit.SelectedIndex == 1 ? UsageUnit.Requests : UsageUnit.Credits, organization.Text, lifetime.Token, reconnect);
-                pendingAccount = result.Account; token.Text = "";
-                if (lifetime.IsCancellationRequested) { await AppServices.Current.Monitor.DisconnectAsync(result.Account); pendingAccount = null; return; }
-                committing = true; await connected(result.Account, result.Snapshot); committed = true; committing = false; await CloseAsync();
+                await ConnectGitHubAsync();
             }
         }
         catch (Exception error) { status.Text = SafeMessage(error); }
-        finally { committing = false; connect.IsEnabled = true; }
+        finally { committing = false; connecting = false; connect.IsEnabled = true; }
     }
     bool finishing;
     async Task FinishCodexAsync()
@@ -132,7 +122,7 @@ public sealed class ConnectAccountPage : ContentPage
     Task CleanupAsync() => cleanup ??= CleanupCoreAsync();
     async Task CleanupCoreAsync()
     {
-        await lifetime.CancelAsync(); token.Text = "";
+        await lifetime.CancelAsync(); token.Text = ""; githubChallenge = null; githubCode.Text = "";
         if (connection is not null)
         {
             var owned = connection; connection = null;

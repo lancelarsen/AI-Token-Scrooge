@@ -32,4 +32,32 @@ public class AccountMonitorTests
         Assert.Equal("old-token", secrets.Values["old-profile"]);
         Assert.False(secrets.Values.ContainsKey(result.Account.CredentialId!));
     }
+
+    [Fact] public async Task BrowserReconnectRejectsAnotherIdentityWithoutReplacingTheSavedConnection()
+    {
+        var secrets = new Secrets(); secrets.Values["original"] = "original-token";
+        using var http = new HttpClient(new Handler());
+        var monitor = new AccountMonitor(Path.GetTempPath(), secrets, new(http, TimeProvider.System), TimeProvider.System);
+        var original = new ProviderAccount("account", "GitHub Copilot", "Work", "99", "personal", CredentialId: "original");
+        var tokens = new GitHubAppTokens("Iv1.test", "new-access", "new-refresh", DateTimeOffset.UtcNow.AddHours(8), DateTimeOffset.UtcNow.AddMonths(6));
+        await Assert.ThrowsAsync<ProviderAccessException>(() => monitor.ConnectGitHubWithBrowserAsync("Work", tokens, 100, UsageUnit.Credits, default, original));
+        Assert.Single(secrets.Values); Assert.Equal("original-token", secrets.Values["original"]);
+    }
+
+    [Fact] public async Task BrowserReconnectStagesAProtectedEnvelopeAndPreservesExistingPreferences()
+    {
+        var secrets = new Secrets(); secrets.Values["original"] = "original-token";
+        using var http = new HttpClient(new Handler());
+        var monitor = new AccountMonitor(Path.GetTempPath(), secrets, new(http, TimeProvider.System), TimeProvider.System);
+        var original = new ProviderAccount("account", "GitHub Copilot", "Work", "42", "personal", Enabled: false, CredentialId: "original");
+        var tokens = new GitHubAppTokens("Iv1.test", "new-access", "new-refresh", DateTimeOffset.UtcNow.AddHours(8), DateTimeOffset.UtcNow.AddMonths(6));
+        var result = await monitor.ConnectGitHubWithBrowserAsync("Work", tokens, 100, UsageUnit.Credits, default, original);
+        Assert.Equal(original.Id, result.Account.Id); Assert.False(result.Account.Enabled);
+        Assert.NotEqual(original.CredentialId, result.Account.CredentialId);
+        Assert.StartsWith("github-app:v1:", secrets.Values[result.Account.CredentialId!]);
+        Assert.Equal("original-token", secrets.Values["original"]);
+        Assert.DoesNotContain("new-access", System.Text.Json.JsonSerializer.Serialize(result));
+        Assert.DoesNotContain("new-refresh", System.Text.Json.JsonSerializer.Serialize(result));
+        await monitor.DisconnectAsync(result.Account); Assert.Single(secrets.Values);
+    }
 }

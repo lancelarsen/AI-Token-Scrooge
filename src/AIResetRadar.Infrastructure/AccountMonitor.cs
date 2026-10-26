@@ -2,8 +2,9 @@ using System.Text.Json;
 using AIResetRadar.Core;
 namespace AIResetRadar.Infrastructure;
 
-public sealed class AccountMonitor(string directory, ISecretStore secrets, GitHubUsageClient github, TimeProvider clock)
+public sealed class AccountMonitor(string directory, ISecretStore secrets, GitHubUsageClient github, TimeProvider clock, GitHubDeviceFlow? githubSignIn = null)
 {
+    readonly GitHubCredentialManager githubCredentials = new(secrets, github, githubSignIn, clock);
     public string ProfilePath(string id) => Guid.TryParse(id, out var guid) ? Path.Combine(directory, "Profiles", guid.ToString("N")) : throw new ArgumentException("Invalid account identity.");
     public async Task<CodexConnection> OpenCodexAsync(string id, CancellationToken ct = default) => await CodexConnection.StartAsync(
         CodexLocator.Find() ?? throw new FileNotFoundException("Install the Codex desktop app to connect an OpenAI account."), ProfilePath(id), ct);
@@ -18,7 +19,16 @@ public sealed class AccountMonitor(string directory, ISecretStore secrets, GitHu
         return (provider, ProviderMapping.Codex(provider, data, clock.GetUtcNow()));
     }
 
-    public async Task<(ProviderAccount Account, QuotaSnapshot Snapshot)> ConnectGitHubAsync(string nickname, string token, decimal? allowance, UsageUnit unit, string? organization, CancellationToken ct, ProviderAccount? reconnect = null)
+    public Task<(ProviderAccount Account, QuotaSnapshot Snapshot)> ConnectGitHubAsync(string nickname, string token, decimal? allowance, UsageUnit unit, string? organization, CancellationToken ct, ProviderAccount? reconnect = null) =>
+        ConnectGitHubCoreAsync(nickname, token, null, allowance, unit, organization, ct, reconnect);
+
+    public Task<(ProviderAccount Account, QuotaSnapshot Snapshot)> ConnectGitHubWithBrowserAsync(string nickname, GitHubAppTokens tokens, decimal? allowance, UsageUnit unit, CancellationToken ct, ProviderAccount? reconnect = null)
+    {
+        if (reconnect is not null && reconnect.Scope != "personal") throw new InvalidDataException("Organization billing uses the advanced token connection.");
+        return ConnectGitHubCoreAsync(nickname, tokens.AccessToken, tokens, allowance, unit, null, ct, reconnect);
+    }
+
+    async Task<(ProviderAccount Account, QuotaSnapshot Snapshot)> ConnectGitHubCoreAsync(string nickname, string token, GitHubAppTokens? appTokens, decimal? allowance, UsageUnit unit, string? organization, CancellationToken ct, ProviderAccount? reconnect)
     {
         var identity = await github.IdentifyAsync(token, ct);
         if (reconnect is not null && reconnect.Subject != identity.Subject) throw new ProviderAccessException("Sign in to the same GitHub account to reconnect. Add a separate connection for a different account.", SourceHealth.AuthenticationRequired);
@@ -28,14 +38,17 @@ public sealed class AccountMonitor(string directory, ISecretStore secrets, GitHu
         QuotaSnapshot snapshot;
         try { snapshot = await github.ReadAsync(account, token, ct); }
         catch (ProviderAccessException error) { snapshot = new(account.Id, account.Subject, account.Scope, clock.GetUtcNow(), [], null, error.Health, error.Message); }
-        await secrets.SaveAsync(account.CredentialId!, token); return (account, snapshot);
+        ct.ThrowIfCancellationRequested();
+        if (appTokens is null) await secrets.SaveAsync(account.CredentialId!, token);
+        else await githubCredentials.SaveAppAsync(account.CredentialId!, account.Subject, appTokens);
+        return (account, snapshot);
     }
 
     public async Task<QuotaSnapshot> RefreshAsync(ProviderAccount account, CancellationToken ct)
     {
         if (account.Provider == "GitHub Copilot")
         {
-            var token = await secrets.ReadAsync(account.CredentialId ?? account.Id) ?? throw new ProviderAccessException("Reconnect GitHub to restore monitoring.", SourceHealth.AuthenticationRequired);
+            var token = await githubCredentials.ReadAccessTokenAsync(account, ct);
             return await github.ReadAsync(account, token, ct);
         }
         await using var connection = await OpenCodexAsync(account.CredentialId ?? account.Id, ct);
@@ -46,7 +59,7 @@ public sealed class AccountMonitor(string directory, ISecretStore secrets, GitHu
     }
     public async Task DisconnectAsync(ProviderAccount account, CancellationToken ct = default)
     {
-        if (account.Provider == "GitHub Copilot") secrets.Remove(account.CredentialId ?? account.Id);
+        if (account.Provider == "GitHub Copilot") await githubCredentials.RemoveAsync(account.CredentialId ?? account.Id, ct);
         else
         {
             await using var connection = await OpenCodexAsync(account.CredentialId ?? account.Id, ct);

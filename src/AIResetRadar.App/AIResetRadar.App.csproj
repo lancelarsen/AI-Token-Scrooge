@@ -20,5 +20,6 @@
     <MauiImage Include="Resources/Images/*" />
     <Content Include="Resources/app.ico" Link="app.ico" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Resources/LUCIDE-LICENSE.txt" Link="LUCIDE-LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="github-app.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
