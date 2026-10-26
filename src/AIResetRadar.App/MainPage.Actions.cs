@@ -126,15 +126,15 @@ public sealed partial class MainPage
     async Task OpenDetailsAsync(QuotaRow row)
     {
         var details = $"{row.Window.Name}\n{row.UsedText} · {row.LeftText}\nResets: {ResetTime.Exact(row.Window.ResetsAt)}\n\nAccount: {row.Account.Login ?? row.Account.Subject}\nScope: {row.Account.Scope}\nLast successful fetch: {ResetTime.Exact(row.Snapshot.ObservedAt)}\nProvider data as of: {ResetTime.Exact(row.Snapshot.ProviderDataAt)}\n\n{row.SourceNote}";
-        if (state.IsDemo || ProviderLinks.Usage(row.Account) is null) { await DisplayAlertAsync($"{row.Account.Provider} / {row.Account.Nickname}", details, "Close"); return; }
-        if (await DisplayAlertAsync($"{row.Account.Provider} / {row.Account.Nickname}", details + "\n\nProvider pages use your browser's sign-in. Check its account and workspace before comparing.", "Open provider usage", "Close") && !await ProviderNavigation.OpenAsync(row.Account))
+        if (state.IsDemo || ProviderLinks.Usage(row.Account) is null) { await DisplayAlertAsync($"{row.Account.Provider} / {row.AccountLabel}", details, "Close"); return; }
+        if (await DisplayAlertAsync($"{row.Account.Provider} / {row.AccountLabel}", details + "\n\nProvider pages use your browser's sign-in. Check its account and workspace before comparing.", "Open provider usage", "Close") && !await ProviderNavigation.OpenAsync(row.Account))
             await DisplayAlertAsync("Provider page unavailable", "Open your provider's usage page in your browser, or use Usage and access help in Settings.", "Close");
     }
     Task OpenReserveAsync(string? accountId = null)
     {
         var lines = state.Accounts.Where(a => (accountId is null ? a.Enabled : a.Id == accountId) && state.Snapshots.ContainsKey(a.Id)).Select(a => {
             var reserve = state.Snapshots[a.Id].Reserve;
-            return reserve is null ? null : $"{a.Provider} / {a.Nickname}: {reserve.AvailableCount?.ToString() ?? "Unknown"} reported available\n" +
+            return reserve is null ? null : $"{a.Provider} / {a.Nickname} · {PlanLabels.Display(a.Provider, state.Snapshots[a.Id].PlanType)}: {reserve.AvailableCount?.ToString() ?? "Unknown"} reported available\n" +
                 $"Snapshot fetched {state.Snapshots[a.Id].ObservedAt.ToLocalTime():g} · {(a.Enabled ? state.Snapshots[a.Id].Health : "Monitoring paused")}\n" +
                 (reserve.HasPartialDetails ? "Provider supplied only partial credit details.\n" : "") +
                 string.Join("\n", reserve.Credits?.Select(c => $"• {c.ExpiresAt?.ToLocalTime().ToString("f") ?? "Expiry unavailable"} · {(c.ExpiresAt <= DateTimeOffset.UtcNow ? "Expired locally — checking provider" : c.Status)}") ?? ["Credit details unavailable"]);

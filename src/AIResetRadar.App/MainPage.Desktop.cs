@@ -66,7 +66,7 @@ public sealed partial class MainPage
         var unknown = status.Capacity == CapacityState.Unknown || status.HasUnavailableData || status.UsagePaused;
         var warning = status.Capacity is CapacityState.Low or CapacityState.Critical;
         var exhausted = status.Capacity == CapacityState.Exhausted;
-        var text = limiting is null ? "AI Token Scrooge" : $"Scrooge · {limiting.Account.Nickname} / {limiting.Window.Name}: {limiting.LeftText}";
+        var text = limiting is null ? "AI Token Scrooge" : $"Scrooge · {limiting.Account.Provider} / {limiting.AccountLabel} / {limiting.Window.Name}: {limiting.LeftText}";
         if (status.Notice is not null) text += " · " + status.Notice; if (state.IsDemo) text = "DEMO · " + text;
         tray?.Update(text, warning, exhausted, unknown);
         UpdateQuickView();
