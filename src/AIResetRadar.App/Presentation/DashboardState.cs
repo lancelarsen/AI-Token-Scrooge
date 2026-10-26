@@ -3,6 +3,7 @@ namespace AIResetRadar.App.Presentation;
 
 public sealed record QuotaRow(ProviderAccount Account, QuotaSnapshot Snapshot, QuotaWindow Window, decimal Low = 30, decimal Critical = 10)
 {
+    public string AccountLabel => $"{Account.Nickname} · {PlanLabels.Display(Account.Provider, Snapshot.PlanType)}";
     public bool IsWarning => Window.Capacity(Low, Critical) is CapacityState.Low or CapacityState.Critical or CapacityState.Exhausted;
     public string UsedText => Window.Used is { } used ? Window.Unit == UsageUnit.Percent ? $"{used:0.#}% used" : $"{used:N0} used" : "Usage unavailable";
     public string LeftText => Window.Unit == UsageUnit.Percent ? Window.RemainingPercent is { } percent ? $"{percent:0.#}% left" : "Left unavailable" :
@@ -34,10 +35,10 @@ public sealed class DashboardState
 
     public IEnumerable<HorizonEvent> Events(DateTimeOffset now) => Rows
         .Where(r => r.Window.ResetsAt > now).Select(r => new HorizonEvent(r.Account.Id,
-            $"{r.Account.Provider} / {r.Account.Nickname}", r.Window.Name, r.Window.ResetsAt!.Value, false, r.Window.Id))
+            $"{r.Account.Provider} / {r.AccountLabel}", r.Window.Name, r.Window.ResetsAt!.Value, false, r.Window.Id))
         .Concat(Accounts.Where(a => a.Enabled && Snapshots.ContainsKey(a.Id)).SelectMany(a =>
             Snapshots[a.Id].Reserve?.AvailableCount == 0 ? [] : Snapshots[a.Id].Reserve?.Credits?.Where(c => c.Status == "available" && c.ExpiresAt > now)
-                .Select(c => new HorizonEvent(a.Id, "Earned reset expires", $"{a.Provider} / {a.Nickname}", c.ExpiresAt!.Value, true)) ?? []))
+                .Select(c => new HorizonEvent(a.Id, "Earned reset expires", $"{a.Provider} / {a.Nickname} · {PlanLabels.Display(a.Provider, Snapshots[a.Id].PlanType)}", c.ExpiresAt!.Value, true)) ?? []))
         .OrderBy(e => e.At).Take(5);
 
     public void LoadDemo(DateTimeOffset now)

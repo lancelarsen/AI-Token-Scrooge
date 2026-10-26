@@ -16,7 +16,7 @@ public sealed class AccountMonitor(string directory, ISecretStore secrets, GitHu
         if (email is null) throw new ProviderAccessException("Complete sign-in with a ChatGPT account in your browser, then try again.", SourceHealth.AuthenticationRequired);
         var data = await connection.CallAsync("account/rateLimits/read", null, ct);
         var provider = new ProviderAccount(id, "OpenAI", nickname, email, ProviderMapping.Text(data, "accountId") ?? "unresolved", CredentialId: credentialId ?? id);
-        return (provider, ProviderMapping.Codex(provider, data, clock.GetUtcNow()));
+        return (provider, ProviderMapping.Codex(provider, data, clock.GetUtcNow()) with { PlanType = ProviderMapping.Text(account, "planType") });
     }
 
     public Task<(ProviderAccount Account, QuotaSnapshot Snapshot)> ConnectGitHubAsync(string nickname, string token, decimal? allowance, UsageUnit unit, string? organization, CancellationToken ct, ProviderAccount? reconnect = null) =>
@@ -55,7 +55,7 @@ public sealed class AccountMonitor(string directory, ISecretStore secrets, GitHu
         var identity = await connection.CallAsync("account/read", new { refreshToken = false }, ct);
         if (!identity.TryGetProperty("account", out var data) || data.ValueKind != JsonValueKind.Object || ProviderMapping.Text(data, "email") != account.Subject)
             throw new ProviderAccessException("Codex is signed out or the profile identity changed. Reconnect this account.", SourceHealth.AuthenticationRequired);
-        return ProviderMapping.Codex(account, await connection.CallAsync("account/rateLimits/read", null, ct), clock.GetUtcNow());
+        return ProviderMapping.Codex(account, await connection.CallAsync("account/rateLimits/read", null, ct), clock.GetUtcNow()) with { PlanType = ProviderMapping.Text(data, "planType") };
     }
     public async Task DisconnectAsync(ProviderAccount account, CancellationToken ct = default)
     {

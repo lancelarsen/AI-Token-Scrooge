@@ -30,8 +30,9 @@ public sealed class SettingsPage : ContentPage
         {
             var current = account;
             ProviderAccount Latest() => accounts.FirstOrDefault(a => a.Id == account.Id) ?? current;
-            var rename = new Button { Text = $"{account.Provider} / {account.Nickname} · Rename" };
-            rename.Clicked += async (_, _) => await AccountAction(async () => { var name = await DisplayPromptAsync("Account nickname", "Choose a label for this account.", initialValue: Latest().Nickname); if (!string.IsNullOrWhiteSpace(name)) { current = Latest() with { Nickname = name.Trim() }; await update(current, false); rename.Text = $"{current.Provider} / {current.Nickname} · Rename"; } });
+            var plan = PlanLabels.Display(account.Provider, snapshots.GetValueOrDefault(account.Id)?.PlanType);
+            var rename = new Button { Text = $"{account.Provider} / {account.Nickname} · {plan} · Rename" };
+            rename.Clicked += async (_, _) => await AccountAction(async () => { var name = await DisplayPromptAsync("Account nickname", "Choose a label for this account.", initialValue: Latest().Nickname); if (!string.IsNullOrWhiteSpace(name)) { current = Latest() with { Nickname = name.Trim() }; await update(current, false); rename.Text = $"{current.Provider} / {current.Nickname} · {plan} · Rename"; } });
             form.Children.Add(rename);
             var providerPages = new Grid { ColumnDefinitions = [new(GridLength.Star), new(GridLength.Star)], ColumnSpacing = 10 };
             var usagePage = new Button { Text = "Provider usage page", IsEnabled = !demo };

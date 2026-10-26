@@ -30,13 +30,19 @@ public sealed class GitHubUsageClient(HttpClient http, TimeProvider clock)
             $"users/{login}/settings/billing/{kind}/usage?year={now.Year}&month={now.Month}";
         var report = await GetAsync(path, token, ct);
         decimal? allowance = null;
+        string? plan = null;
         if (account.Scope == "personal")
         {
-            try { allowance = ProviderMapping.GitHubAllowance(await GetAsync("copilot_internal/user", token, ct), account.Unit); }
+            try
+            {
+                var entitlement = await GetAsync("copilot_internal/user", token, ct);
+                allowance = ProviderMapping.GitHubAllowance(entitlement, account.Unit);
+                if (entitlement.ValueKind == JsonValueKind.Object) plan = ProviderMapping.Text(entitlement, "copilot_plan");
+            }
             catch (ProviderAccessException error) when (error.RetryAt is null && error.Health is SourceHealth.PermissionRequired or SourceHealth.Offline) { }
             catch (Exception error) when (error is JsonException or InvalidDataException or HttpRequestException) { }
         }
-        return ProviderMapping.GitHub(account, report, now, allowance);
+        return ProviderMapping.GitHub(account, report, now, allowance) with { PlanType = plan };
     }
     async Task<JsonElement> GetAsync(string path, string token, CancellationToken ct)
     {

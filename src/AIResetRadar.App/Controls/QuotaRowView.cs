@@ -27,7 +27,7 @@ public sealed class QuotaRowView : Border
         heading.Children.Add(new Label { Text = row.Account.Provider, FontSize = 20, FontFamily = "Segoe UI Semibold", VerticalOptions = LayoutOptions.Center });
         heading.Children.Add(new Border { Padding = new Thickness(11, 3), Stroke = Color.FromArgb("#51476D"), BackgroundColor = Color.FromArgb("#2C293E"),
             StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 15 },
-            Content = new Label { Text = row.Account.Nickname, TextColor = Color.FromArgb("#C3ADF8"), FontSize = 12 } });
+            Content = new Label { Text = row.AccountLabel, TextColor = Color.FromArgb("#C3ADF8"), FontSize = 12 } });
         accountText.Children.Add(heading);
         accountText.Children.Add(new Label { Text = row.Window.Name, TextColor = Color.FromArgb("#BEC1D2"), FontSize = 14 });
         if (row.SourceNote != "") accountText.Children.Add(new Label { Text = row.SourceNote, FontSize = 11, TextColor = Color.FromArgb("#A5A8BA") });
@@ -50,7 +50,7 @@ public sealed class QuotaRowView : Border
         root.Add(layout, 1); Content = root;
         // Native button is transparent, keyboard-focusable and exposes the complete row to Narrator.
         var details = new Button { Text = "", BackgroundColor = Colors.Transparent, BorderWidth = 0, HeightRequest = -1, HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Fill };
-        SemanticProperties.SetDescription(details, $"{row.Account.Provider}, {row.Account.Nickname}, {row.Window.Name}, {row.UsedText}, {row.LeftText}. Open details.");
+        SemanticProperties.SetDescription(details, $"{row.Account.Provider}, {row.AccountLabel}, {row.Window.Name}, {row.UsedText}, {row.LeftText}. Open details.");
         details.Clicked += (_, _) => open(row); root.Children.Add(details); Grid.SetColumnSpan(details, 2);
         SizeChanged += (_, _) => Reflow(); Reflow();
     }

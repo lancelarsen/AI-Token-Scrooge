@@ -27,6 +27,7 @@ public class GitHubUsageTests
         Assert.Equal(available ? 20000m : 100m, window.Limit);
         Assert.Equal(available ? AllowanceProvenance.Provider : AllowanceProvenance.Manual, window.AllowanceSource);
         Assert.Equal(228.8m, window.Used);
+        Assert.Equal(available ? "individual_max" : null, result.PlanType);
     }
 
     [Theory]

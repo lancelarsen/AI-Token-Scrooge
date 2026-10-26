@@ -39,7 +39,7 @@ public sealed record ResetReserve(int? AvailableCount, IReadOnlyList<ResetCredit
 
 public sealed record QuotaSnapshot(string AccountId, string Subject, string Scope, DateTimeOffset ObservedAt,
     IReadOnlyList<QuotaWindow> Windows, ResetReserve? Reserve, SourceHealth Health = SourceHealth.Healthy,
-    string? Message = null, DateTimeOffset? ProviderDataAt = null, bool? UsageAllowed = null)
+    string? Message = null, DateTimeOffset? ProviderDataAt = null, bool? UsageAllowed = null, string? PlanType = null)
 {
     public bool BelongsTo(ProviderAccount account) => AccountId == account.Id && Subject == account.Subject && (account.Scope == "unresolved" || account.ScopeEquals(Scope));
 }

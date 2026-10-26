@@ -38,7 +38,7 @@ public sealed partial class MainPage
         var now = DateTimeOffset.Now;
         var rows = state.Rows.Select(row => new
         {
-            Title = $"{row.Account.Provider} / {row.Account.Nickname} · {row.Window.Name}",
+            Title = $"{row.Account.Provider} / {row.AccountLabel} · {row.Window.Name}",
             row.Window.Fill, row.UsedText, row.LeftText, row.IsWarning, row.SourceNote,
             Reset = ResetTime.Countdown(row.Window.ResetsAt, now)
         }).ToArray();
