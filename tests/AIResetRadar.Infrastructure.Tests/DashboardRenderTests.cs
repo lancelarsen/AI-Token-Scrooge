@@ -7,6 +7,17 @@ namespace AIResetRadar.Infrastructure.Tests;
 public class DashboardRenderTests
 {
     [Fact]
+    public void MidnightRefreshesTodayLabelsWithoutAProviderObservation()
+    {
+        var before = new DateTimeOffset(new DateTime(2026, 10, 25, 23, 59, 59, DateTimeKind.Local));
+        var state = new DashboardState();
+        state.LoadDemo(before);
+        var after = before.AddSeconds(1);
+        Assert.Equal(state.Events(before).ToArray(), state.Events(after).ToArray());
+        Assert.NotEqual(state.RenderSignature(before), state.RenderSignature(after));
+    }
+
+    [Fact]
     public void CountdownTicksPreserveControlsButResetBoundariesInvalidateThem()
     {
         var now = DateTimeOffset.Parse("2026-10-25T12:00:00Z");

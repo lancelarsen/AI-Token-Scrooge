@@ -24,6 +24,8 @@ public sealed class DashboardState
     public string RenderSignature(DateTimeOffset now) => System.Text.Json.JsonSerializer.Serialize(new
     {
         Accounts, Snapshots, Settings, Sort, IsDemo,
+        LocalDate = now.ToLocalTime().Date,
+        LocalOffset = now.ToLocalTime().Offset,
         Summary = ResetSummary.Evaluate(Accounts, Snapshots, now),
         Events = Events(now).ToArray()
     });
