@@ -12,7 +12,7 @@ public sealed record QuotaRow(ProviderAccount Account, QuotaSnapshot Snapshot, Q
         Snapshot.Message ?? (Window.AllowanceSource == AllowanceProvenance.Manual ? "User-entered allowance · Billing data may lag" : "");
 }
 
-public sealed record HorizonEvent(string AccountId, string Title, string Detail, DateTimeOffset At, bool IsExpiry, string? WindowId = null);
+public sealed record HorizonEvent(string AccountId, string Title, string Detail, DateTimeOffset At, bool IsExpiry, string? WindowId = null, string? Provider = null, string? PlanBadge = null);
 
 public sealed class DashboardState
 {
@@ -43,11 +43,14 @@ public sealed class DashboardState
 
     public IEnumerable<HorizonEvent> Events(DateTimeOffset now) => Rows
         .Where(r => r.Window.ResetsAt > now).Select(r => new HorizonEvent(r.Account.Id,
-            $"{r.Account.Provider} / {r.AccountLabel}", r.Window.Name, r.Window.ResetsAt!.Value, false, r.Window.Id))
+            $"{r.Account.Provider} / {r.AccountLabel}", r.Window.Name, r.Window.ResetsAt!.Value, false, r.Window.Id, r.Account.Provider, TimelineBadge(r.Account)))
         .Concat(Accounts.Where(a => a.Enabled && Snapshots.ContainsKey(a.Id)).SelectMany(a =>
             Snapshots[a.Id].Reserve?.AvailableCount == 0 ? [] : Snapshots[a.Id].Reserve?.Credits?.Where(c => c.Status == "available" && c.ExpiresAt > now)
-                .Select(c => new HorizonEvent(a.Id, "Earned reset expires", $"{a.Provider} / {a.Nickname} · {PlanLabels.Display(a.Provider, Snapshots[a.Id].PlanType)}", c.ExpiresAt!.Value, true)) ?? []))
-        .OrderBy(e => e.At).Take(5);
+                .Select(c => new HorizonEvent(a.Id, "Earned reset expires", $"{a.Provider} / {a.Nickname} · {PlanLabels.Display(a.Provider, Snapshots[a.Id].PlanType)}", c.ExpiresAt!.Value, true, Provider: a.Provider, PlanBadge: TimelineBadge(a))) ?? []))
+        .OrderBy(e => e.At);
+
+    string? TimelineBadge(ProviderAccount account) => Accounts.Count(a => a.Enabled && a.Provider == account.Provider) > 1
+        ? PlanLabels.Display(account.Provider, Snapshots.GetValueOrDefault(account.Id)?.PlanType) : null;
 
     public void LoadDemo(DateTimeOffset now)
     {
@@ -93,5 +96,23 @@ public sealed class DashboardState
                 _ => snapshot
             };
         }
+    }
+}
+
+public sealed record HorizonDay(DateOnly Date, bool IsToday, HorizonEvent[] Events);
+
+public static class HorizonTimeline
+{
+    public static HorizonDay[] Build(IEnumerable<HorizonEvent> source, DateTimeOffset now, TimeZoneInfo? zone = null)
+    {
+        zone ??= TimeZoneInfo.Local;
+        var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(now, zone).DateTime);
+        var events = source.Where(e => e.At >= now).OrderBy(e => e.At)
+            .GroupBy(e => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(e.At, zone).DateTime))
+            .ToDictionary(g => g.Key, g => g.ToArray());
+        var last = events.Count == 0 ? today : events.Keys.Max();
+        return Enumerable.Range(0, last.DayNumber - today.DayNumber + 1)
+            .Select(i => new HorizonDay(today.AddDays(i), i == 0, events.GetValueOrDefault(today.AddDays(i)) ?? []))
+            .ToArray();
     }
 }

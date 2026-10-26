@@ -62,7 +62,7 @@ public sealed partial class MainPage : ContentPage
         rowViews.Clear();
         var heading = new Grid { ColumnDefinitions = [new(GridLength.Star), new(GridLength.Auto)], ColumnSpacing = 20 };
         heading.Add(new VerticalStackLayout { Spacing = 5, Children = { new Label { Text = "Reset Horizon", FontSize = 28, FontFamily = "Segoe UI Semibold" },
-            new Label { Text = "Upcoming quota resets and credit expirations across your accounts.", TextColor = Color.FromArgb("#B6B8C8"), FontSize = 15 } }});
+            new Label { Text = "Purple: quota refresh · Amber: earned reset expires · Hover or click an icon for details.", TextColor = Color.FromArgb("#B6B8C8"), FontSize = 15 } }});
         var summary = ResetSummary.Evaluate(state.Accounts, state.Snapshots, DateTimeOffset.UtcNow);
         var reserve = MakeButton(summary.ReportedCount is not { } count ? "Available resets Â· Count not reported" : $"{count} Codex resets {(summary.IsLastReported ? "last reported" : "available")}", "\uE8B7"); reserve.Clicked += async (_, _) => await OpenReserveAsync();
         heading.Add(new VerticalStackLayout { Spacing = 5, Padding = new Thickness(0, 0, 0, 3), Children = { reserve, new Label { Text = summary.HasExpiredDetails ? "Expiry reached Â· Awaiting provider confirmation" : summary.EarliestExpiry is { } expiry ? $"Earliest known expiry {expiry.ToLocalTime():MMM d Â· h:mm tt}" : "Expiry details may be unavailable", FontSize = 12, TextColor = Color.FromArgb("#B6B8C8"), HorizontalTextAlignment = TextAlignment.End } }}, 1);
@@ -83,21 +83,14 @@ public sealed partial class MainPage : ContentPage
         }
         foreach (var accountRows in state.Rows.GroupBy(row => row.Account.Id))
         {
-            var first = accountRows.First();
             var section = new VerticalStackLayout { Spacing = 0 };
-            var accountHeading = new HorizontalStackLayout { Spacing = 14, Padding = new Thickness(24, 16, 24, 8) };
-            accountHeading.Children.Add(new Image { Source = first.Account.Provider == "OpenAI" ? "openai.png" : "github.png", WidthRequest = 36, HeightRequest = 36 });
-            accountHeading.Children.Add(new Label { Text = first.Account.Provider, FontSize = 20, FontFamily = "Segoe UI Semibold", VerticalOptions = LayoutOptions.Center });
-            accountHeading.Children.Add(new Border { Padding = new Thickness(11, 3), VerticalOptions = LayoutOptions.Center,
-                Stroke = Color.FromArgb("#51476D"), BackgroundColor = Color.FromArgb("#2C293E"),
-                StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 15 },
-                Content = new Label { Text = first.AccountLabel, FontSize = 12, TextColor = Color.FromArgb("#C3ADF8") } });
-            section.Children.Add(accountHeading);
+            var firstWindow = true;
             foreach (var row in accountRows)
             {
-                if (section.Children.Count > 1) section.Children.Add(new BoxView { HeightRequest = 1, Margin = new Thickness(24, 0), Color = Color.FromArgb("#383B46") });
-                var view = new QuotaRowView(row, async r => await OpenDetailsAsync(r), grouped: true);
+                if (!firstWindow) section.Children.Add(new BoxView { HeightRequest = 1, Margin = new Thickness(24, 0), Color = Color.FromArgb("#383B46") });
+                var view = new QuotaRowView(row, async r => await OpenDetailsAsync(r), grouped: true, showAccount: firstWindow);
                 rowViews.Add(view); section.Children.Add(view);
+                firstWindow = false;
             }
             body.Children.Add(new Border { Content = section, Padding = 0, Stroke = Color.FromArgb("#383B46"), BackgroundColor = Color.FromArgb("#1C1E24"),
                 StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 13 } });

@@ -12,7 +12,7 @@ public sealed class QuotaRowView : Border
     readonly DateTimeOffset? resetsAt;
     bool? wideLayout;
     public void UpdateClock(DateTimeOffset now) => countdown.Text = ResetTime.Countdown(resetsAt, now);
-    public QuotaRowView(QuotaRow row, Action<QuotaRow> open, bool grouped = false)
+    public QuotaRowView(QuotaRow row, Action<QuotaRow> open, bool grouped = false, bool showAccount = true)
     {
         var warning = row.IsWarning;
         resetsAt = row.Window.ResetsAt;
@@ -29,12 +29,13 @@ public sealed class QuotaRowView : Border
         heading.Children.Add(new Border { Padding = new Thickness(11, 3), Stroke = Color.FromArgb("#51476D"), BackgroundColor = Color.FromArgb("#2C293E"),
             StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 15 },
             Content = new Label { Text = row.AccountLabel, TextColor = Color.FromArgb("#C3ADF8"), FontSize = 12 } });
-        if (!grouped) accountText.Children.Add(heading);
+        if (showAccount) accountText.Children.Add(heading);
         accountText.Children.Add(new Label { Text = row.Window.Name, TextColor = Color.FromArgb("#BEC1D2"), FontSize = 14 });
         if (row.SourceNote != "") accountText.Children.Add(new Label { Text = row.SourceNote, FontSize = 11, TextColor = Color.FromArgb("#A5A8BA") });
         var account = new HorizontalStackLayout { Spacing = 16, VerticalOptions = LayoutOptions.Center };
-        if (!grouped) account.Children.Add(row.Account.Provider == "OpenAI" ? new Image { Source = "openai.png", WidthRequest = 44, HeightRequest = 44 } :
+        if (showAccount) account.Children.Add(row.Account.Provider == "OpenAI" ? new Image { Source = "openai.png", WidthRequest = 44, HeightRequest = 44 } :
             new Image { Source = "github.png", WidthRequest = 44, HeightRequest = 44 });
+        else account.Children.Add(new BoxView { WidthRequest = 44, HeightRequest = 1, Color = Colors.Transparent });
         account.Children.Add(accountText); identity = account;
         bar = new UsageBar(row.Window.Fill, row.UsedText, row.LeftText, warning) { VerticalOptions = LayoutOptions.Center };
         var now = DateTimeOffset.Now;

@@ -3,42 +3,72 @@ namespace AIResetRadar.App.Controls;
 
 public sealed class HorizonView : Border
 {
-    readonly HorizonEvent[] events;
-    readonly Grid grid = new() { ColumnSpacing = 20, RowSpacing = 8 };
-    readonly ScrollView viewport = new() { Orientation = ScrollOrientation.Horizontal, HeightRequest = 132, HorizontalScrollBarVisibility = ScrollBarVisibility.Always };
+    readonly HorizonDay[] days;
+    readonly Grid grid = new() { ColumnSpacing = 0 };
+    readonly ScrollView viewport = new() { Orientation = ScrollOrientation.Horizontal, HorizontalScrollBarVisibility = ScrollBarVisibility.Always };
     double renderedWidth = double.NaN;
     public HorizonView(IEnumerable<HorizonEvent> source, Action<HorizonEvent> open)
     {
-        events = source.ToArray(); BackgroundColor = Color.FromArgb("#202229"); StrokeThickness = 0;
+        days = HorizonTimeline.Build(source, DateTimeOffset.Now);
+        BackgroundColor = Color.FromArgb("#202229"); StrokeThickness = 0;
         StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 15 };
-        Padding = new Thickness(24, 18); viewport.Content = grid; Content = viewport;
+        Padding = new Thickness(16, 16); viewport.Content = grid; Content = viewport;
         SizeChanged += (_, _) => Render(open); Render(open);
     }
     void Render(Action<HorizonEvent> open)
     {
         if (Math.Abs(renderedWidth - Width) < 1) return;
         renderedWidth = Width;
-        grid.Children.Clear(); grid.ColumnDefinitions.Clear(); grid.RowDefinitions.Clear();
-        if (events.Length == 0) { grid.Children.Add(new Label { Text = "Upcoming resets and earned-credit expirations will appear here.", TextColor = Color.FromArgb("#B6B8C8") }); return; }
-        var columns = events.Length;
-        var cellWidth = Math.Max(190, (Width - 48 - 20 * (columns - 1)) / columns);
-        for (var c = 0; c < columns; c++) grid.ColumnDefinitions.Add(new(new GridLength(cellWidth)));
-        grid.RowDefinitions.Add(new(GridLength.Auto));
-        for (var i = 0; i < events.Length; i++)
+        grid.Children.Clear(); grid.ColumnDefinitions.Clear();
+        var cellWidth = Math.Max(80, (Math.Max(0, Width) - 32) / days.Length);
+        for (var i = 0; i < days.Length; i++)
         {
-            var e = events[i]; var color = Color.FromArgb(e.IsExpiry ? "#EAAA51" : "#B5A0F4");
-            var line = new Grid { RowDefinitions = [new(new GridLength(22))] };
-            line.Children.Add(new BoxView { Color = Color.FromArgb("#8170B7"), HeightRequest = 2, VerticalOptions = LayoutOptions.Center });
-            line.Children.Add(new Label { Text = e.IsExpiry ? "\uE823" : "\uEA3A", FontFamily = "Segoe Fluent Icons", FontSize = 20, TextColor = color, BackgroundColor = Color.FromArgb("#202229"), HorizontalOptions = LayoutOptions.Start, Padding = new Thickness(0, 0, 5, 0) });
-            var content = new VerticalStackLayout { Spacing = 5, Padding = new Thickness(0, 2), Children = {
-                new Label { Text = e.At.ToLocalTime().Date == DateTime.Today ? "Today" : e.At.ToLocalTime().ToString("ddd, MMM d"), FontSize = 15, FontFamily = "Segoe UI Semibold", TextColor = color }, line,
-                new Label { Text = e.At.ToLocalTime().ToString("h:mm tt"), FontSize = 14, FontFamily = "Segoe UI Semibold", TextColor = color },
-                new Label { Text = e.Title, FontSize = 13 }, new Label { Text = e.Detail, FontSize = 12, TextColor = Color.FromArgb("#BEC1D2") }
-            }};
-            var target = new Grid(); target.Children.Add(content);
-            var action = new Button { Text = "", BackgroundColor = Colors.Transparent, BorderWidth = 0, HeightRequest = -1, HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Fill };
-            action.Clicked += (_, _) => open(e); SemanticProperties.SetDescription(action, $"{e.Title}. {e.Detail}. {e.At.ToLocalTime():f}. Open details."); target.Children.Add(action);
-            grid.Add(target, i % columns, i / columns);
+            var day = days[i];
+            grid.ColumnDefinitions.Add(new(new GridLength(cellWidth)));
+            var color = Color.FromArgb(day.IsToday ? "#D1BEFF" : "#B5A0F4");
+            var column = new VerticalStackLayout { Spacing = 7 };
+            column.Children.Add(new Label { Text = day.IsToday ? "Today" : day.Date.ToString("ddd"), FontSize = 14,
+                FontFamily = "Segoe UI Semibold", TextColor = color, HorizontalTextAlignment = TextAlignment.Center });
+            column.Children.Add(new Label { Text = day.Date.ToString("MMM d"), FontSize = 12, TextColor = Color.FromArgb("#BEC1D2"), HorizontalTextAlignment = TextAlignment.Center });
+            var line = new Grid { HeightRequest = 22, ColumnDefinitions = [new(GridLength.Star), new(GridLength.Star)] };
+            if (i > 0) line.Add(new BoxView { Color = Color.FromArgb("#8170B7"), HeightRequest = 2, VerticalOptions = LayoutOptions.Center });
+            if (i < days.Length - 1) line.Add(new BoxView { Color = Color.FromArgb("#8170B7"), HeightRequest = 2, VerticalOptions = LayoutOptions.Center }, 1);
+            var marker = new Border { WidthRequest = day.IsToday ? 16 : 10, HeightRequest = day.IsToday ? 16 : 10,
+                BackgroundColor = day.IsToday || day.Events.Length > 0 ? color : Color.FromArgb("#202229"),
+                Stroke = color, StrokeThickness = 2, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center,
+                StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 8 } };
+            line.Add(marker); Grid.SetColumnSpan(marker, 2);
+            SemanticProperties.SetDescription(marker, $"{(day.IsToday ? "Today, " : "")}{day.Date:dddd, MMMM d}. {day.Events.Length} scheduled events.");
+            column.Children.Add(line);
+            foreach (var e in day.Events)
+            {
+                var accent = Color.FromArgb(e.IsExpiry ? "#EAAA51" : "#B5A0F4");
+                var details = $"{e.Title}\n{e.Detail}\n{(e.IsExpiry ? "Earned reset expires" : "Quota refreshes")}: {e.At.ToLocalTime():f}";
+                var icon = new Grid { WidthRequest = 62, HeightRequest = 49, HorizontalOptions = LayoutOptions.Center };
+                icon.Add(new Border { WidthRequest = 42, HeightRequest = 42, VerticalOptions = LayoutOptions.Start,
+                    HorizontalOptions = LayoutOptions.Center, Stroke = accent, StrokeThickness = 2,
+                    BackgroundColor = Color.FromArgb(e.IsExpiry ? "#49321D" : "#352A50"),
+                    StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 12 },
+                    Content = new Image { Source = e.Provider == "GitHub Copilot" ? "github.png" : "openai.png", WidthRequest = 27, HeightRequest = 27 } });
+                if (e.PlanBadge is { } badge)
+                    icon.Add(new Border { Padding = new Thickness(5, 1), HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.End,
+                        BackgroundColor = Color.FromArgb("#202229"), Stroke = accent,
+                        StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 6 },
+                        Content = new Label { Text = badge == "Plan unavailable" ? "?" : badge, FontSize = 10, TextColor = accent, FontFamily = "Segoe UI Semibold" } });
+                var content = new VerticalStackLayout { Spacing = 2, Padding = new Thickness(2, 3), Children = {
+                    icon, new Label { Text = e.At.ToLocalTime().ToString("h:mm tt"), FontSize = 10, TextColor = accent, HorizontalTextAlignment = TextAlignment.Center }
+                }};
+                var target = new Grid { Margin = new Thickness(2, 0), MinimumHeightRequest = 74 }; target.Add(content);
+                var action = new Button { Text = "", BackgroundColor = Colors.Transparent, BorderWidth = 0, HeightRequest = -1,
+                    HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Fill };
+                action.Clicked += (_, _) => open(e);
+                ToolTipProperties.SetText(action, details);
+                SemanticProperties.SetDescription(action, $"{details}. Open details.");
+                target.Add(action); column.Children.Add(target);
+            }
+            grid.Add(column, i);
         }
+        if (days.All(d => d.Events.Length == 0))
+            ((VerticalStackLayout)grid.Children[0]).Children.Add(new Label { Text = "No upcoming events reported", FontSize = 12, TextColor = Color.FromArgb("#BEC1D2"), HorizontalTextAlignment = TextAlignment.Center });
     }
 }
