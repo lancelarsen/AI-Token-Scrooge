@@ -157,3 +157,9 @@ Live acceptance remains open until checked with authenticated accounts. No crede
 - Verified actual Windows tooltip display in the current icon-timeline preview at normal desktop size. The supported horizontal-scroll action placed the pointer over the icon; a one-unit scroll caused no material layout change and exposed the native tooltip.
 - Purple Pro weekly icon: tooltip showed OpenAI / Personal · Pro, Codex Weekly, and quota refresh Sunday November 1 at 8:49 AM. Amber Plus expiry icon: tooltip showed Earned reset expires, OpenAI / Personal · Plus, and Friday November 6 at 5:50 PM. The tool captured the tooltip transient separately as well as the main window.
 - Hover and click detail behavior are now both observed for quota refresh and earned-reset expiry. Moved the pointer back to the Accounts heading afterward. This does not close broader keyboard/Narrator, DPI or notification acceptance gaps. No code changes or test reruns needed.
+
+### 2026-10-25 — timeline keyboard activation
+
+- In the normal-size current icon-timeline preview, Tab visibly focused the available-reset summary, then the first timeline event (OpenAI / Personal · Plus, Codex 5-hour). The event had a clear white focus outline and its native tooltip appeared on keyboard focus.
+- Return opened the matching Plus 5-hour quota dialog, confirmed through its accessibility title and quota/reset text. Escape dismissed it, confirmed by a fresh accessibility observation after the initial stale frame. Returned to dashboard without changing settings.
+- This specific keyboard flow passes and does not reproduce the previous focus/Enter mismatch. It does not establish full keyboard traversal, focus preservation through actual data refreshes, Narrator, or multiple DPI acceptance. No code changes or test reruns needed.
