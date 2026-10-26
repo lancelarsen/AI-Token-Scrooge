@@ -65,6 +65,8 @@ namespace AIResetRadar.App
         public Task RunCleanupAsync() => CleanupRetiredAsync();
         public Task SavePreferencesForTestAsync(RadarSettings settings) => SaveSettingsAsync(settings);
         public RadarSettings PreferencesForTest => preferences;
+        public Task<bool> SnoozeForTestAsync(string account) => SaveSnoozeAsync(account);
+        public IReadOnlyDictionary<string, DateTimeOffset> SnoozesForTest => snoozed;
         public async Task WaitForCleanupAsync() { await cleanupGate.WaitAsync(); cleanupGate.Release(); }
         public void SetSnapshotForTest(QuotaSnapshot snapshot) => state.Snapshots[snapshot.AccountId] = snapshot;
         public Task CommitForTestAsync(ProviderAccount account, QuotaSnapshot snapshot, ProviderAccount? original) => CommitConnectionAsync(account, snapshot, original);

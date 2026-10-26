@@ -9,6 +9,7 @@
   <Compile Include="../../src/AIResetRadar.App/MainPage.AlertHistory.cs" Link="App/MainPage.AlertHistory.cs" />
   <Compile Include="../../src/AIResetRadar.App/MainPage.AlertEvaluation.cs" Link="App/MainPage.AlertEvaluation.cs" />
   <Compile Include="../../src/AIResetRadar.App/MainPage.Preferences.cs" Link="App/MainPage.Preferences.cs" />
+  <Compile Include="../../src/AIResetRadar.App/MainPage.Snooze.cs" Link="App/MainPage.Snooze.cs" />
   <Compile Include="../../src/AIResetRadar.App/Services/SettingsSaveException.cs" Link="App/SettingsSaveException.cs" />
   <Compile Include="../../src/AIResetRadar.App/Platforms/Windows/FocusEventFailure.cs" Link="App/FocusEventFailure.cs" />
   <Compile Include="../../src/AIResetRadar.App/Presentation/DashboardState.cs" Link="App/DashboardState.cs" />

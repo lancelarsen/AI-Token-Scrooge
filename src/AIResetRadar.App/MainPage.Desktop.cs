@@ -31,7 +31,14 @@ public sealed partial class MainPage
         catch { freshness.Text = "Tray is unavailable; keep the window open to monitor."; }
         NotificationService.Current.Invoked += async (action, account, quotaWindow) =>
         {
-            if (action == "snooze") { snoozed[account] = DateTimeOffset.UtcNow.AddHours(1); if (!state.IsDemo) await AppServices.Current.Store.WriteAsync("snoozed", snoozed); }
+            if (action == "snooze")
+            {
+                if (!await SaveSnoozeAsync(account))
+                {
+                    ShowMain();
+                    await DisplayAlertAsync("Snooze not saved", "Alerts remain active. Check available space and folder access, then try Snooze again.", "Close");
+                }
+            }
             else { ShowMain(); OpenAccount(account, quotaWindow); }
         };
         NotificationService.Current.Drain();

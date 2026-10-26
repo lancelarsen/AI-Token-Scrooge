@@ -16,7 +16,11 @@ public sealed partial class MainPage
         var view = new Button { Text = "View account", BackgroundColor = Color.FromArgb("#7169CA") };
         var snooze = new Button { Text = "Snooze 1 hour" }; var dismiss = new Button { Text = "Dismiss" };
         view.Clicked += (_, _) => { OpenAccount(alert.AccountId, alert.WindowId); Dismiss(); };
-        snooze.Clicked += async (_, _) => { snoozed[alert.AccountId] = DateTimeOffset.UtcNow.AddHours(1); if (!state.IsDemo) await AppServices.Current.Store.WriteAsync("snoozed", snoozed); Dismiss(); };
+        snooze.Clicked += async (_, _) =>
+        {
+            if (await SaveSnoozeAsync(alert.AccountId)) Dismiss();
+            else await DisplayAlertAsync("Snooze not saved", "Alerts remain active. Check available space and folder access, then try Snooze again.", "Close");
+        };
         dismiss.Clicked += (_, _) => Dismiss(); actions.Children.Add(view); actions.Children.Add(snooze); actions.Children.Add(dismiss); detail.Children.Add(actions);
         banner = new Border { Padding = 18, Content = detail, Stroke = Color.FromArgb("#55515F"), BackgroundColor = Color.FromArgb("#222329"),
             StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 14 }, MaximumWidthRequest = 520,

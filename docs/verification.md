@@ -63,6 +63,8 @@ In that native build, Sign in with GitHub reached the waiting-for-approval state
 
 ## Required open gates
 
+Snooze persistence correction: the in-app banner and Windows notification handler now share a serialized save-before-adopt operation. Failed storage leaves existing snoozes unchanged, keeps the banner available for retry, and displays a failure message instead of throwing from an async UI event. Three production-method tests with real SQLite cover rejected writes/retry, concurrent accounts, and demo isolation. Release Windows build passes with zero warnings/errors. This source correction is not yet in the running `github-scope-win-x64` build or preview ZIP; native failure-message verification remains open.
+
 Latest background-only check of the allowance build (PID 85448) recorded 0.453 CPU-seconds over 10.05 seconds and 352.8 MiB working set, with the process responsive. The last crash log remained dated 20:05:14 CDT, before the focus workaround. This short sample is not a soak or proof that the earlier resource issue is resolved. An earlier targeting failure was resolved by restoring the hidden Radar window through its single-instance launcher; no action was taken on the unrelated application's capture.
 
 - Verify the focus-event workaround over repeated browser handoffs and modal returns. One covered-Settings refresh/return check passed: both providers advanced to healthy observations at 01:42:46–47 UTC on October 26 while Settings remained open. The quiet-hours start field retained focus and value 22 without edits. Closing Settings displayed the new 8:42 PM timestamp and OpenAI usage of 12% used / 88% left. This is one native navigation cycle, not an extended focus soak or proof that the intermittent sign-in crash is resolved.
