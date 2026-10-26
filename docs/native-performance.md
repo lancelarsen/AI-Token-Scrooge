@@ -40,3 +40,9 @@ The running icon-timeline-win-x64 preview (PID 54140) was sampled seven times ov
 Working set ranged 467.92–480.63 MiB and ended at 472.80 MiB, 7.83 below its starting value. Private bytes ended at 337.73 MiB, 11.44 below the initial value. Handles ranged 1676–1726 and ended at 1694, 21 below the start. Raw measurements are in ignored artifacts/icon-timeline-resource-sample.json.
 
 This run does not show monotonic growth, but cannot rule out a leak. Average CPU exceeded the earlier 2.62% three-account sample; runtime duration, user activity, provider refreshes and accessibility-client attachment were not controlled equivalently. No causal attribution to the timeline or the unchanged-render optimization is justified. Correlation of the concentrated CPU interval with provider/UI/native stacks remains needed. Resource acceptance remains open.
+
+## Correlation with persisted refresh history
+
+A read-only query of history.observed_at (Unix milliseconds) for the exact sample interval found three observations within the concentrated CPU interval: OpenAI Pro at 03:47:37.984 UTC, GitHub Max at 03:47:38.284, and OpenAI Plus at 03:47:40.519. A later interval contained Pro at 03:49:41.153 and Plus at 03:49:42.479; that interval used only 0.844 CPU seconds versus 12.844 during the earlier all-provider interval.
+
+Thus the burst overlaps refresh completion and is not simply continuous idle activity. This comparison does not distinguish provider processing, persistence, full dashboard rebuilding, GC, accessibility traversal or external user interaction, and the missing GitHub refresh in the later interval is not proof of a GitHub cause. A future bounded trace should encompass a refresh cycle and compare hot stacks rather than infer causation from timestamps. Only timestamp/plan/health fields were emitted; account identities and credentials were not inspected.
