@@ -151,3 +151,9 @@ Live acceptance remains open until checked with authenticated accounts. No crede
 - Launched the current icon-timeline preview with its supported --compact option (800x700 logical; captured 788x694). Today, consecutive daily ticks, provider logos, Pro/Plus badges and event times were readable. The legend wraps onto two lines without covering the reserve summary.
 - Native horizontal scroll reached the final November 6 tick with both Pro and Plus expiry icons visible. Clicking the Plus 5:50 PM expiry opened Available resets containing only OpenAI / Personal · Plus and its matching November 6 5:50 PM available credit. Closed the dialog and relaunched without --compact to restore normal size.
 - This completes the narrow timeline visual/scroll/click check at the current monitor scale. It does not prove hover display, keyboard/Narrator, or all DPI settings. No source changes or new tests were needed for this verification.
+
+### 2026-10-25 — native timeline hover verification
+
+- Verified actual Windows tooltip display in the current icon-timeline preview at normal desktop size. The supported horizontal-scroll action placed the pointer over the icon; a one-unit scroll caused no material layout change and exposed the native tooltip.
+- Purple Pro weekly icon: tooltip showed OpenAI / Personal · Pro, Codex Weekly, and quota refresh Sunday November 1 at 8:49 AM. Amber Plus expiry icon: tooltip showed Earned reset expires, OpenAI / Personal · Plus, and Friday November 6 at 5:50 PM. The tool captured the tooltip transient separately as well as the main window.
+- Hover and click detail behavior are now both observed for quota refresh and earned-reset expiry. Moved the pointer back to the Accounts heading afterward. This does not close broader keyboard/Narrator, DPI or notification acceptance gaps. No code changes or test reruns needed.
