@@ -22,6 +22,42 @@ public class AlertTests
     {
         Assert.DoesNotContain(AlertEvaluator.Evaluate(Account, Snapshot(100), Snapshot(0, allowed: false), new(), Now), e => e.Key.Contains("restored"));
     }
+    [Fact] public void ConfirmedRestorationTargetsTheExactAccountAndWindowOnlyOnce()
+    {
+        var before = Snapshot(100);
+        var current = Snapshot(20, allowed: true);
+        var restored = Assert.Single(AlertEvaluator.Evaluate(Account, before, current, new(), Now));
+        Assert.EndsWith("/restored", restored.Key);
+        Assert.Equal(Account.Id, restored.AccountId);
+        Assert.Equal("weekly", restored.WindowId);
+        Assert.Empty(AlertEvaluator.Evaluate(Account, current, current, new(), Now.AddMinutes(1)));
+        var other = Account with { Id = "other-account" };
+        var otherAlert = Assert.Single(AlertEvaluator.Evaluate(other, before with { AccountId = other.Id }, current with { AccountId = other.Id }, new(), Now));
+        Assert.NotEqual(restored.Key, otherAlert.Key);
+    }
+
+    [Fact] public void UnknownUsagePermissionCannotClaimRestoration()
+    {
+        Assert.DoesNotContain(AlertEvaluator.Evaluate(Account, Snapshot(100), Snapshot(0), new(), Now), e => e.Key.EndsWith("/restored"));
+    }
+
+    [Theory]
+    [InlineData("2026-11-01T06:30:00Z", 1, 2, true)]
+    [InlineData("2026-11-01T07:30:00Z", 1, 2, true)]
+    [InlineData("2026-11-01T08:00:00Z", 1, 2, false)]
+    [InlineData("2026-03-08T07:59:00Z", 1, 3, true)]
+    [InlineData("2026-03-08T08:00:00Z", 1, 3, false)]
+    public void QuietHoursFollowLocalClockAcrossDaylightSavingTransitions(string instant, int start, int end, bool quiet)
+    {
+        var zone = TimeZoneInfo.FindSystemTimeZoneById("America/Chicago");
+        Assert.Equal(quiet, AlertEvaluator.IsQuiet(new(QuietHours: true, QuietStartHour: start, QuietEndHour: end), DateTimeOffset.Parse(instant), zone));
+    }
+
+    [Fact] public void ExhaustedReserveSuppressesOldAvailableCreditDetails()
+    {
+        var snapshot = Snapshot(10) with { Reserve = new(0, [new("old", "available", Now.AddMinutes(15))]) };
+        Assert.Empty(AlertEvaluator.Evaluate(Account, null, snapshot, new(), Now));
+    }
     [Fact] public void UnknownCreditExpiryNeverCreatesReminder()
     {
         var snapshot = Snapshot(10) with { Reserve = new(2, [new("x", "available", null)]) };
