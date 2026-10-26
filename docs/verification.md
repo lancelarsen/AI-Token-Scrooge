@@ -169,3 +169,8 @@ Live acceptance remains open until checked with authenticated accounts. No crede
 - Used Settings > Send test notification in the current icon-timeline preview, without changing notification preferences. The Settings page closed and the in-app Scrooge notification test banner appeared with View account, Snooze 1 hour and Dismiss. No delivery-error dialog appeared.
 - Read-only inspection of the latest test event in the app database confirmed CreatedAt 2026-10-26T03:44:40.8683648Z and Delivered=true. NotificationService sets success only when Windows returns a nonzero notification ID; this demonstrates API acceptance and persisted delivery status, not proof of visible OS display.
 - No ShellExperienceHost/notification window was exposed by the native tool's window inventory. Windows popup appearance, its View/Snooze buttons, notification-center presence and cold activation remain unverified. Attempted to dismiss the in-app test banner, but the tool detected concurrent user input and declined the action. No retry was issued; banner visibility is unconfirmed and its history record remains. No code changes or test reruns needed.
+
+### 2026-10-25 — icon-timeline resource sample
+
+- Read-only 180.13-second running-process sample completed without agent UI interaction. All seven samples responsive. Average CPU 7.85% of one core, concentrated mostly in a single 30-second interval. Working set, private bytes and handles ended lower than their initial values. See docs/native-performance.md for values and limitations.
+- Resource acceptance remains open: this is neither a clean sustained-idle benchmark nor a leak exclusion; the concentrated CPU spike needs correlation. No product changes or additional tests made in this sample.
