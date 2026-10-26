@@ -44,6 +44,25 @@ public class GitHubUsageTests
         Assert.Equal(expected < 0 ? (decimal?)null : expected, ProviderMapping.GitHubAllowance(data.RootElement, unit));
     }
 
+    [Theory]
+    [InlineData(HttpStatusCode.Unauthorized, SourceHealth.AuthenticationRequired)]
+    [InlineData(HttpStatusCode.TooManyRequests, SourceHealth.Stale)]
+    public async Task OptionalAllowanceCannotHideExpiredAuthorizationOrProviderBackoff(HttpStatusCode status, SourceHealth expected)
+    {
+        using var http = new HttpClient(new Handler(request =>
+        {
+            if (request.RequestUri!.AbsolutePath == "/user") return Json("""{"id":42,"login":"sample"}""");
+            if (request.RequestUri.AbsolutePath != "/copilot_internal/user") return Json("""{"usageItems":[]}""");
+            var response = new HttpResponseMessage(status);
+            if (status == HttpStatusCode.TooManyRequests) response.Headers.RetryAfter = new(TimeSpan.FromMinutes(3));
+            return response;
+        }));
+        var error = await Assert.ThrowsAsync<ProviderAccessException>(() => new GitHubUsageClient(http, TimeProvider.System)
+            .ReadAsync(new("a", "GitHub Copilot", "Personal", "42", "personal", Allowance: 20000), "test-token", default));
+        Assert.Equal(expected, error.Health);
+        if (status == HttpStatusCode.TooManyRequests) Assert.True(error.RetryAt > DateTimeOffset.UtcNow.AddMinutes(2));
+    }
+
     [Fact] public async Task TokenIdentityMismatchCannotAttachBillingData()
     {
         using var http = new HttpClient(new Handler(_ => Json("""{"id":99,"login":"other"}""")));

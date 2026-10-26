@@ -57,6 +57,8 @@ In that native build, Sign in with GitHub reached the waiting-for-approval state
 
 ## Required open gates
 
+Latest background-only check of the allowance build (PID 85448) recorded 0.453 CPU-seconds over 10.05 seconds and 352.8 MiB working set, with the process responsive. The last crash log remained dated 20:05:14 CDT, before the focus workaround. This short sample is not a soak or proof that the earlier resource issue is resolved. Close-to-tray verification was not completed: the desktop tool first returned `coordinate input geometry is unavailable`, then returned another application's screenshot despite rebinding Radar. No action was taken on that other application. Native lifecycle checks require reliable target-window capture before proceeding.
+
 - Verify the focus-event workaround over repeated browser handoffs and modal returns; verify covered-dashboard render deferral and return from modal pages in the native app.
 
 - Two independent signed-in Codex accounts, renewal, rejected reconnect and removal isolation, including the existing external Codex/IDE login. One account's usage/reserve comparison and restart reuse passed as described above.
