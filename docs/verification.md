@@ -174,3 +174,9 @@ Live acceptance remains open until checked with authenticated accounts. No crede
 
 - Read-only 180.13-second running-process sample completed without agent UI interaction. All seven samples responsive. Average CPU 7.85% of one core, concentrated mostly in a single 30-second interval. Working set, private bytes and handles ended lower than their initial values. See docs/native-performance.md for values and limitations.
 - Resource acceptance remains open: this is neither a clean sustained-idle benchmark nor a leak exclusion; the concentrated CPU spike needs correlation. No product changes or additional tests made in this sample.
+
+### 2026-10-25 — updated portable guide and complete archive integrity
+
+- Updated docs/windows-preview.txt and the bundled README.txt with the daily timeline, purple refresh/amber expiry icon meaning, plan badges, hover/click details, horizontal scrolling and keyboard activation.
+- Rebuilt the unsigned preview ZIP. Compared SHA-256 of every non-directory archive entry to its publish-directory counterpart and checked source/archive counts: all 594 files match, with no omitted files. Each resolved archive-entry path was checked to remain within the publish root. This is a complete content-integrity check, not a clean-user launch or installation test.
+- Current package SHA256: A35318D710D36E7567276B0DA1EF5C4F456DC70DCFB32E17E556983247483AE0. App assembly unchanged: FDEB83798257EE09DED34C6AAA6F9BFBDB48E1E0A8D372581211B40B1F404E3D. No runtime changes or test reruns needed for the guide update.

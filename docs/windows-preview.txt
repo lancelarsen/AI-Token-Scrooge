@@ -23,7 +23,12 @@ Each account has one section with its nickname and reported plan. Separate
 meters within that section are separate quota windows, such as 5-hour and
 weekly limits. Each has its own reset time. Click a meter for details.
 Provider-reported plan names do not establish a subscription price.
-The Reset Horizon also shows earned-reset expirations when supplied.
+The Reset Horizon starts at Today and marks each day through the furthest
+reported reset or earned-reset expiration. Purple provider icons mark quota
+refreshes; amber icons mark earned-reset expirations. Plan badges distinguish
+multiple accounts from the same provider. Hover over an icon for its details,
+or click it to open the matching account information. Longer timelines scroll
+horizontally. Tab and Enter can also open an event.
 Scrooge only reads usage: it does not redeem resets or make AI requests.
 
 BACKGROUND MONITORING
