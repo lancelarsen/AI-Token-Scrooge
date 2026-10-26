@@ -40,11 +40,13 @@ The tray icon's menu opens Scrooge, refreshes usage or exits. **Settings → Ope
 
 ## Data and credentials
 
-Default application state: `%LOCALAPPDATA%\AIResetRadar`. SQLite stores non-secret connection metadata and usage/alert data. Protected token files are in `Credentials`; independent Codex profiles are in `Profiles`. Existing Codex/IDE profiles are not modified. Removing a connection deletes/signs out Radar's own saved credentials only. Logs must never include tokens or provider response bodies.
+For reliable Windows notification activation and launch-at-sign-in, extract the preview into a stable folder before running it. Startup registration points to that executable path; moving or deleting it can break startup. After moving the app, launch it from the new location and re-save the launch-at-sign-in setting if enabled. Run normally, not as administrator: Windows App SDK notifications are unsupported in elevated apps. See [Microsoft's notification guidance](https://learn.microsoft.com/en-us/windows/apps/develop/notifications/app-notifications/app-notifications-quickstart).
+
+Default application state: `%LOCALAPPDATA%\AIResetRadar`. SQLite stores non-secret connection metadata and usage/alert data. Protected token files are in `Credentials`; independent Codex profiles are in `Profiles`. Existing Codex/IDE profiles are not modified. Removing a connection deletes/signs out Scrooge's own saved credentials only. Logs must never include tokens or provider response bodies.
 
 Reconnect validates a separate protected credential/profile before adopting it. It keeps the account's paused state and logical identity. Superseded credential references are queued durably for cleanup; a pending cleanup is shown and retried while monitoring. Removing a connection commits that removal before retiring its credentials/history. Snapshot and alert history retain 30 days by default.
 
-Radar does not make inference requests, redeem resets, purchase credits or switch accounts in other applications. The Codex transport has an explicit method allowlist.
+Scrooge does not make inference requests, redeem resets, purchase credits or switch accounts in other applications. The Codex transport has an explicit method allowlist.
 
 ## Design and plan
 
