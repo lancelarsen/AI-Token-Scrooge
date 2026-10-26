@@ -6,7 +6,7 @@ public sealed class SettingsPage : ContentPage
 {
     readonly VerticalStackLayout form = new() { Padding = 32, Spacing = 16, MaximumWidthRequest = 760, HorizontalOptions = LayoutOptions.Center };
     public SettingsPage(IReadOnlyList<ProviderAccount> accounts, IReadOnlyDictionary<string, QuotaSnapshot> snapshots, RadarSettings original, bool demo,
-        Func<RadarSettings, Task> save, Func<ProviderAccount, bool, Task> update, Func<Task> history, Func<Task> test, Func<ProviderAccount, Task> reconnect)
+        Func<RadarSettings, Task> save, Func<ProviderAccount, bool, Task> update, Func<Task> history, Func<Task> test, Func<ProviderAccount, Task> reconnect, Action quickView)
     {
         Title = "Settings"; BackgroundColor = Color.FromArgb("#141519");
         if (demo) form.Children.Add(new Label { Text = "Demo changes stay in this preview. Notification test uses Windows.", TextColor = Color.FromArgb("#B5A0F4") });
@@ -21,6 +21,8 @@ public sealed class SettingsPage : ContentPage
         var close = Toggle("Keep monitoring in the tray when window closes", original.CloseToTray);
         var startup = Toggle("Launch at Windows sign-in", original.LaunchAtSignIn);
         startup.IsEnabled = !demo;
+        var showQuickView = new Button { Text = "Open quick view" };
+        showQuickView.Clicked += (_, _) => quickView(); form.Children.Add(showQuickView);
         var showHistory = new Button { Text = "Alert history" }; showHistory.Clicked += async (_, _) => await history(); form.Children.Add(showHistory);
         var testNotification = new Button { Text = "Send test notification" }; testNotification.Clicked += async (_, _) => await test(); form.Children.Add(testNotification);
         form.Children.Add(new Label { Text = "Connected accounts", FontSize = 21, FontFamily = "Segoe UI Semibold", Margin = new Thickness(0, 16, 0, 0) });

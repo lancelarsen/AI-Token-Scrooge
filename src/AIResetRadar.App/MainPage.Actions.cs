@@ -110,7 +110,7 @@ public sealed partial class MainPage
     }
     async Task OpenSettingsAsync() => await Navigation.PushModalAsync(new SettingsPage(state.Accounts, state.Snapshots, preferences, state.IsDemo,
         SaveSettingsAsync,
-        UpdateAccountAsync, OpenHistoryAsync, TestNotificationAsync, ReconnectAsync));
+        UpdateAccountAsync, OpenHistoryAsync, TestNotificationAsync, ReconnectAsync, ShowQuickView));
     async Task ReconnectAsync(ProviderAccount original)
     {
         await Navigation.PushModalAsync(new ConnectAccountPage(original.Provider == "OpenAI", (account, snapshot) => CommitConnectionAsync(account, snapshot, original), original));
