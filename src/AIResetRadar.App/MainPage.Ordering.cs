@@ -105,6 +105,7 @@ public sealed partial class MainPage
         orderCards.Add((account.Id, card));
         Microsoft.UI.Xaml.FrameworkElement? dragSource = null;
         Platforms.Windows.AccountDragController? dragController = null;
+        grip.Unloaded += (_, _) => dragSource = null;
         grip.Loaded += (_, _) => {
             if (grip.Handler?.PlatformView is not Microsoft.UI.Xaml.FrameworkElement native || ReferenceEquals(dragSource, native)) return;
             if ((body.Parent as View)?.Handler?.PlatformView is not Microsoft.UI.Xaml.Controls.ScrollViewer viewport) return;
