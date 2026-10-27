@@ -112,7 +112,6 @@ public sealed partial class MainPage : ContentPage
                 var firstWindow = true;
                 foreach (var row in accountRows)
                 {
-                    if (!firstWindow) section.Children.Add(new BoxView { HeightRequest = 1, Margin = new Thickness(24, 0), Color = Color.FromArgb("#383B46") });
                     var view = new QuotaRowView(row, r => OpenAccount(r.Account.Id, r.Window.Id), grouped: true, showAccount: firstWindow, timeZone: DisplayZone);
                     rowViews.Add(view); section.Children.Add(view);
                     firstWindow = false;

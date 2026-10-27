@@ -30,10 +30,10 @@ public sealed class QuotaRowView : Border
         Stroke = Color.FromArgb("#383B46"); BackgroundColor = Color.FromArgb("#1C1E24");
         StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 13 };
         if (grouped) { Stroke = Colors.Transparent; BackgroundColor = Colors.Transparent; }
-        Padding = new Thickness(0); MinimumHeightRequest = 102;
+        Padding = new Thickness(0); MinimumHeightRequest = grouped ? (showAccount ? 64 : 52) : 102;
         var root = new Grid { ColumnDefinitions = [new(new GridLength(4)), new(GridLength.Star)] };
         root.Add(new BoxView { Color = warning ? Color.FromArgb("#EAAA51") : Colors.Transparent });
-        layout = new Grid { Padding = new Thickness(20, 15), ColumnSpacing = 20, RowSpacing = 10 };
+        layout = new Grid { Padding = new Thickness(20, grouped ? (showAccount ? 4 : 2) : 15), ColumnSpacing = 20, RowSpacing = 10 };
         if (showAccount)
         {
             var providerText = new VerticalStackLayout { Spacing = 5, VerticalOptions = LayoutOptions.Center };
