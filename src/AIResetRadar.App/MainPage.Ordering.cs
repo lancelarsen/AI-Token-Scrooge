@@ -72,8 +72,8 @@ public sealed partial class MainPage
                 () => !orderSaving && draggedAccountId is null && preferences.AccountSort == AccountSortMode.CustomOrder,
                 active => {
                     draggedAccountId = active ? account.Id : null;
-                    // Rebuild after native capture and the animation frame have finished unwinding.
-                    if (!active && renderPending) Dispatcher.Dispatch(Render);
+                    // Rebuild immediately after drag cleanup so the original order is never painted between drops.
+                    if (!active && renderPending) Render();
                 }, slot => MoveAccountAsync(account.Id, slot));
         };
         return layout;
