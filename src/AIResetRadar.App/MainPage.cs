@@ -107,15 +107,14 @@ public sealed partial class MainPage : ContentPage
             }
             else
             {
-                var section = new VerticalStackLayout { Spacing = 0 };
-                var firstWindow = true;
+                var windows = new List<QuotaRowView>();
                 foreach (var row in accountRows)
                 {
-                    var view = new QuotaRowView(row, r => OpenAccount(r.Account.Id, r.Window.Id), grouped: true, showAccount: firstWindow, timeZone: DisplayZone);
-                    rowViews.Add(view); section.Children.Add(view);
-                    firstWindow = false;
+                    var view = new QuotaRowView(row, r => OpenAccount(r.Account.Id, r.Window.Id), timeZone: DisplayZone);
+                    rowViews.Add(view); windows.Add(view);
                 }
-                content = WithAccountSettings(section, account);
+                content = WithAccountSettings(new AccountQuotaView(accountRows[0], windows,
+                    () => OpenAccount(account.Id, accountRows[0].Window.Id)), account);
             }
             var card = new Border { Content = content, Padding = 0, Stroke = Color.FromArgb("#383B46"), BackgroundColor = Color.FromArgb("#1C1E24"),
                 StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 13 } };
@@ -144,7 +143,8 @@ public sealed partial class MainPage : ContentPage
         layout.Add(content);
         var gear = new AIResetRadar.App.Controls.ActionButton { Text = "Settings", IconOnly = true };
         gear.WidthRequest = 44; gear.MinimumWidthRequest = 44; gear.HeightRequest = 44; gear.Padding = 0;
-        gear.VerticalOptions = LayoutOptions.Start; gear.Margin = new Thickness(0, 20, 12, 0);
+        // Eight pixels of card padding plus the first 56px row's centered 44px button.
+        gear.VerticalOptions = LayoutOptions.Start; gear.Margin = new Thickness(0, 14, 12, 0);
         var description = $"Settings for {account.Provider} / {account.Nickname} · {PlanLabels.Display(account.Provider, state.Snapshots.GetValueOrDefault(account.Id)?.PlanType)}";
         SemanticProperties.SetDescription(gear, description);
         AIResetRadar.App.Platforms.Windows.ImmediateToolTip.Attach(gear, description);
