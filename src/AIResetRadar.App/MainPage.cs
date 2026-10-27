@@ -122,7 +122,7 @@ public sealed partial class MainPage : ContentPage
             var card = new Border { Content = content, Padding = 0, Stroke = Color.FromArgb("#383B46"), BackgroundColor = Color.FromArgb("#1C1E24"),
                 StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 13 } };
             if (preferences.AccountSort == AccountSortMode.CustomOrder)
-                card.Content = WithOrderControls(content, card, account, Array.IndexOf(orderedAccounts, account), orderedAccounts.Length);
+                card.Content = WithOrderControls(content, card, account);
             body.Children.Add(card);
         }
         renderSignature = signature;
