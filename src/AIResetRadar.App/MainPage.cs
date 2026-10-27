@@ -71,8 +71,7 @@ public sealed partial class MainPage : ContentPage
         state.Settings = preferences;
         var now = DateTimeOffset.Now;
         var signature = state.RenderSignature(now) + ":" + retiredCredentials.Count;
-        freshness.Text = state.IsDemo ? "DEMO DATA · Live monitoring paused" : state.Snapshots.Count == 0 ? "Connect an account to start monitoring" : UpdatedLabel(state.Snapshots.Values.Max(s => s.ObservedAt), DisplayZone);
-        if (retiredCredentials.Count > 0) freshness.Text += " · Previous sign-in cleanup pending";
+        UpdateFreshness();
         if (signature == renderSignature)
         {
             foreach (var row in rowViews) row.UpdateClock(now);
@@ -125,6 +124,11 @@ public sealed partial class MainPage : ContentPage
             body.Children.Add(card);
         }
         renderSignature = signature;
+    }
+    void UpdateFreshness()
+    {
+        freshness.Text = state.IsDemo ? "DEMO DATA · Live monitoring paused" : state.Snapshots.Count == 0 ? "Connect an account to start monitoring" : UpdatedLabel(state.Snapshots.Values.Max(s => s.ObservedAt), DisplayZone);
+        if (retiredCredentials.Count > 0) freshness.Text += " · Previous sign-in cleanup pending";
     }
     static string UpdatedLabel(DateTimeOffset observed, TimeZoneInfo timeZone)
     {

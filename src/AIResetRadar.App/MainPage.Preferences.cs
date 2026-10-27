@@ -6,7 +6,9 @@ namespace AIResetRadar.App;
 public sealed partial class MainPage
 {
     readonly SemaphoreSlim preferenceChanges = new(1, 1);
-    async Task SaveSettingsAsync(RadarSettings settings)
+    Task SaveSettingsAsync(RadarSettings settings) => SaveSettingsAsync(settings, renderDashboard: true);
+
+    async Task SaveSettingsAsync(RadarSettings settings, bool renderDashboard)
     {
         await preferenceChanges.WaitAsync();
         try
@@ -32,7 +34,9 @@ public sealed partial class MainPage
                     throw;
                 }
             }
-            preferences = settings; Render(); UpdateTray();
+            preferences = settings; state.Settings = settings;
+            if (renderDashboard) Render();
+            UpdateTray();
         }
         finally { preferenceChanges.Release(); }
     }

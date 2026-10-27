@@ -8,6 +8,8 @@ public sealed partial class MainPage
 {
     readonly List<(string Id, Border Card)> orderCards = [];
     string? draggedAccountId;
+    RadarSettings? dragStartSettings;
+    string? dragStartSignature;
     bool orderSaving, focusSort;
 
     async Task ChangeSortAsync(AccountSortMode mode)
@@ -39,13 +41,52 @@ public sealed partial class MainPage
         orderSaving = true;
         try
         {
-            await SaveSettingsAsync(preferences with { AccountOrder = moved });
+            await SaveSettingsAsync(preferences with { AccountOrder = moved }, renderDashboard: false);
         }
         catch
         {
             await ThemedDialogs.ShowAsync(this, "Order Not Saved", "Scrooge could not save this order. The previous order is still active. Check local folder access and try again.", "Close");
         }
         finally { orderSaving = false; }
+    }
+
+    string RenderSignatureFor(RadarSettings settings, DateTimeOffset now)
+    {
+        var currentSettings = state.Settings;
+        try
+        {
+            state.Settings = settings;
+            return state.RenderSignature(now) + ":" + retiredCredentials.Count;
+        }
+        finally { state.Settings = currentSettings; }
+    }
+
+    void ApplyAccountOrderInPlace()
+    {
+        if (orderCards.Count < 2) return;
+        var cardsById = orderCards.ToDictionary(item => item.Id);
+        var ordered = state.OrderedAccounts.Where(account => cardsById.ContainsKey(account.Id))
+            .Select(account => cardsById[account.Id]).ToArray();
+        var insertAt = body.Children.IndexOf(orderCards[0].Card);
+        if (insertAt < 0) return;
+        foreach (var item in orderCards.ToArray()) body.Children.Remove(item.Card);
+        for (var i = 0; i < ordered.Length; i++) body.Children.Insert(insertAt + i, ordered[i].Card);
+        orderCards.Clear(); orderCards.AddRange(ordered);
+    }
+
+    void CompleteAccountDrag()
+    {
+        var settingsAtDragStart = dragStartSettings;
+        var signatureAtDragStart = dragStartSignature;
+        dragStartSettings = null; dragStartSignature = null; draggedAccountId = null;
+        var now = DateTimeOffset.Now;
+        var onlyOrderChanged = settingsAtDragStart is not null && signatureAtDragStart == RenderSignatureFor(settingsAtDragStart, now);
+        if (renderPending && !onlyOrderChanged) { Render(); return; }
+        ApplyAccountOrderInPlace();
+        renderPending = false;
+        UpdateFreshness();
+        foreach (var row in rowViews) row.UpdateClock(now);
+        renderSignature = RenderSignatureFor(preferences, now);
     }
 
     View WithOrderControls(View content, Border card, ProviderAccount account)
@@ -71,9 +112,13 @@ public sealed partial class MainPage
             dragController = new Platforms.Windows.AccountDragController(native, account.Id, () => orderCards.ToArray(), viewport, body.Spacing,
                 () => !orderSaving && draggedAccountId is null && preferences.AccountSort == AccountSortMode.CustomOrder,
                 active => {
-                    draggedAccountId = active ? account.Id : null;
-                    // Rebuild immediately after drag cleanup so the original order is never painted between drops.
-                    if (!active && renderPending) Render();
+                    if (active)
+                    {
+                        draggedAccountId = account.Id;
+                        dragStartSettings = preferences;
+                        dragStartSignature = RenderSignatureFor(preferences, DateTimeOffset.Now);
+                    }
+                    else CompleteAccountDrag();
                 }, slot => MoveAccountAsync(account.Id, slot));
         };
         return layout;
