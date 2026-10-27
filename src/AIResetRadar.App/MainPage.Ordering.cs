@@ -97,7 +97,7 @@ public sealed partial class MainPage
         var grip = new Grid { HeightRequest = 44, MinimumWidthRequest = 28, BackgroundColor = Colors.Transparent, VerticalOptions = LayoutOptions.Center };
         grip.Add(new Label { Text = "⠿", FontFamily = "Segoe UI Symbol", FontSize = 25, TextColor = Color.FromArgb("#B5A0F4"),
             HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center, InputTransparent = true });
-        var dragDescription = $"Drag {account.Provider} / {account.Nickname} to reorder accounts.";
+        var dragDescription = $"Drag {account.Provider} / {account.Nickname} to Reorder Accounts";
         SemanticProperties.SetDescription(grip, dragDescription);
         Platforms.Windows.ImmediateToolTip.Attach(grip, dragDescription);
         layout.Add(grip);
