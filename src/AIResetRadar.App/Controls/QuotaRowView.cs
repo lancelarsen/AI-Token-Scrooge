@@ -10,13 +10,17 @@ public sealed class QuotaRowView : Border
     readonly UsageBar bar;
     readonly View? reset;
     readonly Label? countdown;
-    readonly Label? exactReset;
     readonly DateTimeOffset? resetsAt;
     readonly bool hasReset;
     bool? wideLayout;
     public void UpdateClock(DateTimeOffset now)
     {
-        if (countdown is not null) countdown.Text = ResetTime.Summary(resetsAt, now);
+        if (countdown is not null) countdown.Text = CountdownLabel(resetsAt, now);
+    }
+    static string CountdownLabel(DateTimeOffset? reset, DateTimeOffset now)
+    {
+        var summary = ResetTime.Summary(reset, now);
+        return summary.StartsWith("Resets: ", StringComparison.Ordinal) ? summary[8..] : summary;
     }
     public QuotaRowView(QuotaRow row, Action<QuotaRow> open, bool grouped = false, bool showAccount = true, TimeZoneInfo? timeZone = null)
     {
@@ -53,19 +57,19 @@ public sealed class QuotaRowView : Border
         var now = DateTimeOffset.Now;
         if (hasReset)
         {
-            countdown = new Label { Text = ResetTime.Summary(row.Window.ResetsAt, now), FontSize = 20, FontFamily = "Segoe UI Semibold", TextColor = Color.FromArgb("#BDA3F5") };
-            exactReset = new Label { Text = TimeZones.Format(row.Window.ResetsAt, timeZone ?? TimeZones.Resolve(null)), FontSize = 12,
+            countdown = new Label { Text = CountdownLabel(row.Window.ResetsAt, now), FontSize = 20, FontFamily = "Segoe UI Semibold", TextColor = Color.FromArgb("#BDA3F5") };
+            var exactReset = new Label { Text = TimeZones.Format(row.Window.ResetsAt, timeZone ?? TimeZones.Resolve(null)), FontSize = 12,
                 TextColor = Color.FromArgb("#BEC1D2"), VerticalOptions = LayoutOptions.Center };
+            var resetText = new VerticalStackLayout { Spacing = 3, VerticalOptions = LayoutOptions.Center, Children = { countdown, exactReset } };
             reset = new HorizontalStackLayout { Spacing = 12, VerticalOptions = LayoutOptions.Center, Children = {
                 new Label { Text = warning ? "\uE7BA" : "\uE823", FontFamily = "Segoe Fluent Icons", FontSize = 25,
                     TextColor = Color.FromArgb(warning ? "#EAAA51" : "#B5A0F4"), VerticalOptions = LayoutOptions.Start, Margin = new Thickness(0, 3, 0, 0) },
-                countdown
+                resetText
             }};
         }
         else
         {
             countdown = null;
-            exactReset = null;
             reset = null;
         }
         root.Add(layout, 1); Content = root;
@@ -87,11 +91,10 @@ public sealed class QuotaRowView : Border
         if (wide)
         {
             layout.ColumnDefinitions = hasReset
-                ? [new(new GridLength(250)), new(new GridLength(180)), new(GridLength.Star), new(new GridLength(200)), new(new GridLength(165))]
+                ? [new(new GridLength(250)), new(new GridLength(180)), new(GridLength.Star), new(new GridLength(200))]
                 : [new(new GridLength(250)), new(new GridLength(180)), new(GridLength.Star)];
             layout.Add(identity); layout.Add(quota, 1); layout.Add(bar, 2);
             if (reset is not null) layout.Add(reset, 3);
-            if (exactReset is not null) layout.Add(exactReset, 4);
         }
         else
         {
@@ -100,10 +103,9 @@ public sealed class QuotaRowView : Border
             layout.Add(identity, 0, 0);
             if (reset is not null) layout.Add(reset, 1, 0);
             layout.Add(quota, 0, 1);
-            if (exactReset is not null) layout.Add(exactReset, 1, 1);
             layout.Add(bar, 0, 2);
             Grid.SetColumnSpan(identity, hasReset ? 1 : 2);
-            Grid.SetColumnSpan(quota, hasReset ? 1 : 2);
+            Grid.SetColumnSpan(quota, 2);
             Grid.SetColumnSpan(bar, 2);
         }
     }
