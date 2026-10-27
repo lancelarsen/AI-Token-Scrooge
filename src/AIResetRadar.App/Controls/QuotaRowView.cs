@@ -7,15 +7,20 @@ public sealed class QuotaRowView : Border
     readonly Grid layout;
     readonly View identity;
     readonly UsageBar bar;
-    readonly View reset;
-    readonly Label countdown;
+    readonly View? reset;
+    readonly Label? countdown;
     readonly DateTimeOffset? resetsAt;
+    readonly bool hasReset;
     bool? wideLayout;
-    public void UpdateClock(DateTimeOffset now) => countdown.Text = ResetTime.Summary(resetsAt, now);
+    public void UpdateClock(DateTimeOffset now)
+    {
+        if (countdown is not null) countdown.Text = ResetTime.Summary(resetsAt, now);
+    }
     public QuotaRowView(QuotaRow row, Action<QuotaRow> open, bool grouped = false, bool showAccount = true, TimeZoneInfo? timeZone = null)
     {
         var warning = row.IsWarning;
         resetsAt = row.Window.ResetsAt;
+        hasReset = resetsAt.HasValue;
         Stroke = Color.FromArgb("#383B46"); BackgroundColor = Color.FromArgb("#1C1E24");
         StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 13 };
         if (grouped) { Stroke = Colors.Transparent; BackgroundColor = Colors.Transparent; }
@@ -39,15 +44,23 @@ public sealed class QuotaRowView : Border
         account.Children.Add(accountText); identity = account;
         bar = new UsageBar(row.Window.Fill, row.UsedText, row.LeftText, warning) { VerticalOptions = LayoutOptions.Center };
         var now = DateTimeOffset.Now;
-        countdown = new Label { Text = ResetTime.Summary(row.Window.ResetsAt, now), FontSize = 20, FontFamily = "Segoe UI Semibold", TextColor = Color.FromArgb("#BDA3F5") };
-        reset = new HorizontalStackLayout { Spacing = 12, VerticalOptions = LayoutOptions.Center, Children = {
-            new Label { Text = warning ? "\uE7BA" : "\uE823", FontFamily = "Segoe Fluent Icons", FontSize = 25,
-                TextColor = Color.FromArgb(warning ? "#EAAA51" : "#B5A0F4"), VerticalOptions = LayoutOptions.Start, Margin = new Thickness(0, 3, 0, 0) },
-            new VerticalStackLayout { Spacing = 3, Children = {
-                countdown,
-                new Label { Text = TimeZones.Format(row.Window.ResetsAt, timeZone ?? TimeZones.Resolve(null)), FontSize = 12, TextColor = Color.FromArgb("#BEC1D2") }
-            }}
-        }};
+        if (hasReset)
+        {
+            countdown = new Label { Text = ResetTime.Summary(row.Window.ResetsAt, now), FontSize = 20, FontFamily = "Segoe UI Semibold", TextColor = Color.FromArgb("#BDA3F5") };
+            reset = new HorizontalStackLayout { Spacing = 12, VerticalOptions = LayoutOptions.Center, Children = {
+                new Label { Text = warning ? "\uE7BA" : "\uE823", FontFamily = "Segoe Fluent Icons", FontSize = 25,
+                    TextColor = Color.FromArgb(warning ? "#EAAA51" : "#B5A0F4"), VerticalOptions = LayoutOptions.Start, Margin = new Thickness(0, 3, 0, 0) },
+                new VerticalStackLayout { Spacing = 3, Children = {
+                    countdown,
+                    new Label { Text = TimeZones.Format(row.Window.ResetsAt, timeZone ?? TimeZones.Resolve(null)), FontSize = 12, TextColor = Color.FromArgb("#BEC1D2") }
+                }}
+            }};
+        }
+        else
+        {
+            countdown = null;
+            reset = null;
+        }
         root.Add(layout, 1); Content = root;
         // Native button is transparent, keyboard-focusable and exposes the complete row to Narrator.
         var details = new Button { Text = "", BackgroundColor = Colors.Transparent, BorderWidth = 0, HeightRequest = -1, HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Fill };
@@ -66,14 +79,22 @@ public sealed class QuotaRowView : Border
         Grid.SetColumnSpan(bar, 1);
         if (wide)
         {
-            layout.ColumnDefinitions = [new(new GridLength(320)), new(GridLength.Star), new(new GridLength(235))];
-            layout.Add(identity); layout.Add(bar, 1); layout.Add(reset, 2);
+            layout.ColumnDefinitions = hasReset
+                ? [new(new GridLength(320)), new(GridLength.Star), new(new GridLength(235))]
+                : [new(new GridLength(320)), new(GridLength.Star)];
+            layout.Add(identity); layout.Add(bar, 1);
+            if (reset is not null) layout.Add(reset, 2);
         }
         else
         {
-            layout.ColumnDefinitions = [new(GridLength.Star), new(new GridLength(235))];
+            layout.ColumnDefinitions = hasReset
+                ? [new(GridLength.Star), new(new GridLength(235))]
+                : [new(GridLength.Star)];
             layout.RowDefinitions = [new(GridLength.Auto), new(GridLength.Auto)];
-            layout.Add(identity); layout.Add(reset, 1); layout.Add(bar, 0, 1); Grid.SetColumnSpan(bar, 2);
+            layout.Add(identity);
+            if (reset is not null) layout.Add(reset, 1);
+            layout.Add(bar, 0, 1);
+            Grid.SetColumnSpan(bar, hasReset ? 2 : 1);
         }
     }
 }
