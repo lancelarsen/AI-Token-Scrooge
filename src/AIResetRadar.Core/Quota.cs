@@ -57,4 +57,9 @@ public static class ResetTime
         if (duration.TotalDays >= 1) return $"In {(int)duration.TotalDays}d {duration.Hours}h";
         return duration.TotalHours >= 1 ? $"In {(int)duration.TotalHours}h {duration.Minutes}m" : $"In {duration.Minutes}m";
     }
+    public static string Summary(DateTimeOffset? reset, DateTimeOffset now)
+    {
+        var countdown = Countdown(reset, now);
+        return countdown.StartsWith("In ", StringComparison.Ordinal) ? $"Resets: {countdown[3..]}" : countdown;
+    }
 }

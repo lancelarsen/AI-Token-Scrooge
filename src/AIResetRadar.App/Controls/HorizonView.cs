@@ -1,17 +1,23 @@
 using Microsoft.Maui.Layouts;
 using AIResetRadar.App.Presentation;
+using AIResetRadar.Core;
 namespace AIResetRadar.App.Controls;
 
 public sealed class HorizonView : Border
 {
     readonly HorizonDay[] days;
+    readonly TimeZoneInfo timeZone;
     readonly Grid grid = new() { ColumnSpacing = 0 };
     readonly ScrollView viewport = new() { Orientation = ScrollOrientation.Horizontal, HorizontalScrollBarVisibility = ScrollBarVisibility.Never };
     readonly Label hint = new() { Text = "Hover or click for details.", FontSize = 13, TextColor = Color.FromArgb("#BEC1D2"), Margin = new Thickness(0, 8, 0, 8), VerticalOptions = LayoutOptions.Center };
     double renderedWidth = double.NaN;
-    public HorizonView(IEnumerable<HorizonEvent> source, Action<HorizonEvent> open)
+    readonly GraphicsView navigator = new() { HeightRequest = 22 };
+    double contentWidth, dragStart, pointerStart;
+    bool dragging;
+    public HorizonView(IEnumerable<HorizonEvent> source, Action<HorizonEvent> open, TimeZoneInfo? timeZone = null)
     {
-        days = HorizonTimeline.Build(source, DateTimeOffset.Now);
+        this.timeZone = timeZone ?? TimeZones.Resolve(null);
+        days = HorizonTimeline.Build(source, DateTimeOffset.Now, this.timeZone);
         BackgroundColor = Color.FromArgb("#1C1E24"); StrokeThickness = 1; Stroke = Color.FromArgb("#383B46");
         StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 15 };
         Padding = new Thickness(12, 18); viewport.Content = grid;
@@ -20,11 +26,36 @@ public sealed class HorizonView : Border
             new Label { Text = "\uE81C", FontFamily = "Segoe Fluent Icons", FontSize = 30, TextColor = Color.FromArgb("#B5A0F4"), VerticalOptions = LayoutOptions.Center },
             new Label { Text = "Reset Horizon", FontSize = 26, FontFamily = "Segoe UI Semibold", VerticalOptions = LayoutOptions.Center }
         } });
-        header.Children.Add(Legend("Quota refresh", "#B5A0F4"));
-        header.Children.Add(Legend("Reset expires", "#EAAA51"));
+        var refreshCount = days.Sum(day => day.Events.Count(e => !e.IsExpiry));
+        var expiryCount = days.Sum(day => day.Events.Count(e => e.IsExpiry));
+        header.Children.Add(Legend($"Quota Refresh ({refreshCount})", "#B5A0F4"));
+        header.Children.Add(Legend($"Reset Expires ({expiryCount})", "#EAAA51"));
         header.Children.Add(hint);
+        navigator.Drawable = new Overview(this);
+        navigator.StartInteraction += (_, e) => {
+            if (e.Touches.Length > 0 && navigator.Width > 0) {
+                var x = e.Touches[0].X * contentWidth / navigator.Width;
+                dragStart = viewport.ScrollX;
+                if (x < viewport.ScrollX || x > viewport.ScrollX + viewport.Width)
+                {
+                    dragStart = Math.Clamp(x - viewport.Width / 2, 0, Math.Max(0, contentWidth - viewport.Width));
+                    ScrollTo(dragStart, false);
+                }
+                pointerStart = e.Touches[0].X;
+                dragging = true;
+            }
+        };
+        navigator.DragInteraction += (_, e) => {
+            if (dragging && e.Touches.Length > 0 && navigator.Width > 0)
+                ScrollTo(dragStart + (e.Touches[0].X - pointerStart) * contentWidth / navigator.Width, false);
+        };
+        navigator.EndInteraction += (_, _) => dragging = false;
+        navigator.CancelInteraction += (_, _) => dragging = false;
+        SemanticProperties.SetDescription(navigator, "Timeline overview. Drag the highlighted window or click the track to move through dates.");
+        viewport.Scrolled += (_, _) => UpdateNavigator();
         Content = new VerticalStackLayout { Spacing = 16, Children = {
-            header, new BoxView { HeightRequest = 1, Color = Color.FromArgb("#383B46"), Margin = new Thickness(12, 0) }, viewport
+            header, new BoxView { HeightRequest = 1, Color = Color.FromArgb("#383B46"), Margin = new Thickness(12, 0) }, viewport,
+            navigator
         } };
         viewport.SizeChanged += (_, _) => Render(open);
         SizeChanged += (_, _) => Render(open); Render(open);
@@ -44,6 +75,7 @@ public sealed class HorizonView : Border
         var minimumWidth = days.Length > 2 ? 128 + 80 * (days.Length - 2) : 64 * days.Length;
         hint.Text = minimumWidth > available ? "Scroll for more days · Hover or click for details." : "Hover or click for details.";
         var cellWidth = days.Length > 2 ? Math.Max(80, (available - 128) / (days.Length - 2)) : Math.Max(64, available / Math.Max(1, days.Length));
+        contentWidth = Math.Max(available, minimumWidth);
         for (var i = 0; i < days.Length; i++)
         {
             var day = days[i];
@@ -66,7 +98,7 @@ public sealed class HorizonView : Border
             foreach (var e in day.Events)
             {
                 var accent = Color.FromArgb(e.IsExpiry ? "#EAAA51" : "#B5A0F4");
-                var details = $"{e.Title}\n{e.Detail}\n{(e.IsExpiry ? "Earned reset expires" : "Quota refreshes")}: {e.At.ToLocalTime():f}";
+                var details = $"{e.DisplayTitle}\n{e.Detail}\n{(e.IsExpiry ? "Reset Expires" : "Quota Refresh")}: {TimeZones.Format(e.At, timeZone)}";
                 var icon = new Grid { WidthRequest = 62, HeightRequest = 49, HorizontalOptions = LayoutOptions.Center };
                 icon.Add(new Border { WidthRequest = 42, HeightRequest = 42, VerticalOptions = LayoutOptions.Start,
                     HorizontalOptions = LayoutOptions.Center, Stroke = accent, StrokeThickness = 2,
@@ -79,19 +111,64 @@ public sealed class HorizonView : Border
                         StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 6 },
                         Content = new Label { Text = badge == "Plan unavailable" ? "?" : badge, FontSize = 10, TextColor = accent, FontFamily = "Segoe UI Semibold" } });
                 var content = new VerticalStackLayout { Spacing = 2, Padding = new Thickness(2, 3), Children = {
-                    icon, new Label { Text = e.At.ToLocalTime().ToString("h:mm tt"), FontSize = 10, TextColor = accent, HorizontalTextAlignment = TextAlignment.Center }
+                    icon, new Label { Text = TimeZones.Format(e.At, timeZone, "h:mm tt"), FontSize = 10, TextColor = accent, HorizontalTextAlignment = TextAlignment.Center }
                 }};
                 var target = new Grid { Margin = new Thickness(2, 0), MinimumHeightRequest = 74 }; target.Add(content);
                 var action = new Button { Text = "", BackgroundColor = Colors.Transparent, BorderWidth = 0, HeightRequest = -1,
                     HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Fill };
                 action.Clicked += (_, _) => open(e);
-                ToolTipProperties.SetText(action, details);
+                Platforms.Windows.ImmediateToolTip.Attach(action, details);
                 SemanticProperties.SetDescription(action, $"{details}. Open details.");
                 target.Add(action); column.Children.Add(target);
             }
             grid.Add(column, i);
         }
+        UpdateNavigator();
         if (days.All(d => d.Events.Length == 0))
             ((VerticalStackLayout)grid.Children[0]).Children.Add(new Label { Text = "No upcoming events reported", FontSize = 12, TextColor = Color.FromArgb("#BEC1D2"), HorizontalTextAlignment = TextAlignment.Center });
+    }
+    void ScrollTo(double x, bool animate) => _ = viewport.ScrollToAsync(Math.Clamp(x, 0, Math.Max(0, contentWidth - viewport.Width)), 0, animate);
+    void UpdateNavigator() => navigator.Invalidate();
+    sealed class Overview(HorizonView owner) : IDrawable
+    {
+        public void Draw(ICanvas canvas, RectF rect)
+        {
+            var width = rect.Width - 2;
+            canvas.FillColor = Color.FromArgb("#232429");
+            canvas.FillRoundedRectangle(1, 1, width, 20, 5);
+            canvas.StrokeColor = Color.FromArgb("#45464D");
+            canvas.StrokeSize = 1;
+            canvas.DrawRoundedRectangle(1, 1, width, 20, 5);
+            var total = Math.Max(1, owner.contentWidth);
+            var fraction = Math.Clamp(owner.viewport.Width / total, 0, 1);
+            var left = (float)(Math.Clamp(owner.viewport.ScrollX / total, 0, 1 - fraction) * width) + 1;
+            var thumbWidth = (float)(fraction * width);
+            canvas.FillColor = Color.FromArgb("#483A64");
+            canvas.FillRoundedRectangle(left, 1, thumbWidth, 20, 5);
+            canvas.StrokeColor = Color.FromArgb("#B5A0F4");
+            canvas.DrawRoundedRectangle(left, 1, thumbWidth, 20, 5);
+            // Project the actual column centers, including the narrower end columns.
+            // At full range this is pixel-aligned with the dates and event icons above.
+            double columnLeft = 0;
+            var scale = Math.Min(1, rect.Width / total);
+            for (var i = 0; i < owner.days.Length; i++)
+            {
+                var columnWidth = owner.grid.ColumnDefinitions[i].Width.Value;
+                var x = (float)((columnLeft + columnWidth / 2) * scale);
+                columnLeft += columnWidth;
+                var kinds = owner.days[i].Events.Select(e => e.IsExpiry).Distinct().ToArray();
+                for (var j = 0; j < kinds.Length; j++)
+                {
+                    canvas.FillColor = Color.FromArgb(kinds[j] ? "#EAAA51" : "#B5A0F4");
+                    // Circular event marks stay centered on the matching day column.
+                    canvas.FillCircle(x, kinds.Length > 1 ? 9 + j * 5 : 11, kinds.Length > 1 ? 2.2f : 3);
+                }
+            }
+            if (fraction < .999) {
+                canvas.FillColor = Color.FromArgb("#D1BEFF");
+                for (var x = -1; x <= 1; x++)
+                    for (var y = 0; y < 2; y++) canvas.FillCircle(left + thumbWidth / 2 + x * 5, 9 + y * 4, 1.2f);
+            }
+        }
     }
 }

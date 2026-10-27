@@ -4,53 +4,75 @@ namespace AIResetRadar.App.Presentation;
 public sealed record QuotaRow(ProviderAccount Account, QuotaSnapshot Snapshot, QuotaWindow Window, decimal Low = 30, decimal Critical = 10)
 {
     public string AccountLabel => $"{Account.Nickname} · {PlanLabels.Display(Account.Provider, Snapshot.PlanType)}";
+    public string WindowTitle => UiTitle.CapitalizeWords(Window.Name);
     public bool IsWarning => Window.Capacity(Low, Critical) is CapacityState.Low or CapacityState.Critical or CapacityState.Exhausted;
     public string UsedText => Window.Used is { } used ? Window.Unit == UsageUnit.Percent ? $"{used:0.#}% used" : $"{used:N0} used" : "Usage unavailable";
     public string LeftText => Window.Unit == UsageUnit.Percent ? Window.RemainingPercent is { } percent ? $"{percent:0.#}% left" : "Left unavailable" :
         Window.Remaining is { } left ? left < 0 ? $"{-left:N0} over" : $"{left:N0} left" : "Limit unavailable";
-    public string CardNote => Account.Provider == "Claude" && Snapshot.Health == SourceHealth.Healthy && Snapshot.UsageAllowed != false ? "" : SourceNote;
+    public string CardNote => Snapshot.Health == SourceHealth.Healthy && Snapshot.UsageAllowed != false &&
+        (Account.Provider == "Claude" || Snapshot.Message is "Allowance reported by GitHub; billing usage may lag.") ? "" : SourceNote;
     public string SourceNote => Snapshot.Health == SourceHealth.Demo ? "Demo data" : Snapshot.Health != SourceHealth.Healthy ? $"{Snapshot.Health}: {Snapshot.Message}" : Snapshot.UsageAllowed == false ? "Provider reports usage is paused" :
         Snapshot.Message ?? (Window.AllowanceSource == AllowanceProvenance.Manual ? "User-entered allowance · Billing data may lag" : "");
 }
 
-public sealed record HorizonEvent(string AccountId, string Title, string Detail, DateTimeOffset At, bool IsExpiry, string? WindowId = null, string? Provider = null, string? PlanBadge = null);
+public sealed record HorizonEvent(string AccountId, string Title, string Detail, DateTimeOffset At, bool IsExpiry, string? WindowId = null, string? Provider = null, string? PlanBadge = null)
+{
+    public string DisplayTitle => UiTitle.CapitalizeWords(Title);
+}
+
+static class UiTitle
+{
+    public static string CapitalizeWords(string value) =>
+        System.Text.RegularExpressions.Regex.Replace(value, @"\b[a-z]", match => match.Value.ToUpperInvariant());
+}
 
 public sealed class DashboardState
 {
     public List<ProviderAccount> Accounts { get; } = [];
     public Dictionary<string, QuotaSnapshot> Snapshots { get; } = [];
     public bool IsDemo { get; private set; }
-    public string Sort { get; set; } = "Next reset";
     public RadarSettings Settings { get; set; } = new();
     public string RenderSignature(DateTimeOffset now) => System.Text.Json.JsonSerializer.Serialize(new
     {
         Accounts,
         // Fetch timestamps update the header/details, not the dashboard visual tree.
         Snapshots = Snapshots.ToDictionary(p => p.Key, p => p.Value with { ObservedAt = default, ProviderDataAt = null }),
-        Settings, Sort, IsDemo,
-        LocalDate = now.ToLocalTime().Date,
-        LocalOffset = now.ToLocalTime().Offset,
+        Settings, IsDemo,
+        LocalDate = TimeZoneInfo.ConvertTime(now, TimeZones.Resolve(Settings.TimeZoneId)).Date,
+        LocalOffset = TimeZoneInfo.ConvertTime(now, TimeZones.Resolve(Settings.TimeZoneId)).Offset,
         Summary = ResetSummary.Evaluate(Accounts, Snapshots, now),
         Events = Events(now).ToArray()
     });
-    public IEnumerable<QuotaRow> Rows
+    public IEnumerable<ProviderAccount> OrderedAccounts
     {
         get
         {
-            var rows = Accounts.Where(a => a.Enabled && Snapshots.ContainsKey(a.Id))
-                .SelectMany(a => Snapshots[a.Id].Windows.Select(w => { var rule = Settings.RuleFor(a.Id, w.Id); return new QuotaRow(a, Snapshots[a.Id], w, rule.LowThreshold!.Value, rule.CriticalThreshold!.Value); }));
-            return Sort switch { "Least remaining" => rows.OrderBy(r => r.Window.RemainingPercent ?? decimal.MaxValue),
-                "Account" => rows.OrderBy(r => r.Account.Provider).ThenBy(r => r.Account.Nickname),
-                _ => rows.OrderBy(r => r.Window.ResetsAt ?? DateTimeOffset.MaxValue) };
+            var order = AccountOrdering.Normalize(Settings.AccountOrder, Accounts.Select(a => a.Id));
+            var ranks = order.Select((id, rank) => (id, rank)).ToDictionary(x => x.id, x => x.rank);
+            decimal? Remaining(ProviderAccount a) => a.Enabled && Snapshots.TryGetValue(a.Id, out var snapshot)
+                ? snapshot.Windows.Select(w => w.RemainingPercent).Min() : null;
+            DateTimeOffset Next(ProviderAccount a) => a.Enabled && Snapshots.TryGetValue(a.Id, out var snapshot)
+                ? snapshot.Windows.Select(w => w.ResetsAt).Min() ?? DateTimeOffset.MaxValue : DateTimeOffset.MaxValue;
+            return Settings.AccountSort switch {
+                AccountSortMode.CustomOrder => Accounts.OrderBy(a => ranks[a.Id]),
+                AccountSortMode.MostRemaining => Accounts.OrderBy(a => Remaining(a) is null).ThenByDescending(Remaining),
+                AccountSortMode.LeastRemaining => Accounts.OrderBy(a => Remaining(a) is null).ThenBy(Remaining),
+                _ => Accounts.OrderBy(Next)
+            };
         }
     }
+    public IEnumerable<QuotaRow> Rows => OrderedAccounts.Where(a => a.Enabled && Snapshots.ContainsKey(a.Id))
+        .SelectMany(a => Snapshots[a.Id].Windows.Select(w => {
+            var rule = Settings.RuleFor(a.Id, w.Id);
+            return new QuotaRow(a, Snapshots[a.Id], w, rule.LowThreshold!.Value, rule.CriticalThreshold!.Value);
+        }));
 
     public IEnumerable<HorizonEvent> Events(DateTimeOffset now) => Rows
         .Where(r => r.Window.ResetsAt > now).Select(r => new HorizonEvent(r.Account.Id,
-            $"{r.Account.Provider} / {r.AccountLabel}", r.Window.Name, r.Window.ResetsAt!.Value, false, r.Window.Id, r.Account.Provider, TimelineBadge(r.Account)))
+            $"{r.Account.Provider} / {r.AccountLabel}", r.WindowTitle, r.Window.ResetsAt!.Value, false, r.Window.Id, r.Account.Provider, TimelineBadge(r.Account)))
         .Concat(Accounts.Where(a => a.Enabled && Snapshots.ContainsKey(a.Id)).SelectMany(a =>
             Snapshots[a.Id].Reserve?.AvailableCount == 0 ? [] : Snapshots[a.Id].Reserve?.Credits?.Where(c => c.Status == "available" && c.ExpiresAt > now)
-                .Select(c => new HorizonEvent(a.Id, "Earned reset expires", $"{a.Provider} / {a.Nickname} · {PlanLabels.Display(a.Provider, Snapshots[a.Id].PlanType)}", c.ExpiresAt!.Value, true, Provider: a.Provider, PlanBadge: TimelineBadge(a))) ?? []))
+                .Select(c => new HorizonEvent(a.Id, "Earned Reset Expires", $"{a.Provider} / {a.Nickname} · {PlanLabels.Display(a.Provider, Snapshots[a.Id].PlanType)}", c.ExpiresAt!.Value, true, Provider: a.Provider, PlanBadge: TimelineBadge(a))) ?? []))
         .OrderBy(e => e.At);
 
     string? TimelineBadge(ProviderAccount account) => Accounts.Count(a => a.Enabled && a.Provider == account.Provider) > 1

@@ -52,7 +52,7 @@ public sealed partial class MainPage
         if (alertHistory.Count == 0) content.Children.Add(new Label { Text = "No alerts yet. Low capacity and expiring resets will appear here." });
         foreach (var alert in alertHistory.OrderByDescending(a => a.CreatedAt))
         {
-            var item = new AIResetRadar.App.Controls.ActionButton { Text = $"{alert.CreatedAt.ToLocalTime():MMM d, h:mm tt} · {alert.Title}\n{alert.Detail}\n{(alert.Delivered ? "Sent to Windows" : "Recorded in history")}", HeightRequest = -1, MinimumHeightRequest = 80 };
+            var item = new AIResetRadar.App.Controls.ActionButton { Text = $"{TimeZones.Format(alert.CreatedAt, DisplayZone, "MMM d, h:mm tt")} · {alert.Title}\n{alert.Detail}\n{(alert.Delivered ? "Sent to Windows" : "Recorded in history")}", HeightRequest = -1, MinimumHeightRequest = 80 };
             item.Clicked += (_, _) => OpenAccount(alert.AccountId, alert.WindowId); content.Children.Add(item);
         }
         var back = new AIResetRadar.App.Controls.ActionButton { Text = "Close" }; back.Clicked += async (_, _) => await Navigation.PopModalAsync(); content.Children.Add(back);

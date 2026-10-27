@@ -133,7 +133,7 @@ public sealed partial class MainPage
     }
     async Task OpenDetailsAsync(QuotaRow row)
     {
-        var details = $"{row.Window.Name}\n{row.UsedText} · {row.LeftText}\nResets: {ResetTime.Exact(row.Window.ResetsAt)}\n\nAccount: {row.Account.Login ?? row.Account.Subject}\nScope: {row.Account.Scope}\nLast successful fetch: {ResetTime.Exact(row.Snapshot.ObservedAt)}\nProvider data as of: {ResetTime.Exact(row.Snapshot.ProviderDataAt)}\n\n{row.SourceNote}";
+        var details = $"{row.WindowTitle}\n{row.UsedText} · {row.LeftText}\nResets: {ResetTime.Exact(row.Window.ResetsAt, DisplayZone)}\n\nAccount: {row.Account.Login ?? row.Account.Subject}\nScope: {row.Account.Scope}\nLast successful fetch: {ResetTime.Exact(row.Snapshot.ObservedAt, DisplayZone)}\nProvider data as of: {ResetTime.Exact(row.Snapshot.ProviderDataAt, DisplayZone)}\n\n{row.SourceNote}";
         if (state.IsDemo || ProviderLinks.Usage(row.Account) is null) { await AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, $"{row.Account.Provider} / {row.AccountLabel}", details, "Close"); return; }
         if (await AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, $"{row.Account.Provider} / {row.AccountLabel}", details + "\n\nProvider pages use your browser's sign-in. Check its account and workspace before comparing.", "Open provider usage", "Close") && !await ProviderNavigation.OpenAsync(row.Account))
             await AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, "Provider page unavailable", "Open your provider's usage page in your browser, or use Usage and access help in Settings.", "Close");
@@ -143,9 +143,9 @@ public sealed partial class MainPage
         var lines = state.Accounts.Where(a => (accountId is null ? a.Enabled : a.Id == accountId) && state.Snapshots.ContainsKey(a.Id)).Select(a => {
             var reserve = state.Snapshots[a.Id].Reserve;
             return reserve is null ? null : $"{a.Provider} / {a.Nickname} · {PlanLabels.Display(a.Provider, state.Snapshots[a.Id].PlanType)}: {reserve.AvailableCount?.ToString() ?? "Unknown"} reported available\n" +
-                $"Snapshot fetched {state.Snapshots[a.Id].ObservedAt.ToLocalTime():g} · {(a.Enabled ? state.Snapshots[a.Id].Health : "Monitoring paused")}\n" +
+                $"Snapshot fetched {TimeZones.Format(state.Snapshots[a.Id].ObservedAt, DisplayZone, "g")} · {(a.Enabled ? state.Snapshots[a.Id].Health : "Monitoring paused")}\n" +
                 (reserve.HasPartialDetails ? "Provider supplied only partial credit details.\n" : "") +
-                string.Join("\n", reserve.Credits?.Select(c => $"• {c.ExpiresAt?.ToLocalTime().ToString("f") ?? "Expiry unavailable"} · {(c.ExpiresAt <= DateTimeOffset.UtcNow ? "Expired locally — checking provider" : c.Status)}") ?? ["Credit details unavailable"]);
+                string.Join("\n", reserve.Credits?.Select(c => $"• {TimeZones.Format(c.ExpiresAt, DisplayZone)} · {(c.ExpiresAt <= DateTimeOffset.UtcNow ? "Expired locally — checking provider" : c.Status)}") ?? ["Credit details unavailable"]);
         }).Where(s => s != null);
         return AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, "Available resets", string.Join("\n\n", lines) is { Length: > 0 } details ? details : "Your provider has not reported earned reset availability.", "Close");
     }

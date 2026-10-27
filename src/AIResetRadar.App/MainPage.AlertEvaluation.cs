@@ -17,7 +17,7 @@ public sealed partial class MainPage
             if (recorded is null) { if (!await RecordAlertIntentAsync(alert)) continue; }
             else { alertHistory.RemoveAll(e => e.Key == alert.Key); alertHistory.Add(alert); }
             if (!Current()) return;
-            var canDeliver = preferences.Notifications && !AlertEvaluator.IsQuiet(preferences, now, TimeZoneInfo.Local) && (!snoozed.TryGetValue(account.Id, out var until) || until <= now);
+            var canDeliver = preferences.Notifications && !AlertEvaluator.IsQuiet(preferences, now, TimeZones.Resolve(preferences.TimeZoneId)) && (!snoozed.TryGetValue(account.Id, out var until) || until <= now);
             var sent = canDeliver && NotificationService.Current.Show(alert, preferences);
             if (canDeliver) ShowBanner(alert);
             try { await MarkAlertDeliveredAsync(alert, sent); }

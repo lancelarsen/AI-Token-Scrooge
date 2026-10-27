@@ -42,7 +42,7 @@ public static class AlertEvaluator
             var left = expiry - now;
             var threshold = left <= TimeSpan.FromHours(1) ? "1h" : left <= TimeSpan.FromHours(24) ? "24h" : null;
             if (threshold is not null) alerts.Add(new($"{account.Id}/credit/{credit.Id}/{expiry.ToUnixTimeSeconds()}/{threshold}", account.Id, null,
-                "An earned Codex reset expires soon", $"Expires {expiry.ToLocalTime():MMM d, h:mm tt} · {account.Nickname}", now));
+                "An earned Codex reset expires soon", $"Expires {TimeZones.Format(expiry, TimeZones.Resolve(settings.TimeZoneId), "MMM d, h:mm tt")} · {account.Nickname}", now));
         }
         return alerts;
     }

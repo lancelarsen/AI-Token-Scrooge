@@ -39,11 +39,11 @@ public sealed partial class MainPage
         var now = DateTimeOffset.Now;
         var rows = state.Rows.Select(row => new
         {
-            AccountId = row.Account.Id, AccountTitle = $"{row.Account.Provider} / {row.AccountLabel}", Title = row.Window.Name,
+            AccountId = row.Account.Id, AccountTitle = $"{row.Account.Provider} / {row.AccountLabel}", Title = row.WindowTitle,
             row.Window.Fill, row.UsedText, row.LeftText, row.IsWarning, row.CardNote,
-            Reset = ResetTime.Countdown(row.Window.ResetsAt, now)
+            Reset = ResetTime.Summary(row.Window.ResetsAt, now)
         }).ToArray();
-        var events = state.Events(now).Select(item => $"{item.Title} · {item.Detail}\n{item.At.ToLocalTime():MMM d, h:mm tt zzz}").ToArray();
+        var events = state.Events(now).Select(item => $"{item.DisplayTitle} · {item.Detail}\n{TimeZones.Format(item.At, DisplayZone)}").ToArray();
         var signature = System.Text.Json.JsonSerializer.Serialize(new { state.IsDemo, AccountCount = state.Accounts.Count, rows, events });
         if (signature == quickSignature) return;
         quickSignature = signature;

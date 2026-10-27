@@ -13,5 +13,6 @@
   <Compile Include="../../src/AIResetRadar.App/Services/SettingsSaveException.cs" Link="App/SettingsSaveException.cs" />
   <Compile Include="../../src/AIResetRadar.App/Platforms/Windows/FocusEventFailure.cs" Link="App/FocusEventFailure.cs" />
   <Compile Include="../../src/AIResetRadar.App/Presentation/DashboardState.cs" Link="App/DashboardState.cs" />
+  <Compile Include="../../src/AIResetRadar.App/Presentation/AccountDragLayout.cs" Link="App/AccountDragLayout.cs" />
  </ItemGroup>
 </Project>

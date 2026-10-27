@@ -38,6 +38,10 @@ public sealed class ActionButton : Button
     public static string GlyphFor(string? text)
     {
         var value = (text ?? "").ToLowerInvariant();
+        if (value == "custom order") return "\uE80A";
+        if (value == "most remaining") return "\uE9D9";
+        if (value == "least remaining") return "\uE9D2";
+        if (value == "next reset") return "\uE823";
         if (value.Contains("rename")) return "\uE70F";
         if (value.StartsWith("save")) return "\uE74E";
         if (value.Contains("remove")) return "\uE74D";

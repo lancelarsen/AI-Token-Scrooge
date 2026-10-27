@@ -11,8 +11,8 @@ public sealed class QuotaRowView : Border
     readonly Label countdown;
     readonly DateTimeOffset? resetsAt;
     bool? wideLayout;
-    public void UpdateClock(DateTimeOffset now) => countdown.Text = ResetTime.Countdown(resetsAt, now);
-    public QuotaRowView(QuotaRow row, Action<QuotaRow> open, bool grouped = false, bool showAccount = true)
+    public void UpdateClock(DateTimeOffset now) => countdown.Text = ResetTime.Summary(resetsAt, now);
+    public QuotaRowView(QuotaRow row, Action<QuotaRow> open, bool grouped = false, bool showAccount = true, TimeZoneInfo? timeZone = null)
     {
         var warning = row.IsWarning;
         resetsAt = row.Window.ResetsAt;
@@ -30,7 +30,7 @@ public sealed class QuotaRowView : Border
             StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 15 },
             Content = new Label { Text = row.AccountLabel, TextColor = Color.FromArgb("#C3ADF8"), FontSize = 12 } });
         if (showAccount) accountText.Children.Add(heading);
-        accountText.Children.Add(new Label { Text = row.Window.Name, TextColor = Color.FromArgb("#BEC1D2"), FontSize = 14 });
+        accountText.Children.Add(new Label { Text = row.WindowTitle, TextColor = Color.FromArgb("#BEC1D2"), FontSize = 14 });
         if (row.CardNote != "") accountText.Children.Add(new Label { Text = row.CardNote, FontSize = 11, TextColor = Color.FromArgb("#A5A8BA") });
         var account = new HorizontalStackLayout { Spacing = 16, VerticalOptions = LayoutOptions.Center };
         if (showAccount) account.Children.Add(row.Account.Provider == "OpenAI" ? new Image { Source = "openai.png", WidthRequest = 44, HeightRequest = 44 } :
@@ -39,20 +39,19 @@ public sealed class QuotaRowView : Border
         account.Children.Add(accountText); identity = account;
         bar = new UsageBar(row.Window.Fill, row.UsedText, row.LeftText, warning) { VerticalOptions = LayoutOptions.Center };
         var now = DateTimeOffset.Now;
-        countdown = new Label { Text = ResetTime.Countdown(row.Window.ResetsAt, now), FontSize = 20, FontFamily = "Segoe UI Semibold", TextColor = Color.FromArgb("#BDA3F5") };
+        countdown = new Label { Text = ResetTime.Summary(row.Window.ResetsAt, now), FontSize = 20, FontFamily = "Segoe UI Semibold", TextColor = Color.FromArgb("#BDA3F5") };
         reset = new HorizontalStackLayout { Spacing = 12, VerticalOptions = LayoutOptions.Center, Children = {
             new Label { Text = warning ? "\uE7BA" : "\uE823", FontFamily = "Segoe Fluent Icons", FontSize = 25,
                 TextColor = Color.FromArgb(warning ? "#EAAA51" : "#B5A0F4"), VerticalOptions = LayoutOptions.Start, Margin = new Thickness(0, 3, 0, 0) },
             new VerticalStackLayout { Spacing = 3, Children = {
-                new Label { Text = "Resets", FontSize = 12, TextColor = Color.FromArgb("#BEC1D2") },
                 countdown,
-                new Label { Text = row.Window.ResetsAt?.ToLocalTime().ToString("ddd, MMM d · h:mm tt zzz") ?? "Not supplied by provider", FontSize = 12, TextColor = Color.FromArgb("#BEC1D2") }
+                new Label { Text = TimeZones.Format(row.Window.ResetsAt, timeZone ?? TimeZones.Resolve(null)), FontSize = 12, TextColor = Color.FromArgb("#BEC1D2") }
             }}
         }};
         root.Add(layout, 1); Content = root;
         // Native button is transparent, keyboard-focusable and exposes the complete row to Narrator.
         var details = new Button { Text = "", BackgroundColor = Colors.Transparent, BorderWidth = 0, HeightRequest = -1, HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Fill };
-        SemanticProperties.SetDescription(details, $"{row.Account.Provider}, {row.AccountLabel}, {row.Window.Name}, {row.UsedText}, {row.LeftText}. Open details.");
+        SemanticProperties.SetDescription(details, $"{row.Account.Provider}, {row.AccountLabel}, {row.WindowTitle}, {row.UsedText}, {row.LeftText}. Open details.");
         details.Clicked += (_, _) => open(row); root.Children.Add(details); Grid.SetColumnSpan(details, 2);
         SizeChanged += (_, _) => Reflow(); Reflow();
     }
