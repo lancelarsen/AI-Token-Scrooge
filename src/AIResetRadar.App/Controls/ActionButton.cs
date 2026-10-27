@@ -3,6 +3,8 @@ namespace AIResetRadar.App.Controls;
 // Shared visual action button; text changes also update the action icon.
 public sealed class ActionButton : Button
 {
+    public bool IconOnly { get; set; }
+
     public ActionButton()
     {
         BackgroundColor = Color.FromArgb("#232429"); TextColor = Color.FromArgb("#F2F1F5");
@@ -19,6 +21,18 @@ public sealed class ActionButton : Button
     void UpdateNativeContent()
     {
         if (Handler?.PlatformView is not Microsoft.UI.Xaml.Controls.Button native) return;
+        if (IconOnly)
+        {
+            native.Content = new Microsoft.UI.Xaml.Controls.FontIcon { Glyph = GlyphFor(Text),
+                FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe Fluent Icons"), FontSize = 20,
+                Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 181, 160, 244)),
+                HorizontalAlignment = Microsoft.UI.Xaml.HorizontalAlignment.Center,
+                VerticalAlignment = Microsoft.UI.Xaml.VerticalAlignment.Center };
+            native.HorizontalContentAlignment = Microsoft.UI.Xaml.HorizontalAlignment.Center;
+            native.VerticalContentAlignment = Microsoft.UI.Xaml.VerticalAlignment.Center;
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(native, SemanticProperties.GetDescription(this) ?? Text ?? "");
+            return;
+        }
         var panel = new Microsoft.UI.Xaml.Controls.Grid { ColumnSpacing = 9 };
         panel.ColumnDefinitions.Add(new Microsoft.UI.Xaml.Controls.ColumnDefinition { Width = Microsoft.UI.Xaml.GridLength.Auto });
         panel.ColumnDefinitions.Add(new Microsoft.UI.Xaml.Controls.ColumnDefinition { Width = new Microsoft.UI.Xaml.GridLength(1, Microsoft.UI.Xaml.GridUnitType.Star) });

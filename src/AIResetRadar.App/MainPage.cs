@@ -139,8 +139,8 @@ public sealed partial class MainPage : ContentPage
     {
         var layout = new Grid { ColumnDefinitions = [new(GridLength.Star), new(GridLength.Auto)] };
         layout.Add(content);
-        var gear = MakeButton("Settings", "\uE713");
-        gear.HeightRequest = 44;
+        var gear = new AIResetRadar.App.Controls.ActionButton { Text = "Settings", IconOnly = true };
+        gear.WidthRequest = 44; gear.MinimumWidthRequest = 44; gear.HeightRequest = 44; gear.Padding = 0;
         gear.VerticalOptions = LayoutOptions.Start; gear.Margin = new Thickness(0, 20, 12, 0);
         var description = $"Settings for {account.Provider} / {account.Nickname} · {PlanLabels.Display(account.Provider, state.Snapshots.GetValueOrDefault(account.Id)?.PlanType)}";
         SemanticProperties.SetDescription(gear, description);
