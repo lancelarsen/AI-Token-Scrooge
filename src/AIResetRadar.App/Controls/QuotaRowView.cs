@@ -43,7 +43,7 @@ public sealed class QuotaRowView : Border
         details.Clicked += (_, _) => open(row); barArea.Add(details);
         var capacityToggle = new CapacityAlertToggle(capacityAlertsEnabled,
             $"Capacity Alerts · {row.Account.Provider} / {row.AccountLabel} · {row.WindowTitle} · Low {row.Low:0.#}% · Critical {row.Critical:0.#}% · Exhausted 0%", saveCapacityAlerts);
-        var usageArea = new Grid { ColumnDefinitions = [new(new GridLength(32)), new(GridLength.Star)], ColumnSpacing = 8 };
+        var usageArea = new Grid { ColumnDefinitions = [new(GridLength.Auto), new(GridLength.Star)], ColumnSpacing = 8 };
         usageArea.Add(capacityToggle); usageArea.Add(barArea, 1); usage = usageArea;
         var now = DateTimeOffset.Now;
         if (hasReset)
