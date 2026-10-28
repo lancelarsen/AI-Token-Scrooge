@@ -69,6 +69,8 @@ namespace AIResetRadar.App
         public List<string> DismissedBannersForTest { get; } = [];
         void DismissBanner(string id) => DismissedBannersForTest.Add(id);
         public Task SavePreferencesForTestAsync(RadarSettings settings) => SaveSettingsAsync(settings);
+        public Task SetCapacityAlertsForTestAsync(string account, string window, bool enabled) => SetCapacityAlertsAsync(account, window, enabled);
+        public Task DeliverRecordedForTestAsync(ProviderAccount account, QuotaSnapshot snapshot, IReadOnlyList<AlertEvent> alerts) => EvaluateAlertsAsync(account, null, snapshot, alerts);
         public RadarSettings PreferencesForTest => preferences;
         public Task<bool> SnoozeForTestAsync(string account) => SaveSnoozeAsync(account);
         public IReadOnlyDictionary<string, DateTimeOffset> SnoozesForTest => snoozed;

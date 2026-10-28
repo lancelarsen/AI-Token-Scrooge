@@ -8,11 +8,18 @@ public sealed partial class MainPage
     readonly SemaphoreSlim preferenceChanges = new(1, 1);
     Task SaveSettingsAsync(RadarSettings settings) => SaveSettingsAsync(settings, renderDashboard: true);
 
-    async Task SaveSettingsAsync(RadarSettings settings, bool renderDashboard)
+    Task SaveSettingsAsync(RadarSettings settings, bool renderDashboard) =>
+        UpdateSettingsAsync(current => settings with { DisabledCapacityAlerts = current.DisabledCapacityAlerts }, renderDashboard);
+
+    Task SetCapacityAlertsAsync(string accountId, string windowId, bool enabled) =>
+        UpdateSettingsAsync(current => current.WithCapacityAlerts(accountId, windowId, enabled), renderDashboard: false);
+
+    async Task UpdateSettingsAsync(Func<RadarSettings, RadarSettings> update, bool renderDashboard)
     {
         await preferenceChanges.WaitAsync();
         try
         {
+            var settings = update(preferences);
             if (!state.IsDemo)
             {
                 var startupChanged = settings.LaunchAtSignIn != preferences.LaunchAtSignIn;

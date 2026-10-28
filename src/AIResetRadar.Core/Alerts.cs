@@ -5,6 +5,9 @@ public sealed record AlertEvent(string Key, string AccountId, string? WindowId, 
 
 public static class AlertEvaluator
 {
+    public static bool IsEnabled(AlertEvent alert, RadarSettings settings) => alert.WindowId is not { } windowId ||
+        !(alert.Key.EndsWith("/low", StringComparison.Ordinal) || alert.Key.EndsWith("/critical", StringComparison.Ordinal) || alert.Key.EndsWith("/exhausted", StringComparison.Ordinal)) ||
+        settings.CapacityAlertsEnabled(alert.AccountId, windowId);
     public static bool IsQuiet(RadarSettings settings, DateTimeOffset now, TimeZoneInfo zone)
     {
         if (!settings.QuietHours) return false;
@@ -25,7 +28,7 @@ public static class AlertEvaluator
             var threshold = state == CapacityState.Exhausted ? 0 : state == CapacityState.Critical ? rule.CriticalThreshold!.Value : rule.LowThreshold!.Value;
             var crossed = before?.RemainingPercent is not { } oldLeft || before.ResetsAt != window.ResetsAt || oldLeft > threshold;
             var enabled = state switch { CapacityState.Low => rule.Low, CapacityState.Critical => rule.Critical, CapacityState.Exhausted => rule.Exhausted, _ => false };
-            if (crossed && enabled)
+            if (crossed && enabled && settings.CapacityAlertsEnabled(account.Id, window.Id))
             {
                 var severity = state.ToString().ToLowerInvariant();
                 alerts.Add(new($"{account.Id}/{window.Id}/{period}/{severity}", account.Id, window.Id,

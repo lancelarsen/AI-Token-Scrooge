@@ -110,7 +110,17 @@ public sealed partial class MainPage : ContentPage
                 var windows = new List<QuotaRowView>();
                 foreach (var row in accountRows)
                 {
-                    var view = new QuotaRowView(row, r => OpenAccount(r.Account.Id, r.Window.Id), timeZone: DisplayZone);
+                    var view = new QuotaRowView(row, r => OpenAccount(r.Account.Id, r.Window.Id),
+                        preferences.CapacityAlertsEnabled(account.Id, row.Window.Id), async enabled =>
+                        {
+                            try { await SetCapacityAlertsAsync(account.Id, row.Window.Id, enabled); return true; }
+                            catch
+                            {
+                                await AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, "Alert Choice Not Saved",
+                                    "Scrooge could not save this alert choice. Check local folder access and try again.", "Close");
+                                return false;
+                            }
+                        }, timeZone: DisplayZone);
                     rowViews.Add(view); windows.Add(view);
                 }
                 content = WithAccountSettings(new AccountQuotaView(accountRows[0], windows,

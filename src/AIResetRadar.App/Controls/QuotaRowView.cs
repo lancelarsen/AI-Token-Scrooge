@@ -6,7 +6,7 @@ public sealed class QuotaRowView : Border
 {
     readonly Grid layout;
     readonly View quota;
-    readonly UsageBar bar;
+    readonly View usage;
     readonly View? reset;
     readonly Label? countdown;
     readonly DateTimeOffset? resetsAt;
@@ -21,7 +21,7 @@ public sealed class QuotaRowView : Border
         var summary = ResetTime.Summary(reset, now);
         return summary.StartsWith("Resets: ", StringComparison.Ordinal) ? summary[8..] : summary;
     }
-    public QuotaRowView(QuotaRow row, Action<QuotaRow> open, TimeZoneInfo? timeZone = null)
+    public QuotaRowView(QuotaRow row, Action<QuotaRow> open, bool capacityAlertsEnabled, Func<bool, Task<bool>> saveCapacityAlerts, TimeZoneInfo? timeZone = null)
     {
         var warning = row.IsWarning;
         resetsAt = row.Window.ResetsAt;
@@ -35,7 +35,16 @@ public sealed class QuotaRowView : Border
         quotaText.Children.Add(new Label { Text = row.WindowTitle, TextColor = Color.FromArgb("#BEC1D2"), FontSize = 14 });
         if (row.CardNote != "") quotaText.Children.Add(new Label { Text = row.CardNote, FontSize = 11, TextColor = Color.FromArgb("#A5A8BA") });
         quota = quotaText;
-        bar = new UsageBar(row.Window.Fill, row.UsedText, row.LeftText, warning) { VerticalOptions = LayoutOptions.Center };
+        var bar = new UsageBar(row.Window.Fill, row.UsedText, row.LeftText, warning) { VerticalOptions = LayoutOptions.Center };
+        var barArea = new Grid(); barArea.Add(bar);
+        var details = new Button { Text = "", BackgroundColor = Colors.Transparent, BorderWidth = 0, HeightRequest = -1,
+            HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Fill };
+        SemanticProperties.SetDescription(details, $"{row.Account.Provider}, {row.AccountLabel}, {row.WindowTitle}, {row.UsedText}, {row.LeftText}. Open details.");
+        details.Clicked += (_, _) => open(row); barArea.Add(details);
+        var capacityToggle = new CapacityAlertToggle(capacityAlertsEnabled,
+            $"Capacity Alerts · {row.Account.Provider} / {row.AccountLabel} · {row.WindowTitle} · Low {row.Low:0.#}% · Critical {row.Critical:0.#}% · Exhausted 0%", saveCapacityAlerts);
+        var usageArea = new Grid { ColumnDefinitions = [new(new GridLength(32)), new(GridLength.Star)], ColumnSpacing = 8 };
+        usageArea.Add(capacityToggle); usageArea.Add(barArea, 1); usage = usageArea;
         var now = DateTimeOffset.Now;
         if (hasReset)
         {
@@ -55,10 +64,11 @@ public sealed class QuotaRowView : Border
             reset = null;
         }
         root.Add(layout, 1); Content = root;
-        // Native button is transparent, keyboard-focusable and exposes the complete row to Narrator.
-        var details = new Button { Text = "", BackgroundColor = Colors.Transparent, BorderWidth = 0, HeightRequest = -1, HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Fill };
-        SemanticProperties.SetDescription(details, $"{row.Account.Provider}, {row.AccountLabel}, {row.WindowTitle}, {row.UsedText}, {row.LeftText}. Open details.");
-        details.Clicked += (_, _) => open(row); root.Children.Add(details); Grid.SetColumnSpan(details, 2);
+        // Keep the alert circle independent of the details hit target.
+        foreach (var part in new[] { quota, reset }.OfType<View>())
+        {
+            var tap = new TapGestureRecognizer(); tap.Tapped += (_, _) => open(row); part.GestureRecognizers.Add(tap);
+        }
         SetWideLayout(false);
     }
 
@@ -67,12 +77,12 @@ public sealed class QuotaRowView : Border
         if (wideLayout == wide) return;
         wideLayout = wide;
         layout.Children.Clear(); layout.ColumnDefinitions.Clear(); layout.RowDefinitions.Clear();
-        Grid.SetColumnSpan(quota, 1); Grid.SetColumnSpan(bar, 1);
+        Grid.SetColumnSpan(quota, 1); Grid.SetColumnSpan(usage, 1);
         if (wide)
         {
             // Keep the reset column even when this particular window has no reset.
             layout.ColumnDefinitions = [new(new GridLength(156)), new(GridLength.Star), new(new GridLength(200))];
-            layout.Add(quota); layout.Add(bar, 1);
+            layout.Add(quota); layout.Add(usage, 1);
             if (reset is not null) layout.Add(reset, 2);
         }
         else
@@ -81,9 +91,9 @@ public sealed class QuotaRowView : Border
             layout.RowDefinitions = [new(GridLength.Auto), new(GridLength.Auto)];
             layout.Add(quota, 0, 0);
             if (reset is not null) layout.Add(reset, 1, 0);
-            layout.Add(bar, 0, 1);
+            layout.Add(usage, 0, 1);
             Grid.SetColumnSpan(quota, hasReset ? 1 : 2);
-            Grid.SetColumnSpan(bar, 2);
+            Grid.SetColumnSpan(usage, 2);
         }
     }
 }

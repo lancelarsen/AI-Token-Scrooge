@@ -13,10 +13,13 @@ public sealed partial class MainPage
         foreach (var alert in recorded ?? AlertEvaluator.Evaluate(account, previous, current, preferences, now))
         {
             if (!Current()) return;
+            if (!AlertEvaluator.IsEnabled(alert, preferences)) continue;
             // Persist intent before Windows delivery so a restart cannot replay the same logical event.
             if (recorded is null) { if (!await RecordAlertIntentAsync(alert)) continue; }
             else { alertHistory.RemoveAll(e => e.Key == alert.Key); alertHistory.Add(alert); }
             if (!Current()) return;
+            // The user may have turned off this bar while the alert intent was saving.
+            if (!AlertEvaluator.IsEnabled(alert, preferences)) continue;
             var canDeliver = preferences.Notifications && !AlertEvaluator.IsQuiet(preferences, now, TimeZones.Resolve(preferences.TimeZoneId)) && (!snoozed.TryGetValue(account.Id, out var until) || until <= now);
             var sent = canDeliver && NotificationService.Current.Show(alert, preferences);
             if (canDeliver) ShowBanner(alert);

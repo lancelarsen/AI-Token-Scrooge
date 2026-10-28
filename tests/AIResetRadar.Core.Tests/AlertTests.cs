@@ -12,6 +12,44 @@ public class AlertTests
         var alert = Assert.Single(AlertEvaluator.Evaluate(Account, Snapshot(10), Snapshot(98), new(), Now));
         Assert.Contains("critical", alert.Key);
     }
+    [Theory]
+    [InlineData(80)]
+    [InlineData(95)]
+    [InlineData(100)]
+    public void BarSwitchSuppressesOnlyItsOwnCapacityWarnings(decimal used)
+    {
+        var settings = new RadarSettings().WithCapacityAlerts("a", "weekly", false);
+        var snapshot = Snapshot(used);
+        var twoWindows = snapshot with { Windows = [snapshot.Windows[0], snapshot.Windows[0] with { Id = "short" }] };
+        Assert.Equal("short", Assert.Single(AlertEvaluator.Evaluate(Account, null, twoWindows, settings, Now)).WindowId);
+        Assert.Single(AlertEvaluator.Evaluate(Account with { Id = "b" }, null, snapshot with { AccountId = "b" }, settings, Now));
+    }
+    [Fact] public void TurningBarAlertsBackOnPreservesCustomAlertRules()
+    {
+        var settings = new RadarSettings(Rules: [new("a", "weekly", LowThreshold: 40, CriticalThreshold: 5, Low: false)])
+            .WithCapacityAlerts("a", "weekly", false).WithCapacityAlerts("a", "weekly", true);
+        Assert.Empty(AlertEvaluator.Evaluate(Account, null, Snapshot(80), settings, Now));
+        Assert.Contains("critical", Assert.Single(AlertEvaluator.Evaluate(Account, null, Snapshot(98), settings, Now)).Key);
+        Assert.Equal(40, settings.RuleFor("a", "weekly").LowThreshold);
+    }
+    [Fact] public void BarSwitchKeepsRestorationAndEarnedResetReminders()
+    {
+        var settings = new RadarSettings().WithCapacityAlerts("a", "weekly", false);
+        var restored = Snapshot(0, allowed: true) with { Reserve = new(1, [new("c", "available", Now.AddMinutes(30))]) };
+        var alerts = AlertEvaluator.Evaluate(Account, Snapshot(100), restored, settings, Now);
+        Assert.Contains(alerts, a => a.Key.EndsWith("/restored"));
+        Assert.Contains(alerts, a => a.WindowId is null);
+    }
+    [Fact] public void BarChoicesRoundTripAndOlderSettingsDefaultToOn()
+    {
+        var settings = new RadarSettings().WithCapacityAlerts("a", "weekly", false).WithCapacityAlerts("a", "short", false);
+        var saved = System.Text.Json.JsonSerializer.Serialize(settings);
+        var loaded = System.Text.Json.JsonSerializer.Deserialize<RadarSettings>(saved)!;
+        Assert.False(loaded.CapacityAlertsEnabled("a", "weekly"));
+        Assert.False(loaded.CapacityAlertsEnabled("a", "short"));
+        Assert.True(loaded.CapacityAlertsEnabled("b", "weekly"));
+        Assert.True(System.Text.Json.JsonSerializer.Deserialize<RadarSettings>("{}")!.CapacityAlertsEnabled("a", "weekly"));
+    }
     [Fact] public void StaleDataDoesNotClaimALiveThresholdCrossing() =>
         Assert.Empty(AlertEvaluator.Evaluate(Account, Snapshot(10), Snapshot(98, health: SourceHealth.Offline), new(), Now));
     [Fact] public void ElapsedResetDoesNotGenerateRestoration()

@@ -7,6 +7,45 @@ namespace AIResetRadar.Infrastructure.Tests;
 [Collection("App orchestration")]
 public sealed class PreferencePersistenceTests
 {
+    [Fact] public async Task IndependentBarChoicesSurviveConcurrentChangesAndOtherSettingsSaves()
+    {
+        using var files = new Fixture(); var store = new LocalStore(files.Path);
+        var page = new AIResetRadar.App.MainPage(store, new(), null, null, false);
+        await Task.WhenAll(page.SetCapacityAlertsForTestAsync("a", "short", false), page.SetCapacityAlertsForTestAsync("a", "weekly", false));
+        await page.SavePreferencesForTestAsync(new(LowThreshold: 44));
+        var saved = (await new LocalStore(files.Path).ReadAsync<RadarSettings>("settings"))!;
+        Assert.False(saved.CapacityAlertsEnabled("a", "short"));
+        Assert.False(saved.CapacityAlertsEnabled("a", "weekly"));
+        Assert.True(saved.CapacityAlertsEnabled("b", "weekly"));
+        Assert.Equal(44, saved.LowThreshold);
+        await page.SetCapacityAlertsForTestAsync("a", "short", true);
+        Assert.True(page.PreferencesForTest.CapacityAlertsEnabled("a", "short"));
+        Assert.False(page.PreferencesForTest.CapacityAlertsEnabled("a", "weekly"));
+    }
+    [Fact] public async Task FailedBarChoiceSaveKeepsThePreviouslyAcceptedChoice()
+    {
+        using var files = new Fixture(); var store = new LocalStore(files.Path);
+        var page = new AIResetRadar.App.MainPage(store, new(), null, null, false);
+        await page.SavePreferencesForTestAsync(new());
+        await using (var database = new SqliteConnection($"Data Source={files.Path}"))
+        {
+            await database.OpenAsync(); await using var command = database.CreateCommand();
+            command.CommandText = "CREATE TRIGGER reject_settings BEFORE UPDATE ON state WHEN NEW.key='settings' BEGIN SELECT RAISE(ABORT,'fixture settings failure'); END;";
+            await command.ExecuteNonQueryAsync();
+        }
+        await Assert.ThrowsAsync<SqliteException>(() => page.SetCapacityAlertsForTestAsync("a", "weekly", false));
+        Assert.True(page.PreferencesForTest.CapacityAlertsEnabled("a", "weekly"));
+        Assert.True((await store.ReadAsync<RadarSettings>("settings"))!.CapacityAlertsEnabled("a", "weekly"));
+    }
+    [Fact] public async Task DemoBarChoicesDoNotChangeSavedPreferences()
+    {
+        using var files = new Fixture(); var store = new LocalStore(files.Path);
+        await store.WriteAsync("settings", new RadarSettings());
+        var page = new AIResetRadar.App.MainPage(store, new(), null, null, true);
+        await page.SetCapacityAlertsForTestAsync("a", "weekly", false);
+        Assert.False(page.PreferencesForTest.CapacityAlertsEnabled("a", "weekly"));
+        Assert.True((await store.ReadAsync<RadarSettings>("settings"))!.CapacityAlertsEnabled("a", "weekly"));
+    }
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

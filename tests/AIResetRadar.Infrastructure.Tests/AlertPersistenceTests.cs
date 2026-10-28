@@ -6,6 +6,19 @@ namespace AIResetRadar.Infrastructure.Tests;
 [Collection("App orchestration")]
 public sealed class AlertPersistenceTests
 {
+    [Fact] public async Task MutedBarDoesNotDeliverAPreviouslyPreparedWarning()
+    {
+        using var files = new Fixture(); var store = new LocalStore(files.Path);
+        var account = new ProviderAccount("a", "OpenAI", "Personal", "qa-user", "personal");
+        var snapshot = new QuotaSnapshot(account.Id, account.Subject, account.Scope, DateTimeOffset.UtcNow, [], null);
+        AlertEvent[] alerts = [new("a/weekly/1/critical", "a", "weekly", "Critical", "Fixture", DateTimeOffset.UtcNow),
+            new("a/short/1/low", "a", "short", "Low", "Fixture", DateTimeOffset.UtcNow)];
+        await store.WriteAsync("alerts", alerts);
+        var page = new AIResetRadar.App.MainPage(store, new(), account, null, false);
+        await page.SetCapacityAlertsForTestAsync("a", "weekly", false);
+        await page.DeliverRecordedForTestAsync(account, snapshot, alerts);
+        Assert.Equal("short", Assert.Single(AIResetRadar.App.Platforms.Windows.NotificationService.Current.Attempts).WindowId);
+    }
     [Fact] public async Task DeliveryStatusFailureDoesNotSkipOtherCommittedWarnings()
     {
         using var files = new Fixture(); var store = new LocalStore(files.Path);
