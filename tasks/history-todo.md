@@ -1,13 +1,13 @@
 # Unified Reset Horizon History: Task Cards
 
-Contract: [history-plan.md](history-plan.md). All implementation tasks below are pending. Preserve the existing app and account data. Proposed new file names are guidance, not a requirement to create unnecessary abstractions.
+Contract: [history-plan.md](history-plan.md). Implementation is present; checked items have current source/test evidence. Remaining unchecked items retain their full acceptance scope. Preserve the existing app and account data. Proposed new file names are guidance, not a requirement to create unnecessary abstractions.
 
 ## H1. Read a Complete Historical Interval
 
 Provide a chronological date-bounded query without the current implicit 10,000-record truncation.
 
-- [ ] Query the requested account/range plus an optional preceding sample; preserve 30-day retention and account-removal cleanup.
-- [ ] Handle empty ranges, duplicate timestamps, cancellation, and malformed/unusable records without confusing them with zero usage.
+- [x] Query the requested account/range plus an optional preceding sample; preserve 30-day retention and account-removal cleanup.
+- [x] Handle empty ranges, duplicate timestamps, cancellation, and malformed/unusable records without confusing them with zero usage.
 
 Verification: focused store tests for boundaries, chronological order, account isolation, and persistence across reopen. Dependencies: none. Likely files: `LocalStore.cs` or a partial history file; `LocalStoreTests.cs`. Scope: S.
 
@@ -15,8 +15,8 @@ Verification: focused store tests for boundaries, chronological order, account i
 
 Include a new/reconnected account's first accepted snapshot in history, matching the monitoring path's identity checks and error handling.
 
-- [ ] Accepted connection state and its first history record commit atomically; failed/rejected connections leave no historical sample. A database write failure retains the prior persisted state and surfaces an error. Subsequent successful polls keep recording normally.
-- [ ] Reconnects do not join different identities, turn stale data into fresh samples, or modify other application sign-ins.
+- [x] Accepted connection state and its first history record commit atomically; failed/rejected connections leave no historical sample. A database write failure retains the prior persisted state and surfaces an error. Subsequent successful polls keep recording normally.
+- [x] Reconnects do not join different identities, turn stale data into fresh samples, or modify other application sign-ins.
 
 Verification: focused accepted-connection/history tests and build. Dependencies: H1. Likely files: connection action file, `MainPage.Actions.cs`, targeted tests. Scope: M.
 
@@ -24,9 +24,9 @@ Verification: focused accepted-connection/history tests and build. Dependencies:
 
 Build pure account series and evidence-labeled historical events from saved snapshots.
 
-- [ ] OpenAI/Claude Weekly and Copilot Monthly produce one series per account; short windows are excluded only from history. Missing/ambiguous eligible windows are explicit and never averaged.
-- [ ] Unknown values, identity/allowance changes, and offline intervals produce gaps; measured capacity increases preserve actual values and timestamps.
-- [ ] Historical refresh/expiry schedules are deduplicated and distinguished from observed replenishment; exclude short-window historical refreshes, with no inferred reset redemption or artificial refill. Future horizon events remain unchanged.
+- [x] OpenAI/Claude Weekly and Copilot Monthly produce one series per account; short windows are excluded only from history. Missing/ambiguous eligible windows are explicit and never averaged.
+- [x] Missing and offline observations interpolate between compatible known samples and are identified as estimates; identity/allowance changes remain breaks. Measured replenishment preserves actual values and timestamps.
+- [x] Historical refresh/expiry schedules are deduplicated and distinguished from observed replenishment; exclude short-window historical refreshes, with no inferred reset redemption or artificial refill. Future horizon events remain unchanged.
 
 Verification: projection fixtures covering duplicate providers, renamed accounts, revised schedules, 60% to 91% replenishment, expiry without refill, unknown percentages, and downsampling that preserves transitions. Dependencies: H1. Likely files: new history projection model, model tests, provider mapping fixtures if necessary. Scope: M.
 
@@ -34,9 +34,9 @@ Verification: projection fixtures covering duplicate providers, renamed accounts
 
 Define date-to-position mapping and Today anchoring before integrating chart drawing.
 
-- [ ] One scroll range covers seven days behind Today through the furthest future event; initial position is Today, and navigator movement is continuous.
-- [ ] Calendar days have equal width across DST/time-zone changes; minimum readable width, resize, and range clamping behave consistently.
-- [ ] Distinguish following Today from browsing fixed dates so refreshes do not snap the viewport back.
+- [x] One scroll range covers seven days behind Today through the furthest future event; initial position is Today, and navigator movement is continuous.
+- [x] Calendar days have equal width across DST/time-zone changes; minimum readable width, resize, and range clamping behave consistently.
+- [x] Distinguish following Today from browsing fixed dates so refreshes do not snap the viewport back.
 
 Verification: pure viewport tests for initial anchor, left/right bounds, seven-day history, more than 30 future days, DST, resize, and refresh preservation. Dependencies: none; agree on the H3 event/series contract. Likely files: new viewport model and tests. Scope: S.
 
@@ -50,8 +50,8 @@ Verification: pure viewport tests for initial anchor, left/right bounds, seven-d
 
 Implement the shared chart using existing MAUI graphics and popup patterns.
 
-- [ ] The graph shows remaining percent, stable per-account colors, restrained fills, actual historical event icons, and legible endpoint labels; no future line projection.
-- [ ] Hover/click/focus reveals actual sample/event details without delay; gaps and partial history are visible.
+- [ ] The graph shows percent used, stable per-account colors, restrained fills, actual historical event icons, and legible endpoint labels; no future line projection.
+- [ ] Hover/click/focus reveals actual sample/event details without delay; estimated spans and partial history are identified.
 - [ ] Renderer clips and downsamples appropriately without smoothing away replenishment or creating false precision.
 
 Verification: projection-to-render fixtures where useful, then native screenshots at desktop/narrow widths and 100%/125%/150% display scaling where available. Compare with the selected reference and existing horizon. Dependencies: H3, H4. Likely files: new history graphics control/drawable, `HorizonView.cs`, focused projection tests. Scope: M.
@@ -85,3 +85,4 @@ Verification: focused state tests and repeated native pan/refresh/reorder/resize
 Verification: repository build/test scripts and live Windows app checks. Dependencies: H7. Likely files: `docs/verification.md`, these task cards, scoped fixes only. Scope: S.
 
 Commit/push each completed increment. The standing rebuild/restart/visible-verification rule applies to H2 and every UI/runtime increment, not just H8. Do not mark a task complete solely because its build passed.
+
