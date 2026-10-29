@@ -72,14 +72,14 @@ public sealed class HorizonView : Border
         if (Math.Abs(renderedWidth - available) < 1) return;
         renderedWidth = available;
         grid.Children.Clear(); grid.ColumnDefinitions.Clear();
-        var minimumWidth = days.Length > 2 ? 128 + 80 * (days.Length - 2) : 64 * days.Length;
+        var minimumWidth = 80 * days.Length;
         hint.Text = minimumWidth > available ? "Scroll for more days · Hover or click for details." : "Hover or click for details.";
-        var cellWidth = days.Length > 2 ? Math.Max(80, (available - 128) / (days.Length - 2)) : Math.Max(64, available / Math.Max(1, days.Length));
+        var cellWidth = Math.Max(80, available / Math.Max(1, days.Length));
         contentWidth = Math.Max(available, minimumWidth);
         for (var i = 0; i < days.Length; i++)
         {
             var day = days[i];
-            grid.ColumnDefinitions.Add(new(new GridLength(days.Length > 2 && (i == 0 || i == days.Length - 1) ? 64 : cellWidth)));
+            grid.ColumnDefinitions.Add(new(new GridLength(cellWidth)));
             var color = Color.FromArgb(day.IsToday ? "#D1BEFF" : "#B5A0F4");
             var column = new VerticalStackLayout { Spacing = 7 };
             column.Children.Add(new Label { Text = day.IsToday ? "Today" : day.Date.ToString("ddd"), FontSize = 14,
@@ -147,7 +147,7 @@ public sealed class HorizonView : Border
             canvas.FillRoundedRectangle(left, 1, thumbWidth, 20, 5);
             canvas.StrokeColor = Color.FromArgb("#B5A0F4");
             canvas.DrawRoundedRectangle(left, 1, thumbWidth, 20, 5);
-            // Project the actual column centers, including the narrower end columns.
+            // Project the same equally spaced column centers as the timeline.
             // At full range this is pixel-aligned with the dates and event icons above.
             double columnLeft = 0;
             var scale = Math.Min(1, rect.Width / total);
