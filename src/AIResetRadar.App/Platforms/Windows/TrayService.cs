@@ -11,6 +11,10 @@ public sealed class TrayService : IDisposable
     readonly uint explorerRestart;
     readonly uint taskbarCreated;
     readonly nint brandIcon;
+    readonly nint largeIcon;
+    readonly Dictionary<ReminderSeverity, nint> alertIcons = new();
+    readonly Dictionary<ReminderSeverity, nint> trayIcons = new();
+    nint overlayIcon;
     NotifyIconData data;
     (string Tip, ReminderSeverity? Severity, bool Unknown)? lastStatus;
     public event Action? Open;
@@ -22,7 +26,18 @@ public sealed class TrayService : IDisposable
         hwnd = WinRT.Interop.WindowNative.GetWindowHandle(window);
         callback = WindowProc;
         explorerRestart = RegisterWindowMessage("TaskbarCreated"); taskbarCreated = RegisterWindowMessage("TaskbarButtonCreated");
-        brandIcon = LoadImage(0, Path.Combine(AppContext.BaseDirectory, "app.ico"), 1, 32, 32, 0x10);
+        var dpi = GetDpiForWindow(hwnd);
+        var smallSize = GetSystemMetricsForDpi(49, dpi);
+        var largeSize = GetSystemMetricsForDpi(11, dpi);
+        brandIcon = LoadImage(0, Path.Combine(AppContext.BaseDirectory, "app.ico"), 1, smallSize, smallSize, 0x10);
+        largeIcon = LoadImage(0, Path.Combine(AppContext.BaseDirectory, "app.ico"), 1, largeSize, largeSize, 0x10);
+        SendMessage(hwnd, 0x0080, 0, brandIcon);
+        SendMessage(hwnd, 0x0080, 1, largeIcon);
+        foreach (var level in Enum.GetValues<ReminderSeverity>())
+        {
+            trayIcons[level] = LoadImage(0, Path.Combine(AppContext.BaseDirectory, $"tray-{level.ToString().ToLowerInvariant()}.ico"), 1, smallSize, smallSize, 0x10);
+            alertIcons[level] = LoadImage(0, Path.Combine(AppContext.BaseDirectory, $"alert-{level.ToString().ToLowerInvariant()}.ico"), 1, smallSize, smallSize, 0x10);
+        }
         data = new() { Size = (uint)Marshal.SizeOf<NotifyIconData>(), Window = hwnd, Id = 1, Flags = 1 | 2 | 4, Message = Callback,
             Icon = brandIcon, Tip = "AI Token Scrooge · Monitoring", Info = "", InfoTitle = "" };
         if (!SetWindowSubclass(hwnd, callback, 1, 0)) throw new InvalidOperationException("Windows tray integration could not attach to the app window.");
@@ -34,14 +49,15 @@ public sealed class TrayService : IDisposable
         var status = (displayTip, severity, unknown);
         if (lastStatus == status) return;
         data.Tip = displayTip;
-        data.Icon = severity.HasValue || unknown ? LoadIcon(0, severity == ReminderSeverity.Critical ? 32513 : severity == ReminderSeverity.Warning ? 32515 : 32516) : brandIcon;
+        data.Icon = severity.HasValue || unknown ? trayIcons[severity ?? ReminderSeverity.Info] : brandIcon;
+        overlayIcon = severity.HasValue || unknown ? alertIcons[severity ?? ReminderSeverity.Info] : 0;
         if (Shell_NotifyIcon(1, ref data)) lastStatus = status;
-        TaskbarOverlay.Set(hwnd, severity.HasValue || unknown ? data.Icon : 0, tip);
+        TaskbarOverlay.Set(hwnd, overlayIcon, tip);
     }
     nint WindowProc(nint window, uint message, nuint wParam, nint lParam, nuint id, nuint reference)
     {
-        if (message == explorerRestart) { Shell_NotifyIcon(0, ref data); TaskbarOverlay.Set(hwnd, data.Icon == brandIcon ? 0 : data.Icon, data.Tip); }
-        if (message == taskbarCreated) TaskbarOverlay.Set(hwnd, data.Icon == brandIcon ? 0 : data.Icon, data.Tip);
+        if (message == explorerRestart) { Shell_NotifyIcon(0, ref data); TaskbarOverlay.Set(hwnd, overlayIcon, data.Tip); }
+        if (message == taskbarCreated) TaskbarOverlay.Set(hwnd, overlayIcon, data.Tip);
         if (message == 0x001E || message == 0x0218 && wParam is 7 or 18) ResumeOrClockChanged?.Invoke();
         if (message == Callback)
         {
@@ -64,7 +80,7 @@ public sealed class TrayService : IDisposable
         }
         finally { DestroyMenu(menu); }
     }
-    public void Dispose() { Shell_NotifyIcon(2, ref data); RemoveWindowSubclass(hwnd, callback, 1); if (brandIcon != 0) DestroyIcon(brandIcon); }
+    public void Dispose() { Shell_NotifyIcon(2, ref data); RemoveWindowSubclass(hwnd, callback, 1); if (brandIcon != 0) DestroyIcon(brandIcon); if (largeIcon != 0) DestroyIcon(largeIcon); foreach (var icon in alertIcons.Values.Concat(trayIcons.Values)) if (icon != 0) DestroyIcon(icon); }
     delegate nint SubclassProc(nint hwnd, uint message, nuint wParam, nint lParam, nuint id, nuint reference);
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)] struct NotifyIconData
     {
@@ -83,7 +99,9 @@ public sealed class TrayService : IDisposable
     [DllImport("comctl32.dll")] static extern nint DefSubclassProc(nint hwnd, uint message, nuint wParam, nint lParam);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern uint RegisterWindowMessage(string name);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern nint LoadImage(nint instance, string path, uint type, int width, int height, uint flags);
-    [DllImport("user32.dll")] static extern nint LoadIcon(nint instance, nint id);
+    [DllImport("user32.dll")] static extern uint GetDpiForWindow(nint hwnd);
+    [DllImport("user32.dll")] static extern int GetSystemMetricsForDpi(int index, uint dpi);
+    [DllImport("user32.dll")] static extern nint SendMessage(nint hwnd, uint message, nuint wParam, nint lParam);
     [DllImport("user32.dll")] static extern bool DestroyIcon(nint icon);
     [DllImport("user32.dll")] static extern nint CreatePopupMenu();
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern bool AppendMenu(nint menu, uint flags, nuint id, string label);

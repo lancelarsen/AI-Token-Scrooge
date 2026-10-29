@@ -21,6 +21,7 @@
     <ProjectReference Include="../AIResetRadar.Infrastructure/AIResetRadar.Infrastructure.csproj" />
     <Content Include="Resources/Sounds/*" Link="Sounds/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <MauiImage Include="Resources/Images/*" />
+    <Content Include="Resources/alert-*.ico;Resources/tray-*.ico" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Resources/app.ico" Link="app.ico" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Resources/LUCIDE-LICENSE.txt" Link="LUCIDE-LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="github-app.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
