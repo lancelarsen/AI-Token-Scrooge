@@ -54,7 +54,7 @@ public sealed class ThresholdEditor : NativeCanvas, IDisposable
                 <ControlTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" TargetType="Thumb">
                     <Grid Width="32" Height="48" Background="Transparent">
-                        <Border Width="8" Height="34" CornerRadius="4" BorderThickness="2"
+                        <Border Width="10" Height="36" CornerRadius="5" BorderThickness="3"
                                 BorderBrush="#30333E" Background="{{color}}" BackgroundSizing="InnerBorderEdge"
                                 HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" />
                     </Grid>
