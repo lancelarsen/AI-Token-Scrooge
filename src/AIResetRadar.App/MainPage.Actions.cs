@@ -17,6 +17,7 @@ public sealed partial class MainPage
         {
             var savedSettings = await AppServices.Current.Store.ReadAsync<RadarSettings>("settings");
             preferences = (savedSettings ?? new()).UpgradeReminderDefaults();
+            historyPreferences = await AppServices.Current.Store.ReadAsync<HistoryPreferences>("history-view") ?? new();
             if (!state.IsDemo && preferences.LaunchAtSignIn)
             {
                 try { AIResetRadar.App.Platforms.Windows.StartupService.SetEnabled(true); }
@@ -37,12 +38,19 @@ public sealed partial class MainPage
                 AIResetRadar.App.Platforms.Windows.NotificationService.Current.AccountsLoaded();
                 await RefreshAsync();
             }
-            else AIResetRadar.App.Platforms.Windows.NotificationService.Current.AccountsLoaded();
+            else { AIResetRadar.App.Platforms.Windows.NotificationService.Current.AccountsLoaded(); Render(); }
         }
         catch { await AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, "Local storage unavailable", "Scrooge could not load its local account data. Check available disk space and folder access before connecting accounts.", "OK"); }
     }
     readonly Dictionary<string, int> failures = [];
     readonly Dictionary<string, DateTimeOffset> throttledUntil = [];
+    async Task RefreshByUserAsync()
+    {
+        if (refreshing.CurrentCount == 0) return;
+        AlertSounds.Play(preferences, "refresh");
+        await RefreshAsync();
+    }
+
     async Task RefreshAsync(bool force = true)
     {
         if (!await refreshing.WaitAsync(0)) return;

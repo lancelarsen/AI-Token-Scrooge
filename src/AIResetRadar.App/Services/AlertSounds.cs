@@ -9,11 +9,13 @@ internal static class AlertSounds
     public static string? Play(RadarSettings settings, string action, bool preview = false)
     {
         if (!preview && !settings.Sound) return null;
-        if (action is not ("alert" or "snooze" or "dismiss" or "info")) return null;
+        if (action is not ("alert" or "snooze" or "dismiss" or "info" or "refresh")) return null;
         try
         {
             var theme = settings.SoundTheme == "Classic" ? "classic" : "duck";
-            var path = Path.Combine(AppContext.BaseDirectory, "Sounds", $"{theme}-{action}.wav");
+            // Refresh uses the single-quack cue, rather than Show Info's double quack.
+            var cue = action == "refresh" ? "dismiss" : action;
+            var path = Path.Combine(AppContext.BaseDirectory, "Sounds", $"{theme}-{cue}.wav");
             if (!File.Exists(path)) return "Sound File Unavailable";
             player.Pause();
             player.Volume = double.IsFinite(settings.SoundVolume) ? Math.Clamp(settings.SoundVolume, 0, 100) / 100 : 0.65;

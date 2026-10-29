@@ -5,8 +5,15 @@ namespace AIResetRadar.App.Controls;
 
 public sealed class HorizonView : Border
 {
-    readonly HorizonDay[] days;
-    readonly TimeZoneInfo timeZone;
+    HorizonDay[] days;
+    TimeZoneInfo timeZone;
+    readonly Action<HorizonEvent> open;
+    readonly HistoryTimelineView history;
+    readonly Switch historyToggle = new() { OnColor = Color.FromArgb("#8670CC"), ThumbColor = Color.FromArgb("#D1BEFF"), IsToggled = true };
+    readonly Label refreshLabel = new();
+    readonly Label expiryLabel = new();
+    bool updating;
+    string futureSignature = "";
     readonly Grid grid = new() { ColumnSpacing = 0 };
     readonly ScrollView viewport = new() { Orientation = ScrollOrientation.Horizontal, HorizontalScrollBarVisibility = ScrollBarVisibility.Never };
     readonly Label hint = new() { Text = "Hover or click for details.", FontSize = 13, TextColor = Color.FromArgb("#BEC1D2"), Margin = new Thickness(0, 8, 0, 8), VerticalOptions = LayoutOptions.Center };
@@ -14,8 +21,11 @@ public sealed class HorizonView : Border
     readonly GraphicsView navigator = new() { HeightRequest = 22 };
     double contentWidth, dragStart, pointerStart;
     bool dragging;
-    public HorizonView(IEnumerable<HorizonEvent> source, Action<HorizonEvent> open, TimeZoneInfo? timeZone = null, Action? settings = null)
+    public HorizonView(IEnumerable<HorizonEvent> source, Action<HorizonEvent> open, TimeZoneInfo? timeZone = null, Action? settings = null,
+        Func<bool, Task<bool>>? toggleHistory = null, Func<string, bool, Task<bool>>? selectAccount = null)
     {
+        this.open = open;
+        history = new HistoryTimelineView(open, selectAccount ?? ((_, _) => Task.FromResult(true)));
         this.timeZone = timeZone ?? TimeZones.Resolve(null);
         days = HorizonTimeline.Build(source, DateTimeOffset.Now, this.timeZone);
         BackgroundColor = Color.FromArgb("#1C1E24"); StrokeThickness = 1; Stroke = Color.FromArgb("#383B46");
@@ -28,8 +38,22 @@ public sealed class HorizonView : Border
         } });
         var refreshCount = days.Sum(day => day.Events.Count(e => !e.IsExpiry));
         var expiryCount = days.Sum(day => day.Events.Count(e => e.IsExpiry));
-        header.Children.Add(Legend($"Quota Refresh ({refreshCount})", "#B5A0F4"));
-        header.Children.Add(Legend($"Reset Expires ({expiryCount})", "#EAAA51"));
+        refreshLabel.Text = $"Quota Refresh ({refreshCount})"; expiryLabel.Text = $"Reset Expires ({expiryCount})";
+        header.Children.Add(Legend(refreshLabel, "#B5A0F4"));
+        header.Children.Add(Legend(expiryLabel, "#EAAA51"));
+        header.Children.Add(new HorizontalStackLayout { Spacing = 7, Margin = new Thickness(0, 0, 18, 0), Children = {
+            historyToggle, new Label { Text = "History", FontSize = 13, VerticalOptions = LayoutOptions.Center } } });
+        SemanticProperties.SetDescription(historyToggle, "Show Weekly and Monthly Usage History");
+        historyToggle.Toggled += async (_, e) => {
+            if (updating) return;
+            historyToggle.IsEnabled = false;
+            try {
+                if (toggleHistory is not null && !await toggleHistory(e.Value)) {
+                    updating = true; historyToggle.IsToggled = !e.Value; updating = false;
+                }
+                SetHistoryVisible(historyToggle.IsToggled);
+            } finally { historyToggle.IsEnabled = true; }
+        };
         header.Children.Add(hint);
         var headerRow = new Grid { ColumnDefinitions = [new(GridLength.Star), new(GridLength.Auto)], ColumnSpacing = 8 };
         headerRow.Add(header);
@@ -61,16 +85,43 @@ public sealed class HorizonView : Border
         viewport.Scrolled += (_, _) => UpdateNavigator();
         Content = new VerticalStackLayout { Spacing = 16, Children = {
             headerRow, new BoxView { HeightRequest = 1, Color = Color.FromArgb("#383B46"), Margin = new Thickness(12, 0) }, viewport,
-            navigator
+            navigator, history
         } };
         viewport.SizeChanged += (_, _) => Render(open);
         SizeChanged += (_, _) => Render(open); Render(open);
+        SetHistoryVisible(true);
     }
-    static View Legend(string text, string color) => new HorizontalStackLayout { Spacing = 7, Margin = new Thickness(0, 8, 20, 8), VerticalOptions = LayoutOptions.Center, Children = {
+    public void Update(IEnumerable<HorizonEvent> source, HistorySeries[] series, HistoryPreferences choices, TimeZoneInfo zone,
+        DateTimeOffset now, bool loading = false, string? error = null)
+    {
+        var events = source.ToArray(); timeZone = zone;
+        var signature = zone.Id + now.Date.ToString("O") + string.Join("|", events.Select(e => e.ToString()));
+        if (futureSignature != signature) {
+            futureSignature = signature; days = HorizonTimeline.Build(events, now, zone); renderedWidth = double.NaN;
+            refreshLabel.Text = $"Quota Refresh ({events.Count(e => !e.IsExpiry)})";
+            expiryLabel.Text = $"Reset Expires ({events.Count(e => e.IsExpiry)})";
+            if (!choices.Enabled) Render(open);
+        }
+        updating = true; historyToggle.IsToggled = choices.Enabled; updating = false;
+        SetHistoryVisible(choices.Enabled);
+        history.Update(series, events, choices, zone, now, loading, error);
+        hint.Text = choices.Enabled ? "Scroll Left for History" : "Hover or Click for Details";
+    }
+    void SetHistoryVisible(bool enabled)
+    {
+        if (history.IsVisible && !enabled) history.FollowToday();
+        history.IsVisible = enabled; viewport.IsVisible = navigator.IsVisible = !enabled;
+        if (!enabled) { renderedWidth = double.NaN; Render(open); }
+    }
+    static View Legend(Label label, string color)
+    {
+        label.FontSize = 13; label.TextColor = Color.FromArgb("#BEC1D2"); label.VerticalOptions = LayoutOptions.Center;
+        return new HorizontalStackLayout { Spacing = 7, Margin = new Thickness(0, 8, 20, 8), VerticalOptions = LayoutOptions.Center, Children = {
         new Border { WidthRequest = 10, HeightRequest = 10, StrokeThickness = 0, BackgroundColor = Color.FromArgb(color), VerticalOptions = LayoutOptions.Center,
             StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 5 } },
-        new Label { Text = text, FontSize = 13, TextColor = Color.FromArgb("#BEC1D2"), VerticalOptions = LayoutOptions.Center }
+        label
     } };
+    }
     void Render(Action<HorizonEvent> open)
     {
         // Use the actual viewport so border thickness and pixel rounding cannot create a tiny overflow.

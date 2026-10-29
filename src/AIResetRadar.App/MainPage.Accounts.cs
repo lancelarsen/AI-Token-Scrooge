@@ -25,11 +25,12 @@ public sealed partial class MainPage
             previous = state.Snapshots.GetValueOrDefault(accepted.Id);
             var accounts = state.Accounts.Where(a => a.Id != accepted.Id).Append(accepted).ToArray();
             var snapshots = state.Snapshots.Values.Where(s => s.AccountId != accepted.Id).Append(snapshot).ToArray();
-            // Persist the credential reference and snapshot together before adopting either in the UI.
+            // Persist the credential reference, current snapshot, and first history sample
+            // together before adopting the connection in the UI.
             var retire = retired is not null && CredentialKey(retired) != CredentialKey(accepted);
             var pending = retire ? retiredCredentials.Append(retired!).DistinctBy(CredentialKey).ToArray() : retiredCredentials.ToArray();
             var alerts = accepted.Enabled ? AlertEvaluator.Evaluate(accepted, previous, snapshot, preferences, DateTimeOffset.UtcNow) : [];
-            recorded = await AppServices.Current.Store.WriteMonitoringStateAsync(accounts, snapshots, pending, alerts);
+            recorded = await AppServices.Current.Store.WriteMonitoringStateAsync(accounts, snapshots, pending, alerts, historySnapshot: snapshot);
             retiredCredentials.Clear(); retiredCredentials.AddRange(pending);
             if (index >= 0) state.Accounts[index] = accepted; else state.Accounts.Add(accepted);
             state.Snapshots[accepted.Id] = snapshot;

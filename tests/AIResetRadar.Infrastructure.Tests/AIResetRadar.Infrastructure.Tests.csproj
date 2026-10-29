@@ -14,5 +14,9 @@
   <Compile Include="../../src/AIResetRadar.App/Platforms/Windows/FocusEventFailure.cs" Link="App/FocusEventFailure.cs" />
   <Compile Include="../../src/AIResetRadar.App/Presentation/DashboardState.cs" Link="App/DashboardState.cs" />
   <Compile Include="../../src/AIResetRadar.App/Presentation/AccountDragLayout.cs" Link="App/AccountDragLayout.cs" />
+  <Compile Include="../../src/AIResetRadar.App/Presentation/HorizonViewport.cs" Link="App/HorizonViewport.cs" />
+  <Compile Include="../../src/AIResetRadar.App/Presentation/UsageHistory.cs" Link="App/UsageHistory.cs" />
+  <Compile Include="../../src/AIResetRadar.App/Presentation/HistoryDemo.cs" Link="App/HistoryDemo.cs" />
+  <Compile Include="../../src/AIResetRadar.App/Presentation/HistoryChartLayout.cs" Link="App/HistoryChartLayout.cs" />
  </ItemGroup>
 </Project>

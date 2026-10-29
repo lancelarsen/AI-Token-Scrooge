@@ -308,3 +308,11 @@ The automation only exposes a complete drag gesture, so mid-drag motion, Escape 
 
 ### Account reorder handle cleanup — October 27, 2026
 Removed the up/down buttons and their keyboard-focus restoration code. The centered drag handle remains beside each account card, with a narrower left gutter and a tooltip that identifies the account. Custom order continues to use the existing pointer-driven drop and saved account order.
+
+## History Implementation Checkpoint — 2026-10-29
+
+Implemented the shared past/future navigator, weekly/monthly account history, persistent visibility choices, bounded local history queries, and transactional first-snapshot recording. The user's later correction supersedes the original remaining-capacity graph: chart values are now percent used. Missing observations connect linearly between compatible known readings; interpolated spans are identified as estimates. Identity and quota-definition changes remain breaks. Every successful provider refresh already records its complete snapshot locally; no reduction to 30-minute sampling was made.
+
+Verification: `dotnet test AIResetRadar.slnx --nologo` passed 284 tests (105 Core, 179 Infrastructure). Release Windows publish succeeded. Native inspection of `artifacts/publish/history-interpolated-win-x64` confirmed existing signed-in accounts, Today-first launch, leftward navigation into history, percent-used axis, connected historical spans, and saved account selection. Earlier native refresh check preserved the browsed date position. Refresh now uses the existing single-quack dismiss asset instead of the double-quack Show Info asset, respecting sound theme, mute and volume; audible output has not been independently verified.
+
+Remaining before goal completion: full seven-day/35-day demo native checks, narrow-width and available DPI checks, hover/click/keyboard coverage, selector persistence round-trip, account reorder/modal/refresh cycles, canonical desktop-shortcut build update, and final requirement audit. This checkpoint does not claim those gates are complete.

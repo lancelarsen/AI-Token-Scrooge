@@ -67,3 +67,9 @@ This planning pass used source inspection and a separate read-only data audit. I
 ## Goal Handoff
 
 Implement the unified Reset Horizon history described in `tasks/history-plan.md` and `tasks/history-todo.md`, using `design/references/history-selected.png` as the visual reference. Show one Weekly line per OpenAI/Claude account and one Monthly line per Copilot account; retain all existing dashboard quota bars. Start at Today and reveal seven days of real history only when scrolling left with the existing purple navigator. Preserve honest gaps and provider-reported event semantics. Complete the task-card verification, commit and push each completed increment, and rebuild/restart/visually verify the running Windows app after UI/runtime updates. Ask before changing unrelated behavior.
+
+## Approved Follow-up Corrections
+- Use % Used for the history chart, tooltips and endpoint labels.
+- Linearly interpolate missing observations between compatible known samples and identify estimates; preserve identity/allowance discontinuities.
+- Refresh plays one quack; automatic polls stay silent.
+

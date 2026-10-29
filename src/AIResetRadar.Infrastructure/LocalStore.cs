@@ -9,8 +9,11 @@ public sealed partial class LocalStore
     readonly string connectionString;
     readonly SemaphoreSlim gate = new(1, 1);
     readonly TimeProvider clock;
-    public async Task<IReadOnlyList<AlertEvent>> WriteMonitoringStateAsync(IReadOnlyList<ProviderAccount> accounts, IReadOnlyList<QuotaSnapshot> snapshots, IReadOnlyList<ProviderAccount>? retired = null, IReadOnlyList<AlertEvent>? alerts = null, CancellationToken ct = default)
+    public async Task<IReadOnlyList<AlertEvent>> WriteMonitoringStateAsync(IReadOnlyList<ProviderAccount> accounts, IReadOnlyList<QuotaSnapshot> snapshots, IReadOnlyList<ProviderAccount>? retired = null, IReadOnlyList<AlertEvent>? alerts = null, CancellationToken ct = default, QuotaSnapshot? historySnapshot = null)
     {
+        if (historySnapshot is not null && (!snapshots.Contains(historySnapshot) ||
+            !accounts.Any(account => historySnapshot.BelongsTo(account))))
+            throw new InvalidDataException("The history snapshot must belong to an accepted account and its current monitoring state.");
         var values = new Dictionary<string, string> { ["accounts"] = JsonSerializer.Serialize(accounts), ["snapshots"] = JsonSerializer.Serialize(snapshots) };
         if (retired is not null) values["retired"] = JsonSerializer.Serialize(retired);
         await gate.WaitAsync(ct);
@@ -30,6 +33,8 @@ public sealed partial class LocalStore
                 foreach (var alert in alerts) if (AddAlert(events, alert)) inserted.Add(events[^1]);
                 if (inserted.Count > 0) await WriteAlertsAsync(connection, transaction, events, ct);
             }
+            if (historySnapshot is not null) await WriteSnapshotAsync(connection, transaction, historySnapshot, ct);
+            ct.ThrowIfCancellationRequested();
             transaction.Commit(); return inserted;
         }
         finally { gate.Release(); }
@@ -39,12 +44,10 @@ public sealed partial class LocalStore
         await gate.WaitAsync(ct);
         try
         {
-            await using var connection = await OpenAsync(ct);
-            await using var command = connection.CreateCommand();
-            command.CommandText = "INSERT OR REPLACE INTO history(account_id,observed_at,value) VALUES($account,$observed,$value); DELETE FROM history WHERE observed_at < $cutoff;";
-            command.Parameters.AddWithValue("$account", snapshot.AccountId); command.Parameters.AddWithValue("$observed", snapshot.ObservedAt.ToUnixTimeMilliseconds());
-            command.Parameters.AddWithValue("$value", JsonSerializer.Serialize(snapshot)); command.Parameters.AddWithValue("$cutoff", HistoryRetention.Cutoff(clock.GetUtcNow()).ToUnixTimeMilliseconds());
-            await command.ExecuteNonQueryAsync(ct);
+            await using var connection = await OpenAsync(ct); using var transaction = connection.BeginTransaction();
+            await WriteSnapshotAsync(connection, transaction, snapshot, ct);
+            ct.ThrowIfCancellationRequested();
+            transaction.Commit();
         }
         finally { gate.Release(); }
     }

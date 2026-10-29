@@ -78,22 +78,29 @@ public sealed class DashboardState
     string? TimelineBadge(ProviderAccount account) => Accounts.Count(a => a.Enabled && a.Provider == account.Provider) > 1
         ? PlanLabels.Display(account.Provider, Snapshots.GetValueOrDefault(account.Id)?.PlanType) : null;
 
-    public void LoadDemo(DateTimeOffset now)
+    public void LoadDemo(DateTimeOffset now, bool historyDemo = false)
     {
         IsDemo = true; Accounts.Clear(); Snapshots.Clear();
         var personal = new ProviderAccount("demo-personal", "OpenAI", "Personal", "demo@example.invalid", "demo");
         var work = new ProviderAccount("demo-work", "OpenAI", "Work", "work@example.invalid", "demo-work");
         var github = new ProviderAccount("demo-github", "GitHub Copilot", "Work", "demo-github", "personal", Allowance: 10000);
+        var claude = new ProviderAccount("demo-claude", "Claude", "Personal", "claude@example.invalid", "demo-claude");
         Accounts.AddRange([personal, github, work]);
+        if (historyDemo) Accounts.Add(claude);
         Snapshots[personal.Id] = new(personal.Id, personal.Subject, personal.Scope, now,
             [new("codex/primary", "Codex · 5-hour", UsageUnit.Percent, 38, 100, now.AddHours(2).AddMinutes(14), 300),
              new("codex/secondary", "Codex · Weekly", UsageUnit.Percent, 74, 100, now.AddDays(2), 10080)],
-            new(2, [new("demo-r1", "available", now.AddDays(4)), new("demo-r2", "available", now.AddDays(9))]), SourceHealth.Demo);
+            new(2, [new("demo-r1", "available", now.AddDays(4)), new("demo-r2", "available", now.AddDays(9))]), SourceHealth.Demo, PlanType: historyDemo ? "plus" : null);
         Snapshots[work.Id] = new(work.Id, work.Subject, work.Scope, now,
-            [new("codex/primary", "Codex · 5-hour", UsageUnit.Percent, 19, 100, now.AddHours(3).AddMinutes(44), 300)], null, SourceHealth.Demo);
+            [new("codex/primary", "Codex · 5-hour", UsageUnit.Percent, 19, 100, now.AddHours(3).AddMinutes(44), 300),
+             new("codex/secondary", "Codex · Weekly", UsageUnit.Percent, 36, 100, now.AddDays(5), 10080)], null, SourceHealth.Demo, PlanType: "pro");
+        Snapshots[claude.Id] = new(claude.Id, claude.Subject, claude.Scope, now,
+            [new("session", "Current Session", UsageUnit.Percent, 12, 100, now.AddHours(3), 300),
+             new("weekly", "Weekly Limit", UsageUnit.Percent, 26, 100, now.AddDays(4), 10080)], null, SourceHealth.Demo, PlanType: "pro");
         Snapshots[github.Id] = new(github.Id, github.Subject, github.Scope, now,
             [new("copilot/monthly", "AI credits · Monthly (10,000)", UsageUnit.Credits, 8200, 10000,
-                new DateTimeOffset(now.UtcDateTime.Year, now.UtcDateTime.Month, 1, 0, 0, 0, TimeSpan.Zero).AddMonths(1))], null, SourceHealth.Demo);
+                new DateTimeOffset(now.UtcDateTime.Year, now.UtcDateTime.Month, 1, 0, 0, 0, TimeSpan.Zero).AddMonths(1))], null, SourceHealth.Demo, PlanType: "individual_max");
+        if (!historyDemo) { Snapshots.Remove(claude.Id); Snapshots[work.Id] = Snapshots[work.Id] with { Windows = Snapshots[work.Id].Windows.Take(1).ToArray() }; }
     }
 
     public void ClearDemo() { IsDemo = false; Accounts.Clear(); Snapshots.Clear(); }
@@ -111,6 +118,8 @@ public sealed class DashboardState
             var snapshot = Snapshots[id];
             Snapshots[id] = scenario switch
             {
+                "history-long" when snapshot.Reserve is not null => snapshot with { Reserve = new(3,
+                    [.. snapshot.Reserve.Credits ?? [], new("demo-long-horizon", "available", DateTimeOffset.Now.AddDays(35))]) },
                 "reserve-only" => snapshot with { Windows = [], Message = "Demo: source reported reset credits without quota windows." },
                 "offline" => snapshot with { Health = SourceHealth.Offline, Message = "Demo: network unavailable; last successful values retained." },
                 "auth" => snapshot with { Health = SourceHealth.AuthenticationRequired, Message = "Demo: reconnect this account to resume monitoring." },

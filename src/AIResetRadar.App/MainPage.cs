@@ -51,8 +51,8 @@ public sealed partial class MainPage : ContentPage
             Grid.SetColumnSpan(actions, wide ? 1 : 2);
         };
         root.Add(header); root.Add(new BoxView { Color = Color.FromArgb("#363842") }, 0, 1); dashboardScroll.Content = body; root.Add(dashboardScroll, 0, 2); Content = root;
-        refresh.Clicked += async (_, _) => await RefreshAsync(); settings.Clicked += async (_, _) => await OpenSettingsAsync();
-        if (Environment.GetCommandLineArgs().Contains("--demo")) state.LoadDemo(DateTimeOffset.Now);
+        refresh.Clicked += async (_, _) => await RefreshByUserAsync(); settings.Clicked += async (_, _) => await OpenSettingsAsync();
+        if (Environment.GetCommandLineArgs().Contains("--demo")) state.LoadDemo(DateTimeOffset.Now, historyDemo: true);
         var args = Environment.GetCommandLineArgs(); var scenario = Array.IndexOf(args, "--scenario");
         if (scenario >= 0 && scenario + 1 < args.Length) state.ApplyDemoScenario(args[scenario + 1]);
         Appearing += async (_, _) =>
@@ -76,16 +76,17 @@ public sealed partial class MainPage : ContentPage
         var now = DateTimeOffset.Now;
         var signature = state.RenderSignature(now) + ":" + retiredCredentials.Count;
         UpdateFreshness();
+        UpdateHorizon();
         if (signature == renderSignature)
         {
             foreach (var row in rowViews) row.UpdateClock(now);
             return;
         }
-        body.Children.Clear();
+        // Keep the horizon and its viewport alive across polling, sorting, and account edits.
+        while (body.Children.Count > 1) body.Children.RemoveAt(body.Children.Count - 1);
         rowViews.Clear();
         orderCards.Clear();
         notificationCards.Clear();
-        body.Children.Add(new HorizonView(state.Events(DateTimeOffset.Now), e => OpenAccount(e.AccountId, e.WindowId), DisplayZone, async () => await OpenSettingsAsync(true)));
         var toolbar = new Grid { ColumnDefinitions = [new(GridLength.Star), new(GridLength.Auto)], ColumnSpacing = 12 };
         var add = MakeButton(state.IsDemo ? "Exit demo" : "Add account", "\uE710"); add.Clicked += async (_, _) => { if (state.IsDemo) { state.ClearDemo(); initialized = false; await InitializeAsync(); } else await AddAccountAsync(); };
         var sort = new AccountSortControl(preferences.AccountSort, mode => _ = ChangeSortAsync(mode));
@@ -93,7 +94,7 @@ public sealed partial class MainPage : ContentPage
         toolbar.Add(sort); toolbar.Add(add, 1); body.Children.Add(toolbar);
         if (state.Accounts.Count == 0)
         {
-            var demo = MakeButton("Explore with demo data", "\uE8A5"); demo.Clicked += (_, _) => { state.LoadDemo(DateTimeOffset.Now); Render(); };
+            var demo = MakeButton("Explore with demo data", "\uE8A5"); demo.Clicked += (_, _) => { state.LoadDemo(DateTimeOffset.Now, historyDemo: true); Render(); };
             body.Children.Add(new VerticalStackLayout { Padding = new Thickness(24, 36), Spacing = 15, Children = {
                 new Label { Text = "Your AI capacity, in one quiet place.", FontSize = 24, FontFamily = "Segoe UI Semibold" },
                 new Label { Text = "Connect OpenAI Codex or GitHub Copilot to see usage, upcoming resets and earned-reset expirations.", TextColor = Color.FromArgb("#B6B8C8") }, demo }});

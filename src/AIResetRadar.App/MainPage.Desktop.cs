@@ -23,7 +23,7 @@ public sealed partial class MainPage
         {
             tray = new(native);
             tray.Open += ShowMain;
-            tray.Refresh += async () => await RefreshAsync();
+            tray.Refresh += async () => await RefreshByUserAsync();
             tray.ResumeOrClockChanged += async () => { nextRefresh.Clear(); if (!state.IsDemo) await RefreshAsync(); };
             tray.Exit += () => { exiting = true; Application.Current!.CloseWindow(window); };
         }
