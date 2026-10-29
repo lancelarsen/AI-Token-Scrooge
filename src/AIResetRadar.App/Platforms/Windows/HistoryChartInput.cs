@@ -24,8 +24,9 @@ public static class HistoryChartInput
         Func<int, string?> moveCursor, Action<double> pan, Action followToday, View? pointerSurface = null) =>
         Replace(view, new Binding(view, hover, clear, moveCursor, pan, followToday, pointerSurface));
 
-    public static void AttachNavigator(GraphicsView view, Action<double> pan, Action followToday) =>
-        Replace(view, new Binding(view, null, null, null, pan, followToday));
+    public static void AttachNavigator(GraphicsView view, Action<double> pan, Action followToday, View pointerSurface,
+        Action<double> beginDrag, Action<double> drag, Action endDrag) =>
+        Replace(view, new Binding(view, null, null, null, pan, followToday, pointerSurface, beginDrag, drag, endDrag));
 
     static void Replace(GraphicsView view, Binding binding)
     {
@@ -57,13 +58,18 @@ public static class HistoryChartInput
         bool pinned;
         bool disposed;
         bool suppressFocusReadout;
+        readonly Action<double>? beginDrag, drag;
+        readonly Action? endDrag;
+        uint? dragPointerId;
         bool IsNavigator => hover is null;
 
         public Binding(GraphicsView view, Func<double, double, string?>? hover, Action? clear,
-            Func<int, string?>? moveCursor, Action<double> pan, Action followToday, View? pointerSurface = null)
+            Func<int, string?>? moveCursor, Action<double> pan, Action followToday, View? pointerSurface = null,
+            Action<double>? beginDrag = null, Action<double>? drag = null, Action? endDrag = null)
         {
             this.view = view; this.hover = hover; this.clear = clear;
             this.pointerSurface = pointerSurface;
+            this.beginDrag = beginDrag; this.drag = drag; this.endDrag = endDrag;
             this.moveCursor = moveCursor; this.pan = pan; this.followToday = followToday;
             wheelHandler = OnWheel; keyHandler = OnKeyDown;
             heading = new TextBlock { FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe UI"),
@@ -105,6 +111,14 @@ public static class HistoryChartInput
             pointerTarget.AddHandler(UIElement.PointerMovedEvent, new PointerEventHandler(OnPointer), true);
             pointerTarget.PointerExited += OnExited;
             pointerTarget.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler(OnPressed), true);
+            if (IsNavigator)
+            {
+                // Own the gesture on a stable surface, including moves outside the thin track.
+                pointerTarget.ManipulationMode = ManipulationModes.None;
+                pointerTarget.AddHandler(UIElement.PointerReleasedEvent, new PointerEventHandler(OnReleased), true);
+                pointerTarget.PointerCanceled += OnCanceled;
+                pointerTarget.PointerCaptureLost += OnCanceled;
+            }
             target.GotFocus += OnFocus;
             target.LostFocus += OnLostFocus;
             target.Unloaded += OnUnloaded;
@@ -118,7 +132,15 @@ public static class HistoryChartInput
 
         void OnPointer(object sender, PointerRoutedEventArgs args)
         {
-            if (target is null || IsNavigator || pinned) return;
+            if (target is null) return;
+            if (IsNavigator)
+            {
+                if (dragPointerId != args.Pointer.PointerId) return;
+                drag?.Invoke(args.GetCurrentPoint(target).Position.X);
+                args.Handled = true;
+                return;
+            }
+            if (pinned) return;
             var point = args.GetCurrentPoint(target);
             if (point.Properties.IsLeftButtonPressed) return;
             Show(hover!(point.Position.X, point.Position.Y), point.Position);
@@ -130,12 +152,39 @@ public static class HistoryChartInput
             suppressFocusReadout = true;
             try { if (target is NativeControl control) control.Focus(FocusState.Pointer); }
             finally { suppressFocusReadout = false; }
-            if (IsNavigator) return; // Preserve the MAUI navigator's pointer capture and drag handlers.
+            if (IsNavigator)
+            {
+                if (dragPointerId is not null || pointerTarget is null || !pointerTarget.CapturePointer(args.Pointer)) return;
+                dragPointerId = args.Pointer.PointerId;
+                beginDrag?.Invoke(args.GetCurrentPoint(target).Position.X);
+                args.Handled = true;
+                return;
+            }
             var point = args.GetCurrentPoint(target).Position;
             var text = hover!(point.X, point.Y);
             pinned = text is not null;
             Show(text, point, announce: true);
             args.Handled = text is not null;
+        }
+
+        void OnReleased(object sender, PointerRoutedEventArgs args)
+        {
+            if (dragPointerId != args.Pointer.PointerId) return;
+            if (target is not null) drag?.Invoke(args.GetCurrentPoint(target).Position.X);
+            EndDrag(); args.Handled = true;
+        }
+
+        void OnCanceled(object sender, PointerRoutedEventArgs args)
+        {
+            if (dragPointerId == args.Pointer.PointerId) EndDrag();
+        }
+
+        void EndDrag()
+        {
+            if (dragPointerId is null) return;
+            dragPointerId = null;
+            endDrag?.Invoke();
+            pointerTarget?.ReleasePointerCaptures();
         }
 
         void OnExited(object sender, PointerRoutedEventArgs args) { if (!pinned) Hide(); }
@@ -151,7 +200,7 @@ public static class HistoryChartInput
         }
 
         void OnLostFocus(object sender, RoutedEventArgs args) => Hide();
-        void OnUnloaded(object sender, RoutedEventArgs args) => Hide();
+        void OnUnloaded(object sender, RoutedEventArgs args) { EndDrag(); Hide(); }
         void OnSizeChanged(object sender, SizeChangedEventArgs args) => Hide();
         void OnViewportChanged(FrameworkElement sender, EffectiveViewportChangedEventArgs args) => Hide();
 
@@ -234,7 +283,7 @@ public static class HistoryChartInput
 
         void Disconnect()
         {
-            Hide();
+            EndDrag(); Hide();
             if (target is null) return;
             if (pointerTarget is not null)
             {
@@ -242,6 +291,9 @@ public static class HistoryChartInput
                 pointerTarget.RemoveHandler(UIElement.PointerMovedEvent, new PointerEventHandler(OnPointer));
                 pointerTarget.PointerExited -= OnExited;
                 pointerTarget.RemoveHandler(UIElement.PointerPressedEvent, new PointerEventHandler(OnPressed));
+                pointerTarget.RemoveHandler(UIElement.PointerReleasedEvent, new PointerEventHandler(OnReleased));
+                pointerTarget.PointerCanceled -= OnCanceled;
+                pointerTarget.PointerCaptureLost -= OnCanceled;
                 pointerTarget = null;
             }
             target.GotFocus -= OnFocus; target.LostFocus -= OnLostFocus;

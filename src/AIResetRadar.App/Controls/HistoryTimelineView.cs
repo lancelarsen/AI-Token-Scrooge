@@ -20,6 +20,8 @@ public sealed class HistoryTimelineView : Grid
         HeightRequest = -1, HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Fill };
     readonly AbsoluteLayout eventsLayer = new() { InputTransparent = true, CascadeInputTransparent = false };
     readonly GraphicsView navigator = new() { HeightRequest = 22 };
+    readonly Button navigatorInput = new() { Text = "", BackgroundColor = Colors.Transparent, BorderWidth = 0, Padding = 0,
+        HeightRequest = -1, HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Fill };
     readonly Label status = new() { FontSize = 13, TextColor = Muted, HorizontalTextAlignment = TextAlignment.Center,
         VerticalOptions = LayoutOptions.Center, InputTransparent = true };
     readonly Dictionary<string, View> eventViews = [];
@@ -54,26 +56,30 @@ public sealed class HistoryTimelineView : Grid
         var rail = new Grid { ColumnDefinitions = [new(GridLength.Star), new(new GridLength(1))] };
         rail.Add(selectorScroll); rail.Add(new BoxView { Color = Color.FromArgb("#383B46"), Margin = new Thickness(0, 6) }, 1);
         this.Add(rail); chartHost.Add(chart); chartHost.Add(chartInput); chartHost.Add(eventsLayer); chartHost.Add(status); this.Add(chartHost, 1);
-        this.Add(navigator, 0, 1); Grid.SetColumnSpan((BindableObject)navigator, 2);
+        var navigatorHost = new Grid { HeightRequest = 22 };
+        navigatorHost.Add(navigator); navigatorHost.Add(navigatorInput);
+        this.Add(navigatorHost, 0, 1); Grid.SetColumnSpan((BindableObject)navigatorHost, 2);
         chart.Drawable = new Plot(this); navigator.Drawable = new Overview(this);
         chart.SizeChanged += (_, _) => Reflow();
         SizeChanged += (_, _) => { ColumnDefinitions[0].Width = new GridLength(Width < 850 ? 105 : 132); Reflow(); };
-        navigator.StartInteraction += (_, e) => {
-            if (e.Touches.Length == 0 || navigator.Width <= 0) return;
-            navigating = true; var thumb = model.Overview(navigator.Width);
-            var x = e.Touches[0].X;
-            if (x < thumb.Left || x > thumb.Left + thumb.Width) model.CenterFromOverview(x, navigator.Width);
-            dragOffset = model.ScrollOffset; dragPointer = x; cursor = null; Redraw();
-        };
-        navigator.DragInteraction += (_, e) => {
-            if (!navigating || e.Touches.Length == 0) return;
-            model.DragOverview(dragOffset, e.Touches[0].X - dragPointer, navigator.Width); Redraw();
-        };
-        navigator.EndInteraction += (_, _) => navigating = false;
-        navigator.CancelInteraction += (_, _) => navigating = false;
         SemanticProperties.SetDescription(navigator, "History Timeline Navigator · Drag Left for the Past Seven Days · Drag Right for Upcoming Events");
         Platforms.Windows.HistoryChartInput.Attach(chart, Hover, ClearHover, MoveCursor, Pan, FollowToday, chartInput);
-        Platforms.Windows.HistoryChartInput.AttachNavigator(navigator, Pan, FollowToday);
+        Platforms.Windows.HistoryChartInput.AttachNavigator(navigator, Pan, FollowToday, navigatorInput, BeginNavigation, DragNavigation, () => navigating = false);
+    }
+
+    void BeginNavigation(double x)
+    {
+        if (navigator.Width <= 0) return;
+        navigating = true;
+        var thumb = model.Overview(navigator.Width);
+        if (x < thumb.Left || x > thumb.Left + thumb.Width) model.CenterFromOverview(x, navigator.Width);
+        dragOffset = model.ScrollOffset; dragPointer = x; cursor = null; Redraw();
+    }
+
+    void DragNavigation(double x)
+    {
+        if (!navigating) return;
+        model.DragOverview(dragOffset, x - dragPointer, navigator.Width); Redraw();
     }
 
     public void Update(HistorySeries[] data, IEnumerable<HorizonEvent> upcoming, HistoryPreferences choices,
