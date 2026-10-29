@@ -22,7 +22,7 @@ public sealed partial class MainPage
                 try { AIResetRadar.App.Platforms.Windows.StartupService.SetEnabled(true); }
                 catch { preferences = preferences with { LaunchAtSignIn = false }; }
             }
-            if (!state.IsDemo && (savedSettings is null || savedSettings.ReminderDefaultsVersion < 1)) await AppServices.Current.Store.WriteAsync("settings", preferences);
+            if (!state.IsDemo && (savedSettings is null || savedSettings.ReminderDefaultsVersion < 2)) await AppServices.Current.Store.WriteAsync("settings", preferences);
             retiredCredentials.Clear();
             alertHistory.Clear(); snoozed.Clear();
             if (!state.IsDemo)

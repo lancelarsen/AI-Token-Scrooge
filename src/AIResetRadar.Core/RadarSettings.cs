@@ -10,12 +10,13 @@ public sealed record RadarSettings(bool Notifications = true, bool Sound = false
     public IReadOnlyList<TimedReminder> EffectiveRefreshReminders => QuotaRefreshReminders ?? TimedReminder.Defaults(false);
     public RadarSettings UpgradeReminderDefaults()
     {
-        if (ReminderDefaultsVersion >= 1) return this;
-        static IReadOnlyList<TimedReminder>? Upgrade(IReadOnlyList<TimedReminder>? reminders) => reminders?.Select(r =>
-            (r.Id == "default-72" && r.Hours == 72 && r.Severity == ReminderSeverity.Info) ||
-            (r.Id == "default-48" && r.Hours == 48 && r.Severity == ReminderSeverity.Critical)
-                ? r with { Severity = ReminderSeverity.Warning } : r).ToArray();
-        return this with { ResetExpiryReminders = Upgrade(ResetExpiryReminders), QuotaRefreshReminders = Upgrade(QuotaRefreshReminders), ReminderDefaultsVersion = 1 };
+        if (ReminderDefaultsVersion >= 2) return this;
+        IReadOnlyList<TimedReminder>? Upgrade(IReadOnlyList<TimedReminder>? reminders) => reminders?.Select(r =>
+            ReminderDefaultsVersion < 1 && r.Id == "default-72" && r.Hours == 72 && r.Severity == ReminderSeverity.Info
+                ? r with { Severity = ReminderSeverity.Warning }
+                : r.Id == "default-48" && r.Hours == 48 && r.Severity == ReminderSeverity.Warning
+                    ? r with { Severity = ReminderSeverity.Critical } : r).ToArray();
+        return this with { ResetExpiryReminders = Upgrade(ResetExpiryReminders), QuotaRefreshReminders = Upgrade(QuotaRefreshReminders), ReminderDefaultsVersion = 2 };
     }
     public bool CapacityAlertsEnabled(string accountId, string windowId) =>
         !(DisabledCapacityAlerts ?? []).Any(section => section.AccountId == accountId && section.WindowId == windowId);

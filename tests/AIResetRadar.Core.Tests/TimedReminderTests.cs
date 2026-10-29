@@ -13,9 +13,9 @@ public class TimedReminderTests
         Assert.Equal(new double[] {240,120,72,48,24,12,6,3,1}, settings.EffectiveResetReminders.Select(r => r.Hours));
         Assert.Equal(new double[] {120,72,48,24,12,6,3,1}, settings.EffectiveRefreshReminders.Select(r => r.Hours));
         Assert.All(settings.EffectiveResetReminders.Take(2), r => Assert.Equal(ReminderSeverity.Info, r.Severity));
-        Assert.All(settings.EffectiveResetReminders.Skip(2).Take(2), r => Assert.Equal(ReminderSeverity.Warning, r.Severity));
-        Assert.All(settings.EffectiveRefreshReminders.Where(r => r.Hours is 72 or 48), r => Assert.Equal(ReminderSeverity.Warning, r.Severity));
-        Assert.All(settings.EffectiveResetReminders.Skip(4), r => Assert.Equal(ReminderSeverity.Critical, r.Severity));
+        Assert.All(settings.EffectiveResetReminders.Skip(2).Take(1), r => Assert.Equal(ReminderSeverity.Warning, r.Severity));
+        Assert.All(settings.EffectiveRefreshReminders.Where(r => r.Hours == 72), r => Assert.Equal(ReminderSeverity.Warning, r.Severity));
+        Assert.All(settings.EffectiveResetReminders.Skip(3), r => Assert.Equal(ReminderSeverity.Critical, r.Severity));
     }
     [Fact] public void UpgradeChangesOldDefaultsOnlyOnceAndPreservesCustomReminders()
     {
@@ -23,11 +23,23 @@ public class TimedReminderTests
         var updated = new RadarSettings(ResetExpiryReminders: old, QuotaRefreshReminders: old).UpgradeReminderDefaults();
         Assert.All(new[] { updated.EffectiveResetReminders, updated.EffectiveRefreshReminders }, schedule =>
         {
-            Assert.All(schedule.Take(2), r => Assert.Equal(ReminderSeverity.Warning, r.Severity));
+            Assert.Equal(ReminderSeverity.Warning, schedule[0].Severity);
+            Assert.Equal(ReminderSeverity.Critical, schedule[1].Severity);
             Assert.Equal(ReminderSeverity.Critical, schedule[2].Severity);
         });
         var edited = updated with { ResetExpiryReminders = old };
         Assert.Same(edited, edited.UpgradeReminderDefaults());
+    }
+    [Fact] public void VersionOneUpgradesTwoDaysAndPreservesCustomTimes()
+    {
+        var reminders = new TimedReminder[] { new("default-48", 2, "Days", ReminderSeverity.Warning), new("custom", 2, "Days", ReminderSeverity.Warning), new("default-72", 4, "Days", ReminderSeverity.Info) };
+        var updated = new RadarSettings(ResetExpiryReminders: reminders, QuotaRefreshReminders: reminders, ReminderDefaultsVersion: 1).UpgradeReminderDefaults();
+        foreach (var schedule in new[] { updated.EffectiveResetReminders, updated.EffectiveRefreshReminders })
+        {
+            Assert.Equal(ReminderSeverity.Critical, schedule[0].Severity);
+            Assert.Equal(reminders.Skip(1), schedule.Skip(1));
+        }
+        Assert.Equal(2, updated.ReminderDefaultsVersion);
     }
     [Fact] public void IndependentSchedulesRoundTripAndEmptyDisables()
     {
