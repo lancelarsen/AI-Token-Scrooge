@@ -85,4 +85,3 @@ Verification: focused state tests and repeated native pan/refresh/reorder/resize
 Verification: repository build/test scripts and live Windows app checks. Dependencies: H7. Likely files: `docs/verification.md`, these task cards, scoped fixes only. Scope: S.
 
 Commit/push each completed increment. The standing rebuild/restart/visible-verification rule applies to H2 and every UI/runtime increment, not just H8. Do not mark a task complete solely because its build passed.
-
