@@ -221,6 +221,40 @@ public sealed class SettingsPage : ContentPage
         var headerClose = new AIResetRadar.App.Controls.ActionButton { Text = "Close" }; headerClose.Clicked += async (_, _) => await CloseAsync(); heading.Add(headerClose, 1);
         var layout = new Grid { RowDefinitions = [new(GridLength.Auto), new(GridLength.Star), new(GridLength.Auto)] };
         var settingsScroll = new ScrollView { Content = form };
+        settingsScroll.HandlerChanged += (_, _) =>
+        {
+            if (settingsScroll.Handler?.PlatformView is not Microsoft.UI.Xaml.Controls.ScrollViewer nativeScroll) return;
+            var purple = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 177, 151, 242));
+            foreach (var key in new[] { "ScrollBarThumbFill", "ScrollBarThumbFillPointerOver", "ScrollBarThumbFillPressed", "ScrollBarThumbBackground", "ScrollBarPanningThumbBackground" })
+                nativeScroll.Resources[key] = purple;
+            nativeScroll.Resources[typeof(Microsoft.UI.Xaml.Controls.Primitives.ScrollBar)] = Microsoft.UI.Xaml.Markup.XamlReader.Load("""
+                <Style xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" TargetType="ScrollBar">
+                    <Setter Property="MinWidth" Value="14" />
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ScrollBar">
+                                <Grid x:Name="Root" Width="14" Background="Transparent">
+                                    <Grid x:Name="VerticalRoot">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="0" /><RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="0" />
+                                        </Grid.RowDefinitions>
+                                        <RepeatButton x:Name="VerticalLargeDecrease" Grid.Row="1" Opacity="0" IsTabStop="False" />
+                                        <Thumb x:Name="VerticalThumb" Grid.Row="2" Width="8" MinHeight="30">
+                                            <Thumb.Template><ControlTemplate TargetType="Thumb">
+                                                <Border Background="#B197F2" CornerRadius="4" />
+                                            </ControlTemplate></Thumb.Template>
+                                        </Thumb>
+                                        <RepeatButton x:Name="VerticalLargeIncrease" Grid.Row="3" Opacity="0" IsTabStop="False" />
+                                    </Grid>
+                                </Grid>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+                """);
+        };
         layout.Add(heading); layout.Add(settingsScroll, 0, 1); layout.Add(status, 0, 2); Content = layout;
         if (earnedResetAlerts)
         {
