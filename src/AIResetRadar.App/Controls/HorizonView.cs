@@ -14,7 +14,7 @@ public sealed class HorizonView : Border
     readonly GraphicsView navigator = new() { HeightRequest = 22 };
     double contentWidth, dragStart, pointerStart;
     bool dragging;
-    public HorizonView(IEnumerable<HorizonEvent> source, Action<HorizonEvent> open, TimeZoneInfo? timeZone = null)
+    public HorizonView(IEnumerable<HorizonEvent> source, Action<HorizonEvent> open, TimeZoneInfo? timeZone = null, Action? settings = null)
     {
         this.timeZone = timeZone ?? TimeZones.Resolve(null);
         days = HorizonTimeline.Build(source, DateTimeOffset.Now, this.timeZone);
@@ -31,6 +31,12 @@ public sealed class HorizonView : Border
         header.Children.Add(Legend($"Quota Refresh ({refreshCount})", "#B5A0F4"));
         header.Children.Add(Legend($"Reset Expires ({expiryCount})", "#EAAA51"));
         header.Children.Add(hint);
+        var headerRow = new Grid { ColumnDefinitions = [new(GridLength.Star), new(GridLength.Auto)], ColumnSpacing = 8 };
+        headerRow.Add(header);
+        var settingsButton = new ActionButton { Text = "Settings", IconOnly = true, WidthRequest = 44, Padding = 8, VerticalOptions = LayoutOptions.Start };
+        SemanticProperties.SetDescription(settingsButton, "Earned Reset Alert Settings");
+        settingsButton.Clicked += (_, _) => settings?.Invoke();
+        headerRow.Add(settingsButton, 1);
         navigator.Drawable = new Overview(this);
         navigator.StartInteraction += (_, e) => {
             if (e.Touches.Length > 0 && navigator.Width > 0) {
@@ -54,7 +60,7 @@ public sealed class HorizonView : Border
         SemanticProperties.SetDescription(navigator, "Timeline overview. Drag the highlighted window or click the track to move through dates.");
         viewport.Scrolled += (_, _) => UpdateNavigator();
         Content = new VerticalStackLayout { Spacing = 16, Children = {
-            header, new BoxView { HeightRequest = 1, Color = Color.FromArgb("#383B46"), Margin = new Thickness(12, 0) }, viewport,
+            headerRow, new BoxView { HeightRequest = 1, Color = Color.FromArgb("#383B46"), Margin = new Thickness(12, 0) }, viewport,
             navigator
         } };
         viewport.SizeChanged += (_, _) => Render(open);

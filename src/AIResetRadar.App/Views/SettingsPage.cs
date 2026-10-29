@@ -1,4 +1,4 @@
-using AIResetRadar.App.Controls;
+﻿using AIResetRadar.App.Controls;
 using AIResetRadar.Core;
 using AIResetRadar.App.Services;
 namespace AIResetRadar.App.Views;
@@ -9,7 +9,7 @@ public sealed class SettingsPage : ContentPage
     protected override bool OnBackButtonPressed() { if (closePanel is not null) _ = closePanel(); return true; }
     readonly VerticalStackLayout form = new() { Padding = new Thickness(16, 12), Spacing = 12, MaximumWidthRequest = 960, HorizontalOptions = LayoutOptions.Center };
     public SettingsPage(IReadOnlyList<ProviderAccount> accounts, IReadOnlyDictionary<string, QuotaSnapshot> snapshots, RadarSettings original, bool demo,
-        Func<RadarSettings, Task> save, Func<ProviderAccount, bool, Task> update, Func<Task> history, Func<Task> test, Func<ProviderAccount, Task> reconnect, string? accountId = null)
+        Func<RadarSettings, Task> save, Func<ProviderAccount, bool, Task> update, Func<Task> history, Func<Task> test, Func<ProviderAccount, Task> reconnect, string? accountId = null, bool earnedResetAlerts = false)
     {
         var saveGate = new SemaphoreSlim(1, 1);
         Func<Task>? flushAccountName = null;
@@ -34,24 +34,26 @@ public sealed class SettingsPage : ContentPage
         WrapCard(notificationStart, "Notifications", "Choose how Scrooge gets your attention.");
         var soundsStart = form.Children.Count;
         var sound = Toggle("Notification Sounds", original.Sound);
-        var soundTheme = new Picker { ItemsSource = new[] { "Duck Sounds", "Classic Chimes" }, SelectedIndex = original.SoundTheme == "Classic" ? 1 : 0,
-            TextColor = Color.FromArgb("#F2F1F5"), BackgroundColor = Color.FromArgb("#232429") };
-        SemanticProperties.SetDescription(soundTheme, "Sound Style");
-        form.Children.Add(soundTheme);
-        var volumeLabel = new Label { TextColor = Color.FromArgb("#BEC1D2") };
+        var volumeLabel = new Label { TextColor = Color.FromArgb("#BEC1D2"), WidthRequest = 112, VerticalOptions = LayoutOptions.Center };
         var volume = new Slider { MinimumTrackColor = Color.FromArgb("#A990ED"), MaximumTrackColor = Color.FromArgb("#41434F"), ThumbColor = Color.FromArgb("#C3ADF8"), Minimum = 0, Maximum = 100, Value = double.IsFinite(original.SoundVolume) ? Math.Clamp(original.SoundVolume, 0, 100) : 65 };
         void UpdateVolumeLabel() => volumeLabel.Text = $"Volume: {Math.Round(volume.Value)}%";
         UpdateVolumeLabel();
         SemanticProperties.SetDescription(volume, "Notification Volume");
         volume.ValueChanged += (_, _) => UpdateVolumeLabel();
-        form.Children.Add(volumeLabel); form.Children.Add(volume);
+        var volumeRow = new Grid { ColumnDefinitions = [new(GridLength.Auto), new(GridLength.Star)], ColumnSpacing = 12 };
+        volumeRow.Add(volumeLabel, 0); volumeRow.Add(volume, 1);
+        form.Children.Add(volumeRow);
+        var soundGroup = $"SoundStyle-{Guid.NewGuid():N}";
+        var duckSounds = new RadioButton { Content = "Duck Sounds", GroupName = soundGroup, IsChecked = original.SoundTheme != "Classic", TextColor = Color.FromArgb("#F2F1F5") };
+        var classicChimes = new RadioButton { Content = "Classic Chimes", GroupName = soundGroup, IsChecked = original.SoundTheme == "Classic", TextColor = Color.FromArgb("#F2F1F5") };
+        form.Children.Add(new VerticalStackLayout { Spacing = 0, Children = { duckSounds, classicChimes } });
         var previewStatus = new Label { FontSize = 12, TextColor = Color.FromArgb("#EAAA51") };
         var previews = new Grid { ColumnDefinitions = [new(GridLength.Star), new(GridLength.Star)], RowDefinitions = [new(GridLength.Auto), new(GridLength.Auto)], ColumnSpacing = 8, RowSpacing = 8 };
         var previewIndex = 0;
         foreach (var cue in new[] { ("Alarm", "alert"), ("Snooze", "snooze"), ("Dismiss", "dismiss"), ("Show Info", "info") })
         {
             var preview = new ActionButton { Text = "Preview " + cue.Item1 };
-            preview.Clicked += (_, _) => previewStatus.Text = AlertSounds.Play(original with { SoundTheme = soundTheme.SelectedIndex == 1 ? "Classic" : "Ducks", SoundVolume = volume.Value }, cue.Item2, preview: true) ?? "";
+            preview.Clicked += (_, _) => previewStatus.Text = AlertSounds.Play(original with { SoundTheme = classicChimes.IsChecked ? "Classic" : "Ducks", SoundVolume = volume.Value }, cue.Item2, preview: true) ?? "";
             previews.Add(preview, previewIndex % 2, previewIndex / 2); previewIndex++;
         }
         form.Children.Add(previews);
@@ -72,7 +74,7 @@ public sealed class SettingsPage : ContentPage
         var resetStart = form.Children.Count;
         var resetReminders = new ReminderEditor(original.EffectiveResetReminders);
         form.Children.Add(resetReminders);
-        WrapCard(resetStart, "Earned Reset Expiration Alerts");
+        var earnedResetCard = WrapCard(resetStart, "Earned Reset Expiration Alerts");
         var refreshStart = form.Children.Count;
         var refreshReminders = new ReminderEditor(original.EffectiveRefreshReminders);
         form.Children.Add(refreshReminders);
@@ -175,7 +177,7 @@ public sealed class SettingsPage : ContentPage
                 QuietHours = quiet.IsToggled, QuietStartHour = start, QuietEndHour = end, InfoThreshold = (decimal)info.Value, LowThreshold = lowValue, CriticalThreshold = criticalValue,
                 LaunchAtSignIn = startup.IsToggled, CloseToTray = close.IsToggled,
                 Rules = original.Rules?.Where(r => accounts.Any(a => a.Id == r.AccountId)).ToArray(),
-                SoundTheme = soundTheme.SelectedIndex == 1 ? "Classic" : "Ducks", SoundVolume = Math.Round(volume.Value),
+                SoundTheme = classicChimes.IsChecked ? "Classic" : "Ducks", SoundVolume = Math.Round(volume.Value),
                 TimeZoneId = (timeZone.SelectedItem as TimeZoneInfo)?.Id ?? TimeZones.DefaultId };
             if (!settings.HasValidThresholds) { status.Text = "An account/window rule conflicts with these defaults. Adjust its thresholds first."; return; }
             try { await save(settings); original = settings; status.Text = ""; }
@@ -188,7 +190,8 @@ public sealed class SettingsPage : ContentPage
         refreshReminders.Changed += async (_, _) => await AutoSaveAsync();
         volume.ValueChanged += async (_, _) => await AutoSaveAsync();
         volume.Unfocused += async (_, _) => await AutoSaveAsync();
-        soundTheme.SelectedIndexChanged += async (_, _) => await AutoSaveAsync();
+        duckSounds.CheckedChanged += async (_, e) => { if (e.Value) await AutoSaveAsync(); };
+        classicChimes.CheckedChanged += async (_, e) => { if (e.Value) await AutoSaveAsync(); };
         timeZone.SelectedIndexChanged += async (_, _) => await AutoSaveAsync();
         foreach (var toggle in new[] { notifications, iconAlerts, sound, quiet, close, startup })
             toggle.Toggled += async (_, _) => await AutoSaveAsync();
@@ -209,7 +212,18 @@ public sealed class SettingsPage : ContentPage
         heading.Add(new Label { Text = pageTitle, FontSize = 26, FontFamily = "Segoe UI Semibold", VerticalOptions = LayoutOptions.Center });
         var headerClose = new AIResetRadar.App.Controls.ActionButton { Text = "Close" }; headerClose.Clicked += async (_, _) => await CloseAsync(); heading.Add(headerClose, 1);
         var layout = new Grid { RowDefinitions = [new(GridLength.Auto), new(GridLength.Star), new(GridLength.Auto)] };
-        layout.Add(heading); layout.Add(new ScrollView { Content = form }, 0, 1); layout.Add(status, 0, 2); Content = layout;
+        var settingsScroll = new ScrollView { Content = form };
+        layout.Add(heading); layout.Add(settingsScroll, 0, 1); layout.Add(status, 0, 2); Content = layout;
+        if (earnedResetAlerts)
+        {
+            var positioned = false;
+            earnedResetCard.SizeChanged += async (_, _) =>
+            {
+                if (positioned || earnedResetCard.Height <= 0 || settingsScroll.Height <= 0) return;
+                positioned = true;
+                await settingsScroll.ScrollToAsync(earnedResetCard, ScrollToPosition.Start, false);
+            };
+        }
         SizeChanged += (_, _) => form.WidthRequest = Math.Max(0, Math.Min(960, Width - 24));
     }
     Switch Toggle(string title, bool value)

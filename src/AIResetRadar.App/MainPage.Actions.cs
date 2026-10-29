@@ -116,9 +116,9 @@ public sealed partial class MainPage
         if (provider is not ("OpenAI Codex" or "GitHub Copilot")) return;
         await AppPanels.ShowAsync(this, new ConnectAccountPage(provider == "OpenAI Codex", (account, snapshot) => CommitConnectionAsync(account, snapshot, null)));
     }
-    async Task OpenSettingsAsync() => await AppPanels.ShowAsync(this, new SettingsPage(state.Accounts, state.Snapshots, preferences, state.IsDemo,
+    async Task OpenSettingsAsync(bool earnedResetAlerts = false) => await AppPanels.ShowAsync(this, new SettingsPage(state.Accounts, state.Snapshots, preferences, state.IsDemo,
         SaveSettingsAsync,
-        UpdateAccountAsync, OpenHistoryAsync, TestNotificationAsync, ReconnectAsync));
+        UpdateAccountAsync, OpenHistoryAsync, TestNotificationAsync, ReconnectAsync, earnedResetAlerts: earnedResetAlerts));
     async Task OpenAccountSettingsAsync(string accountId)
     {
         if (!state.Accounts.Any(a => a.Id == accountId)) return;

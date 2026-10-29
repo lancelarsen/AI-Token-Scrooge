@@ -85,7 +85,7 @@ public sealed partial class MainPage : ContentPage
         rowViews.Clear();
         orderCards.Clear();
         notificationCards.Clear();
-        body.Children.Add(new HorizonView(state.Events(DateTimeOffset.Now), e => OpenAccount(e.AccountId, e.WindowId), DisplayZone));
+        body.Children.Add(new HorizonView(state.Events(DateTimeOffset.Now), e => OpenAccount(e.AccountId, e.WindowId), DisplayZone, async () => await OpenSettingsAsync(true)));
         var toolbar = new Grid { ColumnDefinitions = [new(GridLength.Star), new(GridLength.Auto)], ColumnSpacing = 12 };
         var add = MakeButton(state.IsDemo ? "Exit demo" : "Add account", "\uE710"); add.Clicked += async (_, _) => { if (state.IsDemo) { state.ClearDemo(); initialized = false; await InitializeAsync(); } else await AddAccountAsync(); };
         var sort = new AccountSortControl(preferences.AccountSort, mode => _ = ChangeSortAsync(mode));

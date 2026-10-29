@@ -4,16 +4,17 @@ namespace AIResetRadar.App.Controls;
 public sealed class ReminderEditor : VerticalStackLayout
 {
     readonly List<TimedReminder> reminders;
-    readonly VerticalStackLayout rows = new() { Spacing = 6 };
+    readonly Grid rows = new() { RowSpacing = 6 };
+    readonly Dictionary<string, View> rowViews = [];
     readonly Label error = new() { TextColor = Color.FromArgb("#F05B69"), FontSize = 12, IsVisible = false };
     public event EventHandler? Changed;
     public IReadOnlyList<TimedReminder> Value => reminders.ToArray();
     public ReminderEditor(IReadOnlyList<TimedReminder> initial)
     {
-        reminders = initial.ToList(); Spacing = 8;
+        reminders = initial.OrderByDescending(r => r.Hours).ToList(); Spacing = 8;
         Children.Add(rows); Children.Add(error);
         var add = new ActionButton { Text = "Add Reminder", HorizontalOptions = LayoutOptions.Start };
-        add.Clicked += (_, _) => { var item = new TimedReminder(Guid.NewGuid().ToString("N"), 1, "Days", ReminderSeverity.Info); reminders.Add(item); AddRow(item); Changed?.Invoke(this, EventArgs.Empty); };
+        add.Clicked += (_, _) => { var item = new TimedReminder(Guid.NewGuid().ToString("N"), 1, "Days", ReminderSeverity.Info); reminders.Add(item); AddRow(item); SortRows(); Changed?.Invoke(this, EventArgs.Empty); };
         Children.Add(add);
         foreach (var item in reminders.ToArray()) AddRow(item);
     }
@@ -25,7 +26,7 @@ public sealed class ReminderEditor : VerticalStackLayout
         var unit = new Picker { ItemsSource = new[] { "Days", "Hours" }, SelectedIndex = item.Unit == "Days" ? 0 : 1, BackgroundColor = Color.FromArgb("#232429") };
         var remove = new ActionButton { Text = "Remove Reminder", IconOnly = true, WidthRequest = 44, Padding = 8 };
         SemanticProperties.SetDescription(severity, "Reminder Severity"); SemanticProperties.SetDescription(amount, "Time Before Event"); SemanticProperties.SetDescription(unit, "Days or Hours");
-        row.Add(severity); row.Add(amount, 1); row.Add(unit, 2); row.Add(remove, 3); rows.Children.Add(row);
+        row.Add(severity); row.Add(amount, 1); row.Add(unit, 2); row.Add(remove, 3); rows.RowDefinitions.Add(new RowDefinition(GridLength.Auto)); rows.Add(row, 0, rows.Children.Count); rowViews[item.Id] = row;
         void Save()
         {
             if (!int.TryParse(amount.Text, out var value) || value <= 0) { error.Text = "Enter a Positive Whole Number"; error.IsVisible = true; return; }
@@ -33,10 +34,20 @@ public sealed class ReminderEditor : VerticalStackLayout
             var index = reminders.FindIndex(r => r.Id == item.Id); if (index < 0) return;
             reminders[index] = item with { Amount = value, Unit = unit.SelectedIndex == 0 ? "Days" : "Hours", Severity = (ReminderSeverity)Math.Max(0, severity.SelectedIndex) };
             severity.TextColor = Color.FromArgb(severity.SelectedIndex == 2 ? "#F05B69" : severity.SelectedIndex == 1 ? "#EAAA51" : "#C3ADF8");
+            SortRows();
             Changed?.Invoke(this, EventArgs.Empty);
         }
         severity.TextColor = Color.FromArgb(item.Severity == ReminderSeverity.Critical ? "#F05B69" : item.Severity == ReminderSeverity.Warning ? "#EAAA51" : "#C3ADF8");
         amount.TextChanged += (_, _) => Save(); severity.SelectedIndexChanged += (_, _) => Save(); unit.SelectedIndexChanged += (_, _) => Save();
-        remove.Clicked += (_, _) => { reminders.RemoveAll(r => r.Id == item.Id); rows.Children.Remove(row); error.IsVisible = false; Changed?.Invoke(this, EventArgs.Empty); };
+        remove.Clicked += (_, _) => { reminders.RemoveAll(r => r.Id == item.Id); rows.Children.Remove(row); rowViews.Remove(item.Id); SortRows(); error.IsVisible = false; Changed?.Invoke(this, EventArgs.Empty); };
     }
+    void SortRows()
+    {
+        var sorted = reminders.OrderByDescending(r => r.Hours).ToArray();
+        reminders.Clear(); reminders.AddRange(sorted);
+        for (var i = 0; i < sorted.Length; i++) Grid.SetRow(rowViews[sorted[i].Id], i);
+        rows.InvalidateMeasure();
+        while (rows.RowDefinitions.Count > sorted.Length) rows.RowDefinitions.RemoveAt(rows.RowDefinitions.Count - 1);
+    }
+
 }
