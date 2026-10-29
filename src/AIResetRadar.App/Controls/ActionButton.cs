@@ -36,10 +36,7 @@ public sealed class ActionButton : Button
         var panel = new Microsoft.UI.Xaml.Controls.Grid { ColumnSpacing = 9 };
         panel.ColumnDefinitions.Add(new Microsoft.UI.Xaml.Controls.ColumnDefinition { Width = Microsoft.UI.Xaml.GridLength.Auto });
         panel.ColumnDefinitions.Add(new Microsoft.UI.Xaml.Controls.ColumnDefinition { Width = new Microsoft.UI.Xaml.GridLength(1, Microsoft.UI.Xaml.GridUnitType.Star) });
-        panel.Children.Add(new Microsoft.UI.Xaml.Controls.FontIcon { Glyph = GlyphFor(Text),
-            FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe Fluent Icons"), FontSize = 20,
-            Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 181, 160, 244)),
-            VerticalAlignment = Microsoft.UI.Xaml.VerticalAlignment.Center });
+        panel.Children.Add(CreateIcon());
         var label = new Microsoft.UI.Xaml.Controls.TextBlock { Text = Text ?? "", FontSize = FontSize,
             TextWrapping = Microsoft.UI.Xaml.TextWrapping.Wrap,
             VerticalAlignment = Microsoft.UI.Xaml.VerticalAlignment.Center };
@@ -48,6 +45,28 @@ public sealed class ActionButton : Button
         native.HorizontalContentAlignment = Microsoft.UI.Xaml.HorizontalAlignment.Stretch;
         native.Content = panel;
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(native, SemanticProperties.GetDescription(this) ?? Text ?? "");
+    }
+    Microsoft.UI.Xaml.FrameworkElement CreateIcon()
+    {
+        var accent = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 181, 160, 244));
+        if (Text is "Most Remaining" or "Least Remaining")
+        {
+            var meter = new Microsoft.UI.Xaml.Controls.Grid { Width = 22, Height = 20,
+                VerticalAlignment = Microsoft.UI.Xaml.VerticalAlignment.Center };
+            meter.Children.Add(new Microsoft.UI.Xaml.Controls.Border { Height = 14, BorderBrush = accent,
+                BorderThickness = new Microsoft.UI.Xaml.Thickness(1.5), CornerRadius = new Microsoft.UI.Xaml.CornerRadius(3),
+                VerticalAlignment = Microsoft.UI.Xaml.VerticalAlignment.Center });
+            meter.Children.Add(new Microsoft.UI.Xaml.Controls.Border { Width = Text == "Most Remaining" ? 14 : 4,
+                Height = 7, Background = accent, CornerRadius = new Microsoft.UI.Xaml.CornerRadius(1),
+                Margin = new Microsoft.UI.Xaml.Thickness(4, 0, 0, 0),
+                HorizontalAlignment = Microsoft.UI.Xaml.HorizontalAlignment.Left,
+                VerticalAlignment = Microsoft.UI.Xaml.VerticalAlignment.Center });
+            return meter;
+        }
+        return new Microsoft.UI.Xaml.Controls.FontIcon { Glyph = GlyphFor(Text),
+            FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe Fluent Icons"), FontSize = 20,
+            Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 181, 160, 244)),
+            VerticalAlignment = Microsoft.UI.Xaml.VerticalAlignment.Center };
     }
     public static string GlyphFor(string? text)
     {
