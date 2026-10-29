@@ -137,7 +137,7 @@ public sealed class HistoryTimelineView : Grid
 
     void BuildSelectors()
     {
-        var signature = string.Join("|", series.Select(s => $"{s.Account.Id}:{s.Account.Nickname}:{s.PlanLabel}:{preferences.Includes(s.Account.Id)}:{s.Status}"));
+        var signature = string.Join("|", series.Select(s => $"{s.Account.Id}:{s.Account.Nickname}:{s.PlanLabel}:{preferences.Includes(s.Account.Id)}:{s.Status}:{CoverageDetails(s)}"));
         if (selectorSignature == signature) return;
         selectorSignature = signature; selectors.Children.Clear();
         foreach (var item in series)
@@ -165,7 +165,7 @@ public sealed class HistoryTimelineView : Grid
             target.Add(content); target.Add(swatch, 0, 1);
             var action = new Button { BackgroundColor = Colors.Transparent, Text = "", BorderWidth = 0, HeightRequest = 60 };
             SemanticProperties.SetDescription(action, $"{(enabled ? "Hide" : "Show")} {item.Account.Provider} / {item.Account.Nickname} · {item.PlanLabel} · {item.Period} History");
-            Platforms.Windows.ImmediateToolTip.Attach(action, $"{item.Account.Provider} / {item.Account.Nickname} · {item.PlanLabel}\n{item.Period} History{(item.Status is null ? "" : "\n" + item.Status)}");
+            Platforms.Windows.ImmediateToolTip.Attach(action, $"{item.Account.Provider} / {item.Account.Nickname} · {item.PlanLabel}\n{item.Period} History{CoverageDetails(item)}{(item.Status is null ? "" : "\n" + item.Status)}");
             action.Clicked += async (_, _) => {
                 action.IsEnabled = false;
                 try {
@@ -302,8 +302,12 @@ public sealed class HistoryTimelineView : Grid
         }
         cursor = nearest; chart.Invalidate(); return Details(nearest.Series, nearest.Point);
     }
+    string CoverageDetails(HistorySeries s) => s.Points.FirstOrDefault() is { } first && first.At > model.StartAt
+        ? $"\nHistory Begins {TimeZones.Format(first.At, zone)}" : "";
+
     string Details(HistorySeries s, HistoryPoint p) =>
         $"{s.Account.Provider} / {s.Account.Nickname} · {s.PlanLabel}\n{s.Period} · {100 - p.RemainingPercent:0.#}% Used\n{TimeZones.Format(p.At, zone)}" +
+        CoverageDetails(s) +
         (p.InterpolatedFromPrevious ? "\nEstimated Linear Connection From Previous Observation" : "") +
         (p.ReplenishedFrom is { } previous ? $"\nCapacity Rose From {previous:0.#}% to {p.RemainingPercent:0.#}%\nObserved Between Polls" +
             (p.PreviousObservedAt is { } prior ? $"\n{TimeZones.Format(prior, zone)} – {TimeZones.Format(p.At, zone)}" : "") : "");
