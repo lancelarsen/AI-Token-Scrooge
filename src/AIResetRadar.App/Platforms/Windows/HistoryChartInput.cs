@@ -21,8 +21,8 @@ public static class HistoryChartInput
     static readonly ConditionalWeakTable<GraphicsView, Binding> bindings = new();
 
     public static void Attach(GraphicsView view, Func<double, double, string?> hover, Action clear,
-        Func<int, string?> moveCursor, Action<double> pan, Action followToday) =>
-        Replace(view, new Binding(view, hover, clear, moveCursor, pan, followToday));
+        Func<int, string?> moveCursor, Action<double> pan, Action followToday, View? pointerSurface = null) =>
+        Replace(view, new Binding(view, hover, clear, moveCursor, pan, followToday, pointerSurface));
 
     public static void AttachNavigator(GraphicsView view, Action<double> pan, Action followToday) =>
         Replace(view, new Binding(view, null, null, null, pan, followToday));
@@ -39,6 +39,8 @@ public static class HistoryChartInput
     {
         static WeakReference<Binding>? popupOwner;
         readonly GraphicsView view;
+        readonly View? pointerSurface;
+        FrameworkElement? pointerTarget;
         readonly Func<double, double, string?>? hover;
         readonly Action? clear;
         readonly Func<int, string?>? moveCursor;
@@ -58,9 +60,10 @@ public static class HistoryChartInput
         bool IsNavigator => hover is null;
 
         public Binding(GraphicsView view, Func<double, double, string?>? hover, Action? clear,
-            Func<int, string?>? moveCursor, Action<double> pan, Action followToday)
+            Func<int, string?>? moveCursor, Action<double> pan, Action followToday, View? pointerSurface = null)
         {
             this.view = view; this.hover = hover; this.clear = clear;
+            this.pointerSurface = pointerSurface;
             this.moveCursor = moveCursor; this.pan = pan; this.followToday = followToday;
             wheelHandler = OnWheel; keyHandler = OnKeyDown;
             heading = new TextBlock { FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe UI"),
@@ -76,23 +79,32 @@ public static class HistoryChartInput
             popup = new NativePopup { Child = surface, IsHitTestVisible = false };
             AutomationProperties.SetLiveSetting(heading, AutomationLiveSetting.Polite);
             view.HandlerChanged += OnHandlerChanged;
+            if (pointerSurface is not null) pointerSurface.HandlerChanged += OnHandlerChanged;
         }
 
         public void Connect()
         {
-            if (disposed || ReferenceEquals(target, view.Handler?.PlatformView)) return;
+            if (disposed || ReferenceEquals(target, (pointerSurface ?? view).Handler?.PlatformView) &&
+                ReferenceEquals(pointerTarget, (pointerSurface ?? view).Handler?.PlatformView)) return;
             Disconnect();
-            target = view.Handler?.PlatformView as FrameworkElement;
+            target = (pointerSurface ?? view).Handler?.PlatformView as FrameworkElement;
             if (target is null) return;
-            if (target is NativeControl control) { control.IsTabStop = true; control.UseSystemFocusVisuals = true; }
+            pointerTarget = (pointerSurface ?? view).Handler?.PlatformView as FrameworkElement ?? target;
+            if (target is NativeControl control)
+            {
+                control.IsTabStop = true;
+                control.UseSystemFocusVisuals = true;
+                // A null native background leaves undrawn canvas areas out of hit testing.
+                control.Background = new NativeBrush(Microsoft.UI.Colors.Transparent);
+            }
             AutomationProperties.SetName(target, IsNavigator ? "History Timeline Navigator" : "Usage History");
             AutomationProperties.SetHelpText(target, IsNavigator
                 ? "Arrow Keys Move One Day · Page Up and Page Down Move Seven Days · Home Returns to Today"
                 : "Arrow Keys Inspect Samples · Page Up and Page Down Move Seven Days · Home Returns to Today · Escape Closes Details");
-            target.PointerEntered += OnPointer;
-            target.PointerMoved += OnPointer;
-            target.PointerExited += OnExited;
-            target.PointerPressed += OnPressed;
+            pointerTarget.PointerEntered += OnPointer;
+            pointerTarget.AddHandler(UIElement.PointerMovedEvent, new PointerEventHandler(OnPointer), true);
+            pointerTarget.PointerExited += OnExited;
+            pointerTarget.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler(OnPressed), true);
             target.GotFocus += OnFocus;
             target.LostFocus += OnLostFocus;
             target.Unloaded += OnUnloaded;
@@ -123,7 +135,7 @@ public static class HistoryChartInput
             var text = hover!(point.X, point.Y);
             pinned = text is not null;
             Show(text, point, announce: true);
-            args.Handled = true;
+            args.Handled = text is not null;
         }
 
         void OnExited(object sender, PointerRoutedEventArgs args) { if (!pinned) Hide(); }
@@ -131,6 +143,9 @@ public static class HistoryChartInput
         void OnFocus(object sender, RoutedEventArgs args)
         {
             if (IsNavigator || suppressFocusReadout || target is null) return;
+            // Rebuilding a selector can transfer focus here programmatically.
+            // Only deliberate keyboard navigation should open a sample readout.
+            if (target is not NativeControl { FocusState: FocusState.Keyboard }) return;
             pinned = true;
             Show(moveCursor!(0), KeyboardAnchor(), announce: true);
         }
@@ -221,8 +236,14 @@ public static class HistoryChartInput
         {
             Hide();
             if (target is null) return;
-            target.PointerEntered -= OnPointer; target.PointerMoved -= OnPointer;
-            target.PointerExited -= OnExited; target.PointerPressed -= OnPressed;
+            if (pointerTarget is not null)
+            {
+                pointerTarget.PointerEntered -= OnPointer;
+                pointerTarget.RemoveHandler(UIElement.PointerMovedEvent, new PointerEventHandler(OnPointer));
+                pointerTarget.PointerExited -= OnExited;
+                pointerTarget.RemoveHandler(UIElement.PointerPressedEvent, new PointerEventHandler(OnPressed));
+                pointerTarget = null;
+            }
             target.GotFocus -= OnFocus; target.LostFocus -= OnLostFocus;
             target.Unloaded -= OnUnloaded; target.SizeChanged -= OnSizeChanged;
             target.EffectiveViewportChanged -= OnViewportChanged;
@@ -236,6 +257,7 @@ public static class HistoryChartInput
             if (disposed) return;
             disposed = true;
             view.HandlerChanged -= OnHandlerChanged;
+            if (pointerSurface is not null) pointerSurface.HandlerChanged -= OnHandlerChanged;
             Disconnect();
         }
 

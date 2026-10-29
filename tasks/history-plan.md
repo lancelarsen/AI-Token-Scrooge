@@ -1,6 +1,6 @@
 # AI Token Scrooge: Unified Reset Horizon History
 
-Planning date: October 29, 2026. Status: proposed implementation plan; no product code changed.
+Planning date: October 29, 2026. Status: implemented; native acceptance checks in progress. Later user corrections below supersede the original graph-value and gap requirements.
 
 The selected visual reference is [history-selected.png](../design/references/history-selected.png). This feature plan supersedes earlier history concepts and the initial idea of separate 5-Hour / Weekly selectors. Preserve the current production dashboard and subsequent refinements wherever the generated reference differs.
 
@@ -72,4 +72,3 @@ Implement the unified Reset Horizon history described in `tasks/history-plan.md`
 - Use % Used for the history chart, tooltips and endpoint labels.
 - Linearly interpolate missing observations between compatible known samples and identify estimates; preserve identity/allowance discontinuities.
 - Refresh plays one quack; automatic polls stay silent.
-

@@ -14,8 +14,10 @@ public sealed class HistoryTimelineView : Grid
     float plotBottom = 256;
     readonly VerticalStackLayout selectors = new() { Spacing = 9, Padding = new Thickness(3, 8, 10, 0) };
     readonly ScrollView selectorScroll;
-    readonly Grid chartHost = new() { HeightRequest = 294, IsClippedToBounds = true };
+    readonly Grid chartHost = new() { HeightRequest = 294, IsClippedToBounds = true, BackgroundColor = Colors.Transparent };
     readonly GraphicsView chart = new() { HeightRequest = 294 };
+    readonly Button chartInput = new() { Text = "", BackgroundColor = Colors.Transparent, BorderWidth = 0, Padding = 0,
+        HeightRequest = -1, HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Fill };
     readonly AbsoluteLayout eventsLayer = new() { InputTransparent = true, CascadeInputTransparent = false };
     readonly GraphicsView navigator = new() { HeightRequest = 22 };
     readonly Label status = new() { FontSize = 13, TextColor = Muted, HorizontalTextAlignment = TextAlignment.Center,
@@ -51,7 +53,7 @@ public sealed class HistoryTimelineView : Grid
         selectorScroll = new ScrollView { Content = selectors, HeightRequest = 294, VerticalScrollBarVisibility = ScrollBarVisibility.Never };
         var rail = new Grid { ColumnDefinitions = [new(GridLength.Star), new(new GridLength(1))] };
         rail.Add(selectorScroll); rail.Add(new BoxView { Color = Color.FromArgb("#383B46"), Margin = new Thickness(0, 6) }, 1);
-        this.Add(rail); chartHost.Add(chart); chartHost.Add(eventsLayer); chartHost.Add(status); this.Add(chartHost, 1);
+        this.Add(rail); chartHost.Add(chart); chartHost.Add(chartInput); chartHost.Add(eventsLayer); chartHost.Add(status); this.Add(chartHost, 1);
         this.Add(navigator, 0, 1); Grid.SetColumnSpan((BindableObject)navigator, 2);
         chart.Drawable = new Plot(this); navigator.Drawable = new Overview(this);
         chart.SizeChanged += (_, _) => Reflow();
@@ -70,7 +72,7 @@ public sealed class HistoryTimelineView : Grid
         navigator.EndInteraction += (_, _) => navigating = false;
         navigator.CancelInteraction += (_, _) => navigating = false;
         SemanticProperties.SetDescription(navigator, "History Timeline Navigator · Drag Left for the Past Seven Days · Drag Right for Upcoming Events");
-        Platforms.Windows.HistoryChartInput.Attach(chart, Hover, ClearHover, MoveCursor, Pan, FollowToday);
+        Platforms.Windows.HistoryChartInput.Attach(chart, Hover, ClearHover, MoveCursor, Pan, FollowToday, chartInput);
         Platforms.Windows.HistoryChartInput.AttachNavigator(navigator, Pan, FollowToday);
     }
 

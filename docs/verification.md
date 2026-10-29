@@ -320,3 +320,11 @@ Remaining before goal completion: full seven-day/35-day demo native checks, narr
 ### History Review Follow-Up — 2026-10-29
 
 285 tests pass (105 Core, 180 Infrastructure), including a new regression test proving that drawing reduction retains both ends of an estimated interval and the return to measured samples. Release publish succeeded to `artifacts/publish/history-review-win-x64`. Temporary pointer diagnostic logging has been removed. Native point-click verification remains open: the capture tool twice returned another application's image for the selected Scrooge window, so no coordinate input was attempted against those captures. The latest build was launched with the existing profile; visible verification is still required. Pointer routing changes are provisional until that native pass succeeds.
+
+### Native Input Follow-Up — 2026-10-29
+
+Capture recovered and verified the latest app with its existing accounts. Panning to history works repeatedly, but clicking the plotted Pro sample around Oct 27 still does not open details. Setting a native transparent background did not resolve it. An explicit transparent button input surface also builds and runs but has not resolved the click; these uncommitted input changes remain experimental. Next diagnostic should inspect actual input-surface layout bounds and hit-test state rather than assuming chart drawing bounds equal input bounds. Current running build: `artifacts/publish/history-input-surface-win-x64`, existing profile unchanged.
+
+### Native Input Resolution — 2026-10-29
+
+The transparent chart input surface inherited the global 44-pixel Button height. Explicitly clearing that height and filling the chart host fixes the hit area. Release publish to `artifacts/publish/history-input-fill-win-x64` succeeded and the app was restarted with the existing profile. Native verification confirms: clicking the Oct 27 Pro sample opens its percent-used/time details; Right Arrow advances to the next sample; Escape dismisses details; Home returns to Today; clicking the GitHub future event opens the correct account detail modal. The earlier experimental-input failure above is resolved. This pass used the existing Reset Horizon design at 1429x838. Narrow/demo/DPI and final shipping checks remain outstanding; no independently timed hover or audio claim is made.
