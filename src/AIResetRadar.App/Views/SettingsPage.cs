@@ -37,7 +37,6 @@ public sealed class SettingsPage : ContentPage
         var quietRange = new QuietHoursRange(original.QuietStartHour, original.QuietEndHour) { IsEnabled = original.QuietHours, Opacity = original.QuietHours ? 1 : 0.5 };
         quiet.Toggled += (_, e) => { quietRange.IsEnabled = e.Value; quietRange.Opacity = e.Value ? 1 : 0.5; };
         form.Children.Add(quietRange);
-        form.Children.Add(new Label { Text = "Drag a circle or focus a time and use arrow keys. One-hour steps. Monitoring continues.", FontSize = 12, TextColor = Color.FromArgb("#A5A8BA") });
         WrapCard(quietCardStart, "Quiet Hours", "A little peace, right on schedule.", quiet);
         var thresholdsStart = form.Children.Count;
         var low = PercentControl("Warning Alert", original.LowThreshold);
@@ -49,7 +48,7 @@ public sealed class SettingsPage : ContentPage
         startup.IsEnabled = !demo;
         var showHistory = new AIResetRadar.App.Controls.ActionButton { Text = "Alert History" }; showHistory.Clicked += async (_, _) => await history(); form.Children.Add(showHistory);
         var testNotification = new AIResetRadar.App.Controls.ActionButton { Text = "Send Test Notification" }; testNotification.Clicked += async (_, _) => await test(); form.Children.Add(testNotification);
-        WrapCard(behaviorStart, "App Behavior", "Keep your capacity within reach.");
+        WrapCard(behaviorStart, "App Behavior");
         if (accountId is not null) form.Children.Clear();
         foreach (var account in accounts.Where(a => a.Id == accountId).ToArray())
         {
