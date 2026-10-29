@@ -242,4 +242,17 @@ public class UsageHistoryTests
         Assert.Equal(Start.AddMinutes(4011), result[^1].At);
         Assert.InRange(projections, 1, 100);
     }
+
+    [Fact]
+    public void DownsamplingPreservesEstimatedSpanAndReturnToMeasuredData()
+    {
+        var samples = Enumerable.Range(0, 10).Select(i =>
+            new HistoryPoint(Start.AddMinutes(i), 90 - i, "weekly", i == 0,
+                InterpolatedFromPrevious: i == 4)).ToArray();
+        var reduced = UsageHistory.Downsample(samples, _ => 12, 0, 20);
+        Assert.Contains(samples[3], reduced);
+        Assert.Contains(samples[4], reduced);
+        Assert.Contains(samples[5], reduced);
+        Assert.True(reduced.Length < samples.Length);
+    }
 }

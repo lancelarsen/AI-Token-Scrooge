@@ -185,7 +185,11 @@ public static class UsageHistory
             bucketLast = i;
             if (points[i].RemainingPercent < points[minimum].RemainingPercent) minimum = i;
             if (points[i].RemainingPercent > points[maximum].RemainingPercent) maximum = i;
-            if (!points[i].StartsSegment && !points[i].ReplenishedFrom.HasValue) continue;
+            // Keep both endpoints of estimated spans, and the next measured sample,
+            // so pixel reduction cannot disguise the estimated interval.
+            if (!points[i].StartsSegment && !points[i].ReplenishedFrom.HasValue &&
+                !points[i].InterpolatedFromPrevious &&
+                !(i > first && points[i - 1].InterpolatedFromPrevious)) continue;
             retained.Add(i);
             if (i > first) retained.Add(i - 1);
         }
