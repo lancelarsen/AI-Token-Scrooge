@@ -57,11 +57,11 @@ public sealed class HorizonViewport
             startCoordinate = Coordinate(StartAt, timeZone);
             var historySpan = Coordinate(now, timeZone) - startCoordinate;
             // Fit the larger side of Today, compacting longer ranges down to readable day widths.
-            var futureSpan = Coordinate(futureEnd, timeZone) - Coordinate(now, timeZone);
+            var futureSpan = LastDate.DayNumber - Today.DayNumber + 1;
             PixelsPerDay = Math.Max(MinimumDayWidth, ViewportWidth / Math.Max(1, Math.Max(historySpan, futureSpan)));
             // Empty space beyond a short future range lets Today stay at the left edge.
             // It is layout space only; LastEventAt remains the actual final reported event.
-            endCoordinate = Math.Max(Coordinate(futureEnd, timeZone), Coordinate(now, timeZone) + VisibleDays);
+            endCoordinate = Coordinate(now, timeZone) + Math.Max(futureSpan, VisibleDays);
         }
         else
         {
@@ -95,6 +95,11 @@ public sealed class HorizonViewport
         (Coordinate(timestamp, TimeZone) - startCoordinate) * PixelsPerDay;
 
     public double PositionAt(DateOnly date) => (date.DayNumber - startCoordinate) * PixelsPerDay;
+
+    /// <summary>Equal-width future day buckets, including Today; never clamp individual markers.</summary>
+    public double FutureDayPosition(DateOnly date) =>
+        (HistoryEnabled ? TodayPosition : PositionAt(Today)) +
+        (date.DayNumber - Today.DayNumber + 0.5) * PixelsPerDay;
 
     public DateTimeOffset DateAt(double contentX)
     {

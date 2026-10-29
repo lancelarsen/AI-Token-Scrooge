@@ -382,3 +382,10 @@ Release publish succeeded to history-drag-win-x64. Restarted with the existing s
 Reduced the account rail and plot margins using the existing Horizon layout. The shared viewport fits the larger of the available history/future date spans, reducing day spacing as the range grows down to the existing 80-DIP readability minimum; longer ranges still scroll. History retains its seven-day maximum but clamps its left boundary to the earliest loaded sample across accounts (Today when no samples exist). Account visibility changes do not shift this bound.
 
 All 288 tests passed, including new earliest-sample, empty-history, and adaptive-spacing cases. Release publish and restart used the existing signed-in profile. Native desktop verification showed Today through Nov 6 together and a full left drag stopped at the first Oct 25 observation, with no empty Oct 22–25 area; Home returned to Today. Existing selector and purple navigator styling retained. Narrow geometry is covered by viewport tests; this increment was visually checked at the current desktop size.
+
+## Equal Future Day Spacing — 2026-10-29
+- Removed the Today-only position clamp. Future labels, dots, and service icons now use shared equal-width day buckets, with enough scroll extent for the final day.
+- Added an AGENTS.md invariant requiring equal adjacent calendar-day spacing during resizing, scrolling, and DST changes.
+- All 292 tests passed (105 Core, 187 Infrastructure), including morning/afternoon/late-night and narrow-width future-anchor regressions across DST. Two existing xUnit2031 warnings remain.
+- Release publish succeeded. Restarted equal-days-win-x64 with the existing signed-in data directory and updated the desktop shortcut.
+- Native desktop inspection against the user's screenshot confirmed Today through Nov 6 have uniform adjacent spacing, with service icons centered beneath their days. Narrow-width geometry was tested automatically; no additional native narrow-window inspection was performed.

@@ -210,6 +210,33 @@ public class HorizonViewportTests
         Assert.True(double.IsFinite(view.Overview(980).Width));
     }
 
+    [Theory]
+    [InlineData(9, 980)]
+    [InlineData(16, 980)]
+    [InlineData(23, 980)]
+    [InlineData(16, 480)]
+    public void FutureDayAnchorsStayEquallySpacedIncludingToday(int hour, double width)
+    {
+        var now = new DateTimeOffset(2026, 10, 29, hour, 15, 0, TimeSpan.FromHours(-5));
+        // Crosses the DST transition and reproduces the afternoon Today-clamping regression.
+        var view = new HorizonViewport(now, now.AddDays(8), Central, width, earliestHistory: now.AddDays(-3));
+        foreach (var history in new[] { true, false })
+        {
+            view.Update(now, now.AddDays(8), Central, width, history, now.AddDays(-3));
+            foreach (var offset in new[] { view.ScrollOffset, 0, view.MaximumScrollOffset })
+            {
+                view.ScrollTo(offset);
+                for (var date = view.Today; date < view.LastDate; date = date.AddDays(1))
+                    Assert.Equal(view.PixelsPerDay,
+                        view.FutureDayPosition(date.AddDays(1)) - view.FutureDayPosition(date), 6);
+            }
+            view.ScrollTo(view.MaximumScrollOffset);
+            Assert.InRange(view.FutureDayPosition(view.LastDate) - view.ScrollOffset, 0, width);
+            view.FollowToday();
+            Assert.Equal(view.PixelsPerDay / 2, view.FutureDayPosition(view.Today) - view.ScrollOffset, 6);
+        }
+    }
+
     static void Close(DateTimeOffset expected, DateTimeOffset actual) =>
         Assert.True((expected - actual).Duration() < TimeSpan.FromMilliseconds(1), $"Expected {expected:O}; got {actual:O}");
 }

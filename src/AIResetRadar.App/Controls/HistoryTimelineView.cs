@@ -201,9 +201,7 @@ public sealed class HistoryTimelineView : Grid
         var groups = future.GroupBy(e => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(e.At, zone).DateTime));
         foreach (var group in groups)
         {
-            var dateX = AxisLeft + (float)(model.PositionAt(group.Key) + model.PixelsPerDay / 2 - model.ScrollOffset);
-            // Today's remaining events share the anchor when local noon is already behind us.
-            if (group.Key == model.Today) dateX = Math.Max(dateX, TodayX + 28);
+            var dateX = AxisLeft + (float)(model.FutureDayPosition(group.Key) - model.ScrollOffset);
             if (dateX < Math.Max(AxisLeft, TodayX) - 24 || dateX > AxisLeft + Span + 12) continue;
             var slot = 0;
             foreach (var e in group)
@@ -354,9 +352,8 @@ public sealed class HistoryTimelineView : Grid
                     c.StrokeColor = Color.FromArgb("#30333C"); c.DrawLine(x, PlotTop, x, owner.plotBottom);
                     c.FontColor = Muted; c.FontSize = 11; c.DrawString(date.ToString("MMM d"), x - 30, owner.plotBottom + 10, 60, 20, HorizontalAlignment.Center, VerticalAlignment.Center);
                 }
-                var futureX = x + (float)owner.model.PixelsPerDay / 2;
-                if (date == owner.model.Today) futureX = Math.Max(futureX, today + 28);
-                if (futureX < Math.Max(today, AxisLeft) || futureX > end || date > owner.model.LastDate) continue;
+                var futureX = AxisLeft + (float)(owner.model.FutureDayPosition(date) - owner.model.ScrollOffset);
+                if (date < owner.model.Today || futureX < Math.Max(today, AxisLeft) || futureX > end || date > owner.model.LastDate) continue;
                 c.FontColor = Accent; c.FontSize = 13;
                 c.DrawString(date == owner.model.Today ? "Today" : date.ToString("ddd"), futureX - 32, 12, 64, 20, HorizontalAlignment.Center, VerticalAlignment.Center);
                 c.FontColor = Muted; c.FontSize = 11; c.DrawString(date.ToString("MMM d"), futureX - 35, 38, 70, 20, HorizontalAlignment.Center, VerticalAlignment.Center);
