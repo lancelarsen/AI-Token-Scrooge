@@ -88,9 +88,12 @@ public sealed class SettingsPage : ContentPage
             accountCard = WrapCard(accountStart, $"{account.Provider} · {plan}", account.Nickname);
         }
         var status = new Label { TextColor = Color.FromArgb("#EAAA51"), Margin = new Thickness(24, 0), HorizontalTextAlignment = TextAlignment.End };
-        var done = new AIResetRadar.App.Controls.ActionButton { Text = "Save settings" };
-        done.Clicked += async (_, _) =>
+        var saveGate = new SemaphoreSlim(1, 1);
+        async Task AutoSaveAsync()
         {
+            await saveGate.WaitAsync();
+            try
+            {
             var start = quietRange.StartHour; var end = quietRange.EndHour;
             var lowValue = (decimal)low.Value; var criticalValue = (decimal)critical.Value;
             if (quiet.IsToggled && start == end) { status.Text = "Choose different start and end times for quiet hours."; return; }
@@ -101,16 +104,30 @@ public sealed class SettingsPage : ContentPage
                 Rules = original.Rules?.Where(r => accounts.Any(a => a.Id == r.AccountId)).ToArray(),
                 TimeZoneId = (timeZone.SelectedItem as TimeZoneInfo)?.Id ?? TimeZones.DefaultId };
             if (!settings.HasValidThresholds) { status.Text = "An account/window rule conflicts with these defaults. Adjust its thresholds first."; return; }
-            try { await save(settings); await Navigation.PopModalAsync(); }
+            try { await save(settings); original = settings; status.Text = ""; }
             catch (SettingsSaveException error) { status.Text = error.Message; }
             catch { status.Text = "Settings could not be saved. Check available space and local folder access."; }
-        };
+            }
+            finally { saveGate.Release(); }
+        }
+        timeZone.SelectedIndexChanged += async (_, _) => await AutoSaveAsync();
+        foreach (var toggle in new[] { notifications, sound, privacy, quiet, close, startup })
+            toggle.Toggled += async (_, _) => await AutoSaveAsync();
+        low.ValueChanged += async (_, _) => await AutoSaveAsync();
+        critical.ValueChanged += async (_, _) => await AutoSaveAsync();
+        quietRange.Changed += async (_, _) => await AutoSaveAsync();
+        async Task CloseAsync()
+        {
+            await saveGate.WaitAsync();
+            saveGate.Release();
+            if (!string.IsNullOrEmpty(status.Text)) return;
+            await Navigation.PopModalAsync();
+        }
         var footer = new HorizontalStackLayout { Spacing = 12, HorizontalOptions = LayoutOptions.End, Padding = new Thickness(20, 8) };
-        if (accountId is null) footer.Children.Add(done);
-        var cancel = new AIResetRadar.App.Controls.ActionButton { Text = "Close" }; cancel.Clicked += async (_, _) => await Navigation.PopModalAsync(); footer.Children.Add(cancel);
+        var cancel = new AIResetRadar.App.Controls.ActionButton { Text = "Close" }; cancel.Clicked += async (_, _) => await CloseAsync(); footer.Children.Add(cancel);
         var heading = new Grid { Padding = new Thickness(20, 12), ColumnDefinitions = [new(GridLength.Star), new(GridLength.Auto)] };
         heading.Add(new Label { Text = pageTitle, FontSize = 26, FontFamily = "Segoe UI Semibold", VerticalOptions = LayoutOptions.Center });
-        var headerClose = new AIResetRadar.App.Controls.ActionButton { Text = "Close" }; headerClose.Clicked += async (_, _) => await Navigation.PopModalAsync(); heading.Add(headerClose, 1);
+        var headerClose = new AIResetRadar.App.Controls.ActionButton { Text = "Close" }; headerClose.Clicked += async (_, _) => await CloseAsync(); heading.Add(headerClose, 1);
         var layout = new Grid { RowDefinitions = [new(GridLength.Auto), new(GridLength.Star), new(GridLength.Auto)] };
         layout.Add(heading); layout.Add(new ScrollView { Content = form }, 0, 1); layout.Add(new VerticalStackLayout { Children = { status, footer } }, 0, 2); Content = layout;
         SizeChanged += (_, _) => form.WidthRequest = Math.Max(0, Math.Min(960, Width - 24));

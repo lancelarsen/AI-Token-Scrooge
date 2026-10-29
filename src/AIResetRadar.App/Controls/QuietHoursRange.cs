@@ -10,6 +10,7 @@ public sealed class QuietHoursRange : ContentView, IDrawable
     readonly Label summary;
     bool movingStart;
     bool dragging;
+    public event EventHandler? Changed;
     public int StartHour { get; private set; }
     public int EndHour { get; private set; }
     const int TimeFontSize = 16;
@@ -33,8 +34,8 @@ public sealed class QuietHoursRange : ContentView, IDrawable
             dragging = true; Move(x);
         };
         track.DragInteraction += (_, e) => { if (dragging && IsEnabled && e.Touches.Length > 0) Move(e.Touches[0].X); };
-        track.EndInteraction += (_, _) => dragging = false;
-        track.CancelInteraction += (_, _) => dragging = false;
+        track.EndInteraction += (_, _) => { dragging = false; Changed?.Invoke(this, EventArgs.Empty); };
+        track.CancelInteraction += (_, _) => { dragging = false; Changed?.Invoke(this, EventArgs.Empty); };
         summary = new Label { FontSize = TimeFontSize, TextColor = Color.FromArgb("#C3ADF8") };
         range.HeightRequest = 94;
         range.Children.Add(track);
@@ -76,7 +77,7 @@ public sealed class QuietHoursRange : ContentView, IDrawable
                 if (change == 0) return;
                 var hour = ((isStart ? StartHour : EndHour) + change + 24) % 24;
                 if (isStart) StartHour = hour; else EndHour = hour;
-                args.Handled = true; Refresh();
+                args.Handled = true; Refresh(); Changed?.Invoke(this, EventArgs.Empty);
             };
         };
         return label;

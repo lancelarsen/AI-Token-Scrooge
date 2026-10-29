@@ -17,35 +17,50 @@ public sealed class AlertRulesPage : ContentPage
         var exhausted = Toggle("Exhausted capacity alerts"); var restored = Toggle("Confirmed restored capacity alerts");
         var expiry = Toggle("Earned reset expiry reminders (24 hours / 1 hour)");
         var status = new Label { TextColor = Color.FromArgb("#EAAA51") }; form.Children.Add(status);
-        var done = new AIResetRadar.App.Controls.ActionButton { Text = "Save rules" };
-        done.Clicked += async (_, _) =>
+        var loading = false;
+        var saveGate = new SemaphoreSlim(1, 1);
+        async Task AutoSaveAsync()
         {
+            if (loading) return;
             decimal? lowValue = null, criticalValue = null;
             if (!string.IsNullOrWhiteSpace(low.Text)) { if (!decimal.TryParse(low.Text, out var value)) { status.Text = "Enter a percentage or leave the field blank for defaults."; return; } lowValue = value; }
             if (!string.IsNullOrWhiteSpace(critical.Text)) { if (!decimal.TryParse(critical.Text, out var value)) { status.Text = "Enter a percentage or leave the field blank for defaults."; return; } criticalValue = value; }
             var id = WindowId(); var rule = new AlertRule(account.Id, id, lowValue, criticalValue,
                 lowEnabled.IsToggled, criticalEnabled.IsToggled, exhausted.IsToggled, restored.IsToggled, expiry.IsToggled);
+            await saveGate.WaitAsync();
+            try
+            {
             var candidate = rules.Where(r => r.AccountId != account.Id || r.WindowId != id).Append(rule).ToArray();
             if (!(settings with { Rules = candidate }).HasValidThresholds) { status.Text = "Use 0 ≤ critical < low ≤ 100. Account defaults must also fit any window overrides."; return; }
-            try { done.IsEnabled = false; await save(candidate); await Navigation.PopModalAsync(); }
+            try { await save(candidate); rules = candidate.ToList(); settings = settings with { Rules = candidate }; status.Text = ""; }
             catch { status.Text = "Rules could not be saved. Check local folder access."; }
-            finally { done.IsEnabled = true; }
-        };
-        form.Children.Add(done);
+            }
+            finally { saveGate.Release(); }
+        }
+        low.TextChanged += async (_, _) => await AutoSaveAsync();
+        critical.TextChanged += async (_, _) => await AutoSaveAsync();
+        foreach (var toggle in new[] { lowEnabled, criticalEnabled, exhausted, restored, expiry })
+            toggle.Toggled += async (_, _) => await AutoSaveAsync();
         var inherit = new AIResetRadar.App.Controls.ActionButton { Text = "Use default rules" };
         inherit.Clicked += async (_, _) =>
         {
+            await saveGate.WaitAsync();
+            try
+            {
             var id = WindowId(); var candidate = rules.Where(r => r.AccountId != account.Id || r.WindowId != id).ToArray();
             if (!(settings with { Rules = candidate }).HasValidThresholds) { status.Text = "A window override conflicts with these defaults. Adjust its thresholds first."; return; }
-            try { await save(candidate); await Navigation.PopModalAsync(); } catch { status.Text = "Rules could not be saved."; }
+            try { await save(candidate); rules = candidate.ToList(); settings = settings with { Rules = candidate }; Load(); } catch { status.Text = "Rules could not be saved."; }
+            }
+            finally { saveGate.Release(); }
         };
         form.Children.Add(inherit);
-        var close = new AIResetRadar.App.Controls.ActionButton { Text = "Close" }; close.Clicked += async (_, _) => await Navigation.PopModalAsync(); form.Children.Add(close);
+        var close = new AIResetRadar.App.Controls.ActionButton { Text = "Close" }; close.Clicked += async (_, _) => { await saveGate.WaitAsync(); saveGate.Release(); if (string.IsNullOrEmpty(status.Text)) await Navigation.PopModalAsync(); }; form.Children.Add(close);
         scopes.SelectedIndexChanged += (_, _) => Load();
         Content = new ScrollView { Content = form }; Load();
         string? WindowId() => scopes.SelectedIndex <= 0 ? null : windows[scopes.SelectedIndex - 1].Id;
         void Load()
         {
+            loading = true;
             var id = WindowId(); var stored = rules.FirstOrDefault(r => r.AccountId == account.Id && r.WindowId == id);
             var effective = settings.RuleFor(account.Id, id);
             var defaults = id is null ? new RadarSettings(LowThreshold: settings.LowThreshold, CriticalThreshold: settings.CriticalThreshold).RuleFor(account.Id) : settings.RuleFor(account.Id);
@@ -53,7 +68,7 @@ public sealed class AlertRulesPage : ContentPage
             low.Placeholder = $"Default: {defaults.LowThreshold:0.#}%"; critical.Placeholder = $"Default: {defaults.CriticalThreshold:0.#}%";
             lowEnabled.IsToggled = effective.Low; criticalEnabled.IsToggled = effective.Critical;
             exhausted.IsToggled = effective.Exhausted; restored.IsToggled = effective.Restored; expiry.IsToggled = effective.Expiry;
-            ((View)expiry.Parent!).IsVisible = id is null; status.Text = "";
+            ((View)expiry.Parent!).IsVisible = id is null; status.Text = ""; loading = false;
         }
     }
     Entry Field(string title) { var field = new Entry { Keyboard = Keyboard.Numeric }; SemanticProperties.SetDescription(field, title); form.Children.Add(new VerticalStackLayout { Spacing = 4, Children = { new Label { Text = title, TextColor = Color.FromArgb("#B6B8C8") }, field } }); return field; }
