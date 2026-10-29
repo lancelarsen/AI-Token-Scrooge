@@ -344,3 +344,9 @@ Fresh `dotnet test AIResetRadar.slnx --nologo --no-restore` completed: 285 passe
 ### Live Update and Modal Native Pass — 2026-10-29
 
 On the shortcut-launched signed-in build, panned from Today to the leftmost historical range, then clicked Refresh. The updated timestamp advanced from 3:19 to 3:21 PM while the date ticks and navigator remained at the historical position. Enabled the second OpenAI (Plus) selector: its separate zero-used series and endpoint label appeared alongside Pro without a pan reset; disabled it again to restore the original selection. Opened and closed Settings; historical dates and navigator position remained unchanged. No alert preferences were changed. This verifies the refresh, selector and modal portions of H7; reorder/threshold interactions remain outstanding.
+
+### Reorder, Threshold, and History Toggle Native Pass — 2026-10-29
+
+With history panned left, dragged GitHub above OpenAI Pro and then dragged OpenAI Pro back above GitHub. Both consecutive drags worked and preserved historical dates and navigator position. Dragged the Pro Weekly Info threshold from 50% Left to 55% Left, then restored it to 50% Left; the popup confirmed the restored value and the history viewport did not move. A transient capture error occurred after the first threshold drag; fresh capture established that the input had succeeded before any further action.
+
+Turned History off: the existing future-only horizon appeared with evenly spaced days and its full-width navigator. Turned History back on: the shared horizon started at Today and retained Pro selected with the other accounts hidden. The running signed-in build remains open with the restored threshold and original account order. These checks complete the previously outstanding reorder/threshold native interactions, but do not claim separately timed hover latency or additional display-scale coverage.
