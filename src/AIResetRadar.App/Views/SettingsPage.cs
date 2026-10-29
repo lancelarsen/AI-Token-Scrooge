@@ -28,6 +28,7 @@ public sealed class SettingsPage : ContentPage
         WrapCard(displayStart, "Time Zone");
         var notificationStart = form.Children.Count;
         var notifications = Toggle("Popup Notifications", original.Notifications);
+        var iconAlerts = Toggle("Alert on Icon", original.AlertOnIcon);
 
 
         WrapCard(notificationStart, "Notifications", "Choose how Scrooge gets your attention.");
@@ -170,7 +171,7 @@ public sealed class SettingsPage : ContentPage
             if (quiet.IsToggled && start == end) { status.Text = "Choose different start and end times for quiet hours."; return; }
             if ((decimal)info.Value < lowValue) { status.Text = "Info Must Be At or Above Warning"; return; }
             if (criticalValue >= lowValue) { status.Text = "Critical capacity must be lower than low capacity."; return; }
-            var settings = original with { ResetExpiryReminders = resetReminders.Value, QuotaRefreshReminders = refreshReminders.Value, Notifications = notifications.IsToggled, Sound = sound.IsToggled, Privacy = false,
+            var settings = original with { ResetExpiryReminders = resetReminders.Value, QuotaRefreshReminders = refreshReminders.Value, Notifications = notifications.IsToggled, AlertOnIcon = iconAlerts.IsToggled, Sound = sound.IsToggled, Privacy = false,
                 QuietHours = quiet.IsToggled, QuietStartHour = start, QuietEndHour = end, InfoThreshold = (decimal)info.Value, LowThreshold = lowValue, CriticalThreshold = criticalValue,
                 LaunchAtSignIn = startup.IsToggled, CloseToTray = close.IsToggled,
                 Rules = original.Rules?.Where(r => accounts.Any(a => a.Id == r.AccountId)).ToArray(),
@@ -189,7 +190,7 @@ public sealed class SettingsPage : ContentPage
         volume.Unfocused += async (_, _) => await AutoSaveAsync();
         soundTheme.SelectedIndexChanged += async (_, _) => await AutoSaveAsync();
         timeZone.SelectedIndexChanged += async (_, _) => await AutoSaveAsync();
-        foreach (var toggle in new[] { notifications, sound, quiet, close, startup })
+        foreach (var toggle in new[] { notifications, iconAlerts, sound, quiet, close, startup })
             toggle.Toggled += async (_, _) => await AutoSaveAsync();
         info.ValueChanged += async (_, _) => await AutoSaveAsync();
         low.ValueChanged += async (_, _) => await AutoSaveAsync();

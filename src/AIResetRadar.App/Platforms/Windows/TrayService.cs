@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using AIResetRadar.Core;
 using Microsoft.UI.Xaml;
 namespace AIResetRadar.App.Platforms.Windows;
 
@@ -11,7 +12,7 @@ public sealed class TrayService : IDisposable
     readonly uint taskbarCreated;
     readonly nint brandIcon;
     NotifyIconData data;
-    (string Tip, bool Warning, bool Exhausted, bool Unknown)? lastStatus;
+    (string Tip, ReminderSeverity? Severity, bool Unknown)? lastStatus;
     public event Action? Open;
     public event Action? Refresh;
     public event Action? Exit;
@@ -27,15 +28,15 @@ public sealed class TrayService : IDisposable
         if (!SetWindowSubclass(hwnd, callback, 1, 0)) throw new InvalidOperationException("Windows tray integration could not attach to the app window.");
         if (!Shell_NotifyIcon(0, ref data)) throw new InvalidOperationException("Windows did not create the Scrooge tray icon.");
     }
-    public void Update(string tip, bool warning, bool exhausted, bool unknown)
+    public void Update(string tip, ReminderSeverity? severity, bool unknown)
     {
         var displayTip = tip.Length > 127 ? tip[..127] : tip;
-        var status = (displayTip, warning, exhausted, unknown);
+        var status = (displayTip, severity, unknown);
         if (lastStatus == status) return;
         data.Tip = displayTip;
-        data.Icon = warning || exhausted || unknown ? LoadIcon(0, exhausted ? 32513 : warning ? 32515 : 32516) : brandIcon;
+        data.Icon = severity.HasValue || unknown ? LoadIcon(0, severity == ReminderSeverity.Critical ? 32513 : severity == ReminderSeverity.Warning ? 32515 : 32516) : brandIcon;
         if (Shell_NotifyIcon(1, ref data)) lastStatus = status;
-        TaskbarOverlay.Set(hwnd, warning || exhausted || unknown ? data.Icon : 0, tip);
+        TaskbarOverlay.Set(hwnd, severity.HasValue || unknown ? data.Icon : 0, tip);
     }
     nint WindowProc(nint window, uint message, nuint wParam, nint lParam, nuint id, nuint reference)
     {

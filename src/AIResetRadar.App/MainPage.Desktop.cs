@@ -70,10 +70,10 @@ public sealed partial class MainPage
         var status = MonitorStatus.Evaluate(state.Accounts, state.Snapshots, preferences);
         var limiting = rows.FirstOrDefault(r => r.Account.Id == status.AccountId && r.Window.Id == status.WindowId);
         var unknown = status.Capacity == CapacityState.Unknown || status.HasUnavailableData || status.UsagePaused;
-        var warning = status.Capacity is CapacityState.Low or CapacityState.Critical;
-        var exhausted = status.Capacity == CapacityState.Exhausted;
+        var iconAlert = IconAlerts.Evaluate(state.Accounts, state.Snapshots, preferences, DateTimeOffset.UtcNow);
         var text = limiting is null ? "AI Token Scrooge" : $"Scrooge Â· {limiting.Account.Provider} / {limiting.AccountLabel} / {limiting.Window.Name}: {limiting.LeftText}";
         if (status.Notice is not null) text += " Â· " + status.Notice; if (state.IsDemo) text = "DEMO Â· " + text;
-        tray?.Update(text, warning, exhausted, unknown);
+        if (iconAlert is not null) text = $"Scrooge · {iconAlert.Title} · {iconAlert.Detail}";
+        tray?.Update(text, iconAlert?.Severity, preferences.AlertOnIcon && unknown);
     }
 }
