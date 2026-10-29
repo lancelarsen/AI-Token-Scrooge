@@ -1,6 +1,6 @@
 # AI Token Scrooge: Unified Reset Horizon History
 
-Planning date: October 29, 2026. Status: implemented; native acceptance checks in progress. Later user corrections below supersede the original graph-value and gap requirements.
+Planning date: October 29, 2026. Status: implemented and verified; see docs/verification.md for acceptance evidence and platform coverage limits. Later user corrections below supersede the original graph-value and gap requirements.
 
 The selected visual reference is [history-selected.png](../design/references/history-selected.png). This feature plan supersedes earlier history concepts and the initial idea of separate 5-Hour / Weekly selectors. Preserve the current production dashboard and subsequent refinements wherever the generated reference differs.
 

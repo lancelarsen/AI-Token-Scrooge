@@ -43,7 +43,7 @@ Verification: pure viewport tests for initial anchor, left/right bounds, seven-d
 ## Checkpoint: Data and Navigation
 
 - [x] H1-H4 focused tests pass and the current Windows app still builds
-- [ ] No provider/account behavior has been changed beyond accepted-snapshot recording
+- [x] No provider/account behavior has been changed beyond accepted-snapshot recording
 - [x] The graph contract treats scheduled times and measured values separately
 
 ## H5. Draw the Selected History View
@@ -51,7 +51,7 @@ Verification: pure viewport tests for initial anchor, left/right bounds, seven-d
 Implement the shared chart using existing MAUI graphics and popup patterns.
 
 - [x] The graph shows percent used, stable per-account colors, restrained fills, actual historical event icons, and legible endpoint labels; no future line projection.
-- [ ] Hover/click/focus reveals actual sample/event details without delay; estimated spans and partial history are identified.
+- [x] Hover/click/focus reveals actual sample/event details without delay; estimated spans and partial history are identified.
 - [x] Renderer clips and downsamples appropriately without smoothing away replenishment or creating false precision.
 
 Verification: projection-to-render fixtures where useful, then native screenshots at desktop/narrow widths and 100%/125%/150% display scaling where available. Compare with the selected reference and existing horizon. Dependencies: H3, H4. Likely files: new history graphics control/drawable, `HorizonView.cs`, focused projection tests. Scope: M.
@@ -79,8 +79,8 @@ Verification: focused state tests and repeated native pan/refresh/reorder/resize
 ## H8. Verify and Ship the Running App
 
 - [x] Run relevant automated tests and Windows build, then restart the latest build using the existing data/profile path. Confirm signed-in accounts remain available.
-- [ ] Compare the running app with the selected reference at desktop and narrow widths; verify the unified navigator, seven days of history, 30+ future days, selection persistence, immediate details, no invented history, and no scroll jump on refresh.
-- [ ] Update verification evidence, commit/push the completed increment, and report any unverified native/DPI or historical-data coverage limits precisely.
+- [x] Compare the running app with the selected reference at desktop and narrow widths; verify the unified navigator, seven days of history, 30+ future days, selection persistence, immediate details, no invented history, and no scroll jump on refresh.
+- [x] Update verification evidence, commit/push the completed increment, and report any unverified native/DPI or historical-data coverage limits precisely.
 
 Verification: repository build/test scripts and live Windows app checks. Dependencies: H7. Likely files: `docs/verification.md`, these task cards, scoped fixes only. Scope: S.
 
