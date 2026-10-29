@@ -5,12 +5,17 @@ namespace AIResetRadar.App.Views;
 
 public sealed class SettingsPage : ContentPage
 {
+    Func<Task>? closePanel;
+    protected override bool OnBackButtonPressed() { if (closePanel is not null) _ = closePanel(); return true; }
     readonly VerticalStackLayout form = new() { Padding = new Thickness(16, 12), Spacing = 12, MaximumWidthRequest = 960, HorizontalOptions = LayoutOptions.Center };
     public SettingsPage(IReadOnlyList<ProviderAccount> accounts, IReadOnlyDictionary<string, QuotaSnapshot> snapshots, RadarSettings original, bool demo,
-        Func<RadarSettings, Task> save, Func<ProviderAccount, bool, Task> update, Func<Task> history, Func<Task> test, Func<ProviderAccount, Task> reconnect, string? accountId = null, Func<string, Task>? reserves = null)
+        Func<RadarSettings, Task> save, Func<ProviderAccount, bool, Task> update, Func<Task> history, Func<Task> test, Func<ProviderAccount, Task> reconnect, string? accountId = null)
     {
+        var saveGate = new SemaphoreSlim(1, 1);
+        Func<Task>? flushAccountName = null;
+        var status = new Label { TextColor = Color.FromArgb("#EAAA51"), Margin = new Thickness(24, 0), HorizontalTextAlignment = TextAlignment.End };
         var selected = accounts.FirstOrDefault(a => a.Id == accountId);
-        var pageTitle = selected is null ? "Settings" : $"{selected.Provider} / {selected.Nickname} · {PlanLabels.Display(selected.Provider, snapshots.GetValueOrDefault(selected.Id)?.PlanType)}";
+        var pageTitle = selected is null ? "Settings" : $"{selected.Provider} / {selected.Nickname} \u00b7 {PlanLabels.Display(selected.Provider, snapshots.GetValueOrDefault(selected.Id)?.PlanType)}";
         Title = pageTitle; BackgroundColor = Color.FromArgb("#141519");
         if (demo) form.Children.Add(new Label { Text = "Demo changes stay in this preview. Notification test uses Windows.", TextColor = Color.FromArgb("#B5A0F4") });
         var displayStart = form.Children.Count;
@@ -22,9 +27,9 @@ public sealed class SettingsPage : ContentPage
         form.Children.Add(timeZone);
         WrapCard(displayStart, "Time Zone");
         var notificationStart = form.Children.Count;
-        var notifications = Toggle("Popup notifications", original.Notifications);
-        var sound = Toggle("Notification sound", original.Sound);
-        var privacy = Toggle("Hide account identities in notifications", original.Privacy);
+        var notifications = Toggle("Popup Notifications", original.Notifications);
+        var sound = Toggle("Notification Sound", original.Sound);
+        var privacy = Toggle("Hide Account Names in Notifications", original.Privacy);
         WrapCard(notificationStart, "Notifications", "Choose how Scrooge gets your attention.");
         var quietCardStart = form.Children.Count;
         var quiet = new Switch { IsToggled = original.QuietHours, OnColor = Color.FromArgb("#8170CF"), VerticalOptions = LayoutOptions.Center };
@@ -35,60 +40,93 @@ public sealed class SettingsPage : ContentPage
         form.Children.Add(new Label { Text = "Drag a circle or focus a time and use arrow keys. One-hour steps. Monitoring continues.", FontSize = 12, TextColor = Color.FromArgb("#A5A8BA") });
         WrapCard(quietCardStart, "Quiet Hours", "A little peace, right on schedule.", quiet);
         var thresholdsStart = form.Children.Count;
-        var low = PercentControl("Low capacity", original.LowThreshold);
-        var critical = PercentControl("Critical capacity", original.CriticalThreshold);
-        WrapCard(thresholdsStart, "Capacity alerts", "Notify me when remaining capacity drops below these levels.");
+        var low = PercentControl("Warning Alert", original.LowThreshold);
+        var critical = PercentControl("Critical Alert", original.CriticalThreshold);
+        WrapCard(thresholdsStart, "Default Alert Levels", "Used when a bar has no custom levels. Adjust individual alerts on the dashboard.");
         var behaviorStart = form.Children.Count;
         var close = Toggle("Keep monitoring in the tray when window closes", original.CloseToTray);
-        var startup = Toggle("Launch at Windows sign-in", original.LaunchAtSignIn);
+        var startup = Toggle("Launch at Windows Sign-In", original.LaunchAtSignIn);
         startup.IsEnabled = !demo;
-        var showHistory = new AIResetRadar.App.Controls.ActionButton { Text = "Alert history" }; showHistory.Clicked += async (_, _) => await history(); form.Children.Add(showHistory);
-        var testNotification = new AIResetRadar.App.Controls.ActionButton { Text = "Send test notification" }; testNotification.Clicked += async (_, _) => await test(); form.Children.Add(testNotification);
-        WrapCard(behaviorStart, "App behavior", "Keep your capacity within reach.");
+        var showHistory = new AIResetRadar.App.Controls.ActionButton { Text = "Alert History" }; showHistory.Clicked += async (_, _) => await history(); form.Children.Add(showHistory);
+        var testNotification = new AIResetRadar.App.Controls.ActionButton { Text = "Send Test Notification" }; testNotification.Clicked += async (_, _) => await test(); form.Children.Add(testNotification);
+        WrapCard(behaviorStart, "App Behavior", "Keep your capacity within reach.");
         if (accountId is not null) form.Children.Clear();
-        form.Children.Add(new Label { Text = accountId is null ? "Connected accounts" : "Account settings", FontSize = 21, FontFamily = "Segoe UI Semibold", Margin = new Thickness(0, 8, 0, 0) });
-        foreach (var account in accounts.Where(a => accountId is null || a.Id == accountId).ToArray())
+        foreach (var account in accounts.Where(a => a.Id == accountId).ToArray())
         {
             var accountStart = form.Children.Count;
-            Border? accountCard = null;
-            var current = account;
-            ProviderAccount Latest() => accounts.FirstOrDefault(a => a.Id == account.Id) ?? current;
-            var plan = PlanLabels.Display(account.Provider, snapshots.GetValueOrDefault(account.Id)?.PlanType);
-            var rename = new AIResetRadar.App.Controls.ActionButton { Text = $"{account.Provider} / {account.Nickname} · {plan} · Rename" };
-            rename.Clicked += async (_, _) => await AccountAction(async () => { var name = await AIResetRadar.App.Services.ThemedDialogs.PromptAsync(this, "Account nickname", "Choose a label for this account.", Latest().Nickname); if (!string.IsNullOrWhiteSpace(name)) { current = Latest() with { Nickname = name.Trim() }; await update(current, false); rename.Text = $"{current.Provider} / {current.Nickname} · {plan} · Rename"; } });
-            form.Children.Add(rename);
-            var providerPages = new Grid { ColumnDefinitions = [new(GridLength.Star), new(GridLength.Star)], ColumnSpacing = 10 };
-            var usagePage = new AIResetRadar.App.Controls.ActionButton { Text = "Provider usage page", IsEnabled = !demo };
-            var accessHelp = new AIResetRadar.App.Controls.ActionButton { Text = "Usage and access help" };
-            usagePage.Clicked += async (_, _) => { if (!await AIResetRadar.App.Services.ProviderNavigation.OpenAsync(Latest())) await AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, "Provider page unavailable", "Open the provider's usage page in your browser.", "Close"); };
-            accessHelp.Clicked += async (_, _) => { if (!await AIResetRadar.App.Services.ProviderNavigation.OpenAsync(Latest(), true)) await AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, "Help unavailable", "Open your provider's usage documentation in your browser.", "Close"); };
-            providerPages.Add(usagePage); providerPages.Add(accessHelp, 1); form.Children.Add(providerPages);
-            var browserNotice = new Label { Text = "Browser pages use the account signed in there. Check the account/workspace before comparing.", FontSize = 12, TextColor = Color.FromArgb("#B6B8C8") }; form.Children.Add(browserNotice);
-            if (reserves is not null && snapshots.GetValueOrDefault(account.Id)?.Reserve is not null)
+            ProviderAccount Latest() => accounts.FirstOrDefault(a => a.Id == account.Id) ?? account;
+            var snapshot = snapshots.GetValueOrDefault(account.Id);
+            var name = new Entry { Text = account.Nickname, Placeholder = "Personal, Work" };
+            SemanticProperties.SetDescription(name, "Account Name");
+            form.Children.Add(new Label { Text = "Account Name", TextColor = Color.FromArgb("#BEC1D2") });
+            form.Children.Add(name);
+            async Task RenameAsync()
             {
-                var credits = new AIResetRadar.App.Controls.ActionButton { Text = "Available resets" };
-                credits.Clicked += async (_, _) => await reserves(account.Id);
-                form.Children.Add(credits);
+                await saveGate.WaitAsync();
+                try
+                {
+                    var value = name.Text?.Trim();
+                    if (!string.IsNullOrWhiteSpace(value) && value != Latest().Nickname)
+                        await AccountAction(() => update(Latest() with { Nickname = value }, false));
+                }
+                finally { saveGate.Release(); }
             }
-            var rules = new AIResetRadar.App.Controls.ActionButton { Text = "Account and window alert rules" };
-            rules.Clicked += async (_, _) => await Navigation.PushModalAsync(new AlertRulesPage(current, snapshots.GetValueOrDefault(current.Id)?.Windows ?? [], original,
-                async updated => { var settings = original with { Rules = updated.Where(r => accounts.Any(a => a.Id == r.AccountId)).ToArray() }; await save(settings); original = settings; }));
-            form.Children.Add(rules);
-            var signIn = new AIResetRadar.App.Controls.ActionButton { Text = "Reconnect account", IsEnabled = !demo }; signIn.Clicked += async (_, _) => await AccountAction(() => reconnect(Latest())); form.Children.Add(signIn);
-            var enabled = Toggle("Monitor this account", account.Enabled);
+            flushAccountName = RenameAsync;
+            name.Unfocused += async (_, _) => await RenameAsync();
+            name.Completed += async (_, _) => await RenameAsync();
+            var enabled = Toggle("Monitor This Account", account.Enabled);
             var syncing = false;
             enabled.Toggled += async (_, args) => {
                 if (demo || syncing) return;
-                try { current = Latest() with { Enabled = args.Value }; await update(current, false); }
+                await saveGate.WaitAsync();
+                try { await update(Latest() with { Enabled = args.Value }, false); }
                 catch { syncing = true; enabled.IsToggled = Latest().Enabled; syncing = false; await AccountError(); }
+                finally { saveGate.Release(); }
             };
-            var remove = new AIResetRadar.App.Controls.ActionButton { Text = "Remove connection", IsEnabled = !demo };
-            remove.Clicked += async (_, _) => await AccountAction(async () => { if (await AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, "Remove connection?", "Scrooge will remove only its own saved connection for this account.", "Remove", "Cancel")) { await update(Latest(), true); if (accountId is not null) { await Navigation.PopModalAsync(); return; } if (accountCard is not null) form.Children.Remove(accountCard); } });
+            WrapCard(accountStart, "Account");
+            if (snapshot?.Reserve is { } reserve)
+            {
+                var start = form.Children.Count;
+                form.Children.Add(new Label { Text = $"{reserve.AvailableCount?.ToString() ?? "Unknown"} Available", FontSize = 20, TextColor = Color.FromArgb("#F2F1F5") });
+                foreach (var credit in reserve.Credits ?? [])
+                    form.Children.Add(new Label { Text = $"Expires {TimeZones.Format(credit.ExpiresAt, TimeZones.Resolve(original.TimeZoneId), "ddd, MMM d h:mm tt")}",
+                        FontSize = 14, TextColor = Color.FromArgb("#EAAA51") });
+                if (reserve.HasPartialDetails) form.Children.Add(new Label { Text = "Some reset details are not supplied by the provider.", FontSize = 12, TextColor = Color.FromArgb("#B6B8C8") });
+                WrapCard(start, "Available Resets");
+            }
+            var alertStart = form.Children.Count;
+            var accountRule = original.RuleFor(account.Id);
+            var exhausted = Toggle("Capacity Exhausted", accountRule.Exhausted);
+            var restored = Toggle("Capacity Restored", accountRule.Restored);
+            var expiry = Toggle("Reset Expiry Reminders", accountRule.Expiry);
+            async Task SaveAccountAlertsAsync()
+            {
+                await saveGate.WaitAsync();
+                try
+                {
+                    var rule = original.Rules?.FirstOrDefault(r => r.AccountId == account.Id && r.WindowId is null) ?? new AlertRule(account.Id);
+                    rule = rule with { Exhausted = exhausted.IsToggled, Restored = restored.IsToggled, Expiry = expiry.IsToggled };
+                    var candidate = original with { Rules = (original.Rules ?? []).Where(r => r.AccountId != account.Id || r.WindowId is not null).Append(rule).ToArray() };
+                    await save(candidate); original = candidate; status.Text = "";
+                }
+                catch { status.Text = "Alerts Could Not Be Saved - Try Again"; }
+                finally { saveGate.Release(); }
+            }
+            foreach (var toggle in new[] { exhausted, restored, expiry }) toggle.Toggled += async (_, _) => await SaveAccountAlertsAsync();
+            WrapCard(alertStart, "Other Alerts", "Warning and critical levels are adjusted directly on the dashboard bars.");
+            var connectionStart = form.Children.Count;
+            form.Children.Add(new Label { Text = "Sign in again only if this account needs a new connection. Your saved settings stay in place.", FontSize = 13, TextColor = Color.FromArgb("#B6B8C8") });
+            var signIn = new ActionButton { Text = "Sign In Again", IsEnabled = !demo };
+            signIn.Clicked += async (_, _) => await AccountAction(() => reconnect(Latest()));
+            form.Children.Add(signIn);
+            var remove = new ActionButton { Text = "Remove Account", IsEnabled = !demo };
+            remove.Clicked += async (_, _) => await AccountAction(async () => {
+                if (await ThemedDialogs.ShowAsync(this, "Remove Account?", "This removes the saved connection from Scrooge. Your provider account is unaffected.", "Remove", "Cancel"))
+                { await update(Latest(), true); await AppPanels.CloseAsync(this); }
+            });
             form.Children.Add(remove);
-            accountCard = WrapCard(accountStart, $"{account.Provider} · {plan}", account.Nickname);
+            WrapCard(connectionStart, "Connection");
         }
-        var status = new Label { TextColor = Color.FromArgb("#EAAA51"), Margin = new Thickness(24, 0), HorizontalTextAlignment = TextAlignment.End };
-        var saveGate = new SemaphoreSlim(1, 1);
         async Task AutoSaveAsync()
         {
             await saveGate.WaitAsync();
@@ -118,18 +156,18 @@ public sealed class SettingsPage : ContentPage
         quietRange.Changed += async (_, _) => await AutoSaveAsync();
         async Task CloseAsync()
         {
+            if (flushAccountName is not null) await flushAccountName();
             await saveGate.WaitAsync();
             saveGate.Release();
             if (!string.IsNullOrEmpty(status.Text)) return;
-            await Navigation.PopModalAsync();
+            await AppPanels.CloseAsync(this);
         }
-        var footer = new HorizontalStackLayout { Spacing = 12, HorizontalOptions = LayoutOptions.End, Padding = new Thickness(20, 8) };
-        var cancel = new AIResetRadar.App.Controls.ActionButton { Text = "Close" }; cancel.Clicked += async (_, _) => await CloseAsync(); footer.Children.Add(cancel);
+        closePanel = CloseAsync;
         var heading = new Grid { Padding = new Thickness(20, 12), ColumnDefinitions = [new(GridLength.Star), new(GridLength.Auto)] };
         heading.Add(new Label { Text = pageTitle, FontSize = 26, FontFamily = "Segoe UI Semibold", VerticalOptions = LayoutOptions.Center });
         var headerClose = new AIResetRadar.App.Controls.ActionButton { Text = "Close" }; headerClose.Clicked += async (_, _) => await CloseAsync(); heading.Add(headerClose, 1);
         var layout = new Grid { RowDefinitions = [new(GridLength.Auto), new(GridLength.Star), new(GridLength.Auto)] };
-        layout.Add(heading); layout.Add(new ScrollView { Content = form }, 0, 1); layout.Add(new VerticalStackLayout { Children = { status, footer } }, 0, 2); Content = layout;
+        layout.Add(heading); layout.Add(new ScrollView { Content = form }, 0, 1); layout.Add(status, 0, 2); Content = layout;
         SizeChanged += (_, _) => form.WidthRequest = Math.Max(0, Math.Min(960, Width - 24));
     }
     Switch Toggle(string title, bool value)
@@ -163,7 +201,7 @@ public sealed class SettingsPage : ContentPage
         var slider = new Slider { Minimum = 0, Maximum = 100, Value = (double)value,
             MinimumTrackColor = Color.FromArgb("#A990ED"), MaximumTrackColor = Color.FromArgb("#41434F"), ThumbColor = Color.FromArgb("#C3ADF8") };
         SemanticProperties.SetDescription(slider, title + ": percent remaining");
-        void Update() => label.Text = $"{title} · {slider.Value:0}% remaining";
+        void Update() => label.Text = $"{title} \u00b7 {slider.Value:0}% remaining";
         slider.ValueChanged += (_, _) => { var rounded = Math.Round(slider.Value); if (Math.Abs(slider.Value - rounded) > 0.001) slider.Value = rounded; Update(); };
         Update(); form.Children.Add(new VerticalStackLayout { Spacing = 2, Children = { label, slider } }); return slider;
     }

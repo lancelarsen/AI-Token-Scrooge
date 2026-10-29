@@ -105,23 +105,23 @@ public sealed partial class MainPage
     async Task AddAccountAsync()
     {
         var provider = await AIResetRadar.App.Services.ThemedDialogs.ChooseAsync(this, "Connect account", "OpenAI Codex", "GitHub Copilot", "Claude");
-        if (provider == "Claude") { await Navigation.PushModalAsync(new ConnectClaudePage((account, snapshot) => CommitConnectionAsync(account, snapshot, null))); return; }
+        if (provider == "Claude") { await AppPanels.ShowAsync(this, new ConnectClaudePage((account, snapshot) => CommitConnectionAsync(account, snapshot, null))); return; }
         if (provider is not ("OpenAI Codex" or "GitHub Copilot")) return;
-        await Navigation.PushModalAsync(new ConnectAccountPage(provider == "OpenAI Codex", (account, snapshot) => CommitConnectionAsync(account, snapshot, null)));
+        await AppPanels.ShowAsync(this, new ConnectAccountPage(provider == "OpenAI Codex", (account, snapshot) => CommitConnectionAsync(account, snapshot, null)));
     }
-    async Task OpenSettingsAsync() => await Navigation.PushModalAsync(new SettingsPage(state.Accounts, state.Snapshots, preferences, state.IsDemo,
+    async Task OpenSettingsAsync() => await AppPanels.ShowAsync(this, new SettingsPage(state.Accounts, state.Snapshots, preferences, state.IsDemo,
         SaveSettingsAsync,
-        UpdateAccountAsync, OpenHistoryAsync, TestNotificationAsync, ReconnectAsync, reserves: OpenReserveAsync));
+        UpdateAccountAsync, OpenHistoryAsync, TestNotificationAsync, ReconnectAsync));
     async Task OpenAccountSettingsAsync(string accountId)
     {
         if (!state.Accounts.Any(a => a.Id == accountId)) return;
-        await Navigation.PushModalAsync(new SettingsPage(state.Accounts, state.Snapshots, preferences, state.IsDemo,
-            SaveSettingsAsync, UpdateAccountAsync, OpenHistoryAsync, TestNotificationAsync, ReconnectAsync, accountId, OpenReserveAsync));
+        await AppPanels.ShowAsync(this, new SettingsPage(state.Accounts, state.Snapshots, preferences, state.IsDemo,
+            SaveSettingsAsync, UpdateAccountAsync, OpenHistoryAsync, TestNotificationAsync, ReconnectAsync, accountId));
     }
     async Task ReconnectAsync(ProviderAccount original)
     {
-        if (original.Provider == "Claude") { await Navigation.PushModalAsync(new ConnectClaudePage((account, snapshot) => CommitConnectionAsync(account, snapshot, original), original)); return; }
-        await Navigation.PushModalAsync(new ConnectAccountPage(original.Provider == "OpenAI", (account, snapshot) => CommitConnectionAsync(account, snapshot, original), original));
+        if (original.Provider == "Claude") { await AppPanels.ShowAsync(this, new ConnectClaudePage((account, snapshot) => CommitConnectionAsync(account, snapshot, original), original)); return; }
+        await AppPanels.ShowAsync(this, new ConnectAccountPage(original.Provider == "OpenAI", (account, snapshot) => CommitConnectionAsync(account, snapshot, original), original));
     }
     void OpenAccount(string id, string? windowId = null)
     {
@@ -136,7 +136,7 @@ public sealed partial class MainPage
         var details = $"{row.WindowTitle}\n{row.UsedText} · {row.LeftText}\nResets: {ResetTime.Exact(row.Window.ResetsAt, DisplayZone)}\n\nAccount: {row.Account.Login ?? row.Account.Subject}\nScope: {row.Account.Scope}\nLast successful fetch: {ResetTime.Exact(row.Snapshot.ObservedAt, DisplayZone)}\nProvider data as of: {ResetTime.Exact(row.Snapshot.ProviderDataAt, DisplayZone)}\n\n{row.SourceNote}";
         if (state.IsDemo || ProviderLinks.Usage(row.Account) is null) { await AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, $"{row.Account.Provider} / {row.AccountLabel}", details, "Close"); return; }
         if (await AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, $"{row.Account.Provider} / {row.AccountLabel}", details + "\n\nProvider pages use your browser's sign-in. Check its account and workspace before comparing.", "Open provider usage", "Close") && !await ProviderNavigation.OpenAsync(row.Account))
-            await AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, "Provider page unavailable", "Open your provider's usage page in your browser, or use Usage and access help in Settings.", "Close");
+            await AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, "Provider page unavailable", "Open your provider's usage page in your browser, and check its connection status.", "Close");
     }
     Task OpenReserveAsync(string? accountId = null)
     {

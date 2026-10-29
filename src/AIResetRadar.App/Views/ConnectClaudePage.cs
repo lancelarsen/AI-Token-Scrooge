@@ -16,7 +16,7 @@ public sealed class ConnectClaudePage : ContentPage
         nickname.Text = reconnect?.Nickname ?? "Personal";
         var signIn = new ActionButton { Text = "Sign in with Claude" };
         var cancel = new ActionButton { Text = "Cancel" };
-        cancel.Clicked += async (_, _) => { if (committed || committing) return; await lifetime.CancelAsync(); await Navigation.PopModalAsync(); };
+        cancel.Clicked += async (_, _) => { if (committed || committing) return; await lifetime.CancelAsync(); await AppPanels.CloseAsync(this); };
         signIn.Clicked += async (_, _) =>
         {
             if (busy) return;
@@ -34,7 +34,7 @@ public sealed class ConnectClaudePage : ContentPage
                 cancel.IsEnabled = false;
                 committing = true;
                 await connected(accepted, result.Snapshot); committed = true; committing = false;
-                await Navigation.PopModalAsync();
+                await AppPanels.CloseAsync(this);
             }
             catch (Exception error) { status.Text = ConnectAccountPage.SafeMessage(error); }
             finally
@@ -58,6 +58,6 @@ public sealed class ConnectClaudePage : ContentPage
             }
         } };
     }
-    protected override bool OnBackButtonPressed() { if (!committed && !committing) { lifetime.Cancel(); _ = Navigation.PopModalAsync(); } return true; }
+    protected override bool OnBackButtonPressed() { if (!committed && !committing) { lifetime.Cancel(); _ = AppPanels.CloseAsync(this); } return true; }
     protected override void OnHandlerChanging(HandlerChangingEventArgs args) { if (args.NewHandler is null) lifetime.Cancel(); base.OnHandlerChanging(args); }
 }

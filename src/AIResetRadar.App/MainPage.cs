@@ -60,13 +60,14 @@ public sealed partial class MainPage : ContentPage
             await InitializeAsync();
         };
         Disappearing += (_, _) => dashboardVisible = false;
+        AIResetRadar.App.Services.AppPanels.Closed += () => { if (renderPending) Dispatcher.Dispatch(Render); };
         Render();
     }
     void Render()
     {
         // Refresh continues collecting data behind connection/settings pages.
         // Preserve the covered visual tree and its focus targets until we return.
-        if (!dashboardVisible || Navigation.ModalStack.Count > 0 || draggedAccountId is not null || thresholdEditing) { renderPending = true; return; }
+        if (!dashboardVisible || AIResetRadar.App.Services.AppPanels.IsOpen || draggedAccountId is not null || thresholdEditing) { renderPending = true; return; }
         renderPending = false;
         state.Settings = preferences;
         var now = DateTimeOffset.Now;

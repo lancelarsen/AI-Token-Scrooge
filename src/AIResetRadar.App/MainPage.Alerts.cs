@@ -55,8 +55,8 @@ public sealed partial class MainPage
             var item = new AIResetRadar.App.Controls.ActionButton { Text = $"{TimeZones.Format(alert.CreatedAt, DisplayZone, "MMM d, h:mm tt")} · {alert.Title}\n{alert.Detail}\n{(alert.Delivered ? "Sent to Windows" : "Recorded in history")}", HeightRequest = -1, MinimumHeightRequest = 80 };
             item.Clicked += (_, _) => OpenAccount(alert.AccountId, alert.WindowId); content.Children.Add(item);
         }
-        var back = new AIResetRadar.App.Controls.ActionButton { Text = "Close" }; back.Clicked += async (_, _) => await Navigation.PopModalAsync(); content.Children.Add(back);
-        page.Content = new ScrollView { Content = content }; await Navigation.PushModalAsync(page);
+        var back = new AIResetRadar.App.Controls.ActionButton { Text = "Close" }; back.Clicked += async (_, _) => await AppPanels.CloseAsync(); content.Children.Add(back);
+        page.Content = new ScrollView { Content = content }; await AppPanels.ShowAsync(this, page);
     }
     async Task TestNotificationAsync()
     {
@@ -67,7 +67,7 @@ public sealed partial class MainPage
         var sent = NotificationService.Current.Show(alert, preferences with { Notifications = true });
         var deliverySaved = true;
         try { await MarkAlertDeliveredAsync(alert, sent); } catch { deliverySaved = false; }
-        await Navigation.PopModalAsync(); ShowBanner(alert);
+        await AppPanels.CloseAsync(); ShowBanner(alert);
         if (!sent) await AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, "Notification test", NotificationService.Current.Problem ?? "Windows did not confirm delivery. The test is recorded in history.", "OK");
         else if (!deliverySaved) await AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, "Notification test", "Windows accepted the notification, but Scrooge could not save the delivery status. The test will not be replayed.", "Close");
     }

@@ -43,12 +43,6 @@ public sealed partial class ConnectAccountPage : ContentPage
         form.Children.Add(new Label { Text = Title, FontSize = 26, FontFamily = "Segoe UI Semibold" });
         explanation.Text = "Sign in through OpenAI in your browser. Scrooge keeps this account in its own protected Codex profile and only reads usage limits.";
         form.Children.Add(explanation);
-        var help = new AIResetRadar.App.Controls.ActionButton { Text = "Usage and access help" };
-        help.Clicked += async (_, _) => {
-            var uri = ProviderLinks.Help(codex ? "OpenAI" : "GitHub Copilot");
-            try { if (uri is not null) await Launcher.Default.OpenAsync(uri); } catch { status.Text = "Help could not open. Check your default browser."; }
-        };
-        form.Children.Add(help);
         form.Children.Add(nickname);
         if (!codex) ConfigureGitHubForm(form);
         else connect.Text = "Sign in with OpenAI";
@@ -119,7 +113,7 @@ public sealed partial class ConnectAccountPage : ContentPage
     {
         if (closing || committing) return; closing = true;
         await CleanupAsync();
-        await Navigation.PopModalAsync();
+        await AppPanels.CloseAsync(this);
     }
     Task CleanupAsync() => cleanup ??= CleanupCoreAsync();
     async Task CleanupCoreAsync()
