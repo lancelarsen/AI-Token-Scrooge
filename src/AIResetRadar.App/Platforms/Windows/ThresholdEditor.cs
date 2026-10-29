@@ -21,6 +21,7 @@ public sealed class ThresholdEditor : NativeCanvas, IDisposable
     {
         public double? PopupTop { get; set; }
         public bool PointerInside { get; set; }
+        public Microsoft.UI.Xaml.Shapes.Rectangle? Outline { get; set; }
     }
     static WeakReference<ThresholdEditor>? popupOwner;
     readonly AlertThresholdView view;
@@ -38,6 +39,7 @@ public sealed class ThresholdEditor : NativeCanvas, IDisposable
         this.view = view; values = view.Thresholds; Height = 48;
         info = CreateMarker(0); warning = CreateMarker(1); critical = CreateMarker(2);
         SizeChanged += (_, _) => { if (active is not null && !saving) Cancel(); UpdatePositions(); };
+        Loaded += (_, _) => UpdatePositions();
         Unloaded += (_, _) => Cancel();
         EffectiveViewportChanged += (_, _) => { if (active is null) HidePopups(); };
         UpdatePositions();
@@ -53,6 +55,7 @@ public sealed class ThresholdEditor : NativeCanvas, IDisposable
                 <ControlTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" TargetType="Thumb">
                     <Grid Width="32" Height="48" Background="Transparent">
+                        <Rectangle x:Name="ContrastOutline" Width="3.5" Fill="White" Visibility="Collapsed" IsHitTestVisible="False" />
                         <Rectangle Width="1.5" Fill="{{color}}" IsHitTestVisible="False" />
                     </Grid>
                 </ControlTemplate>
@@ -173,11 +176,24 @@ public sealed class ThresholdEditor : NativeCanvas, IDisposable
     }
     void UpdateMarker(Marker marker)
     {
+        marker.Grip.ApplyTemplate();
+        marker.Outline ??= FindOutline(marker.Grip);
+        if (marker.Outline is not null) marker.Outline.Visibility = view.Fill >= 1 - (double)Value(marker) / 100 ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
         var x = 8 + Span * (1 - (double)Value(marker) / 100);
         SetLeft(marker.Grip, x - 16);
         marker.Readout.Text = $"{(marker.Kind == 0 ? "Info" : marker.Kind == 1 ? "Warning" : "Critical")} Alert @ {Value(marker):0.#}% Left";
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(marker.Grip, $"{marker.Readout.Text} · {view.Section}");
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetHelpText(marker.Grip, "Drag Horizontally or Use Arrow Keys to Adjust");
+    }
+    static Microsoft.UI.Xaml.Shapes.Rectangle? FindOutline(DependencyObject parent)
+    {
+        for (var i = 0; i < Microsoft.UI.Xaml.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = Microsoft.UI.Xaml.Media.VisualTreeHelper.GetChild(parent, i);
+            if (child is Microsoft.UI.Xaml.Shapes.Rectangle { Name: "ContrastOutline" } outline) return outline;
+            if (FindOutline(child) is { } found) return found;
+        }
+        return null;
     }
     void UpdatePositions()
     {

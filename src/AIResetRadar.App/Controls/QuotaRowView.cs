@@ -13,13 +13,18 @@ public sealed class QuotaRowView : Border
     readonly bool hasReset;
     readonly QuotaRow row;
     readonly UsageBar bar;
-    readonly BoxView warningStrip;
+    RadarSettings alertSettings = new();
     readonly Label? resetIcon;
     readonly AlertThresholdView thresholds;
     bool? wideLayout;
     public void UpdateClock(DateTimeOffset now)
     {
         if (countdown is not null) countdown.Text = CountdownLabel(resetsAt, now);
+        if (resetIcon is not null)
+        {
+            var severity = resetsAt is { } at ? TimedReminder.Due(alertSettings.EffectiveRefreshReminders, at, now)?.Severity : null;
+            resetIcon.TextColor = Color.FromArgb(severity switch { ReminderSeverity.Critical => "#F05B69", ReminderSeverity.Warning => "#F2C94C", ReminderSeverity.Info => "#58A6FF", _ => "#B5A0F4" });
+        }
     }
     static string CountdownLabel(DateTimeOffset? reset, DateTimeOffset now)
     {
@@ -37,9 +42,6 @@ public sealed class QuotaRowView : Border
         hasReset = resetsAt.HasValue;
         Stroke = Colors.Transparent; BackgroundColor = Colors.Transparent;
         Padding = new Thickness(0); MinimumHeightRequest = 56;
-        var root = new Grid { ColumnDefinitions = [new(new GridLength(4)), new(GridLength.Star)] };
-        warningStrip = new BoxView { Color = critical ? Color.FromArgb("#F05B69") : warning ? Color.FromArgb("#F2C94C") : info ? Color.FromArgb("#58A6FF") : Colors.Transparent };
-        root.Add(warningStrip);
         layout = new Grid { ColumnSpacing = 12, RowSpacing = 8 };
         var quotaText = new VerticalStackLayout { Spacing = 4, VerticalOptions = LayoutOptions.Center };
         quotaText.Children.Add(new Label { Text = row.WindowTitle, TextColor = Color.FromArgb("#BEC1D2"), FontSize = 14 });
@@ -51,7 +53,7 @@ public sealed class QuotaRowView : Border
         SemanticProperties.SetDescription(details, $"{row.Account.Provider}, {row.AccountLabel}, {row.WindowTitle}, {row.UsedText}, {row.LeftText}. Open details.");
         details.Clicked += (_, _) => open(row);
         thresholds = new AlertThresholdView(row.Low, row.Critical, row.Info, capacityAlertsEnabled,
-            $"{row.Account.Provider} / {row.AccountLabel} · {row.WindowTitle}", saveThresholds, thresholdInteraction);
+            $"{row.Account.Provider} / {row.AccountLabel} · {row.WindowTitle}", saveThresholds, thresholdInteraction, row.Window.Fill);
         bar.AddAlertEditor(details, thresholds);
         var capacityToggle = new CapacityAlertToggle(capacityAlertsEnabled,
             $"Capacity Alerts · {row.Account.Provider} / {row.AccountLabel} · {row.WindowTitle}", async enabled => {
@@ -67,7 +69,7 @@ public sealed class QuotaRowView : Border
             var exactReset = new Label { Text = TimeZones.Format(row.Window.ResetsAt, timeZone ?? TimeZones.Resolve(null)), FontSize = 12,
                 TextColor = Color.FromArgb("#BEC1D2"), VerticalOptions = LayoutOptions.Center };
             var resetText = new VerticalStackLayout { Spacing = 3, VerticalOptions = LayoutOptions.Center, Children = { countdown, exactReset } };
-            resetIcon = new Label { Text = warning ? "\uE7BA" : "\uE823", FontFamily = "Segoe Fluent Icons", FontSize = 25,
+            resetIcon = new Label { Text = "\uE823", FontFamily = "Segoe Fluent Icons", FontSize = 25,
                 TextColor = Color.FromArgb(critical ? "#F05B69" : warning ? "#F2C94C" : info ? "#58A6FF" : "#B5A0F4"), VerticalOptions = LayoutOptions.Start, Margin = new Thickness(0, 3, 0, 0) };
             reset = new HorizontalStackLayout { Spacing = 12, VerticalOptions = LayoutOptions.Center, Children = {
                 resetIcon, resetText
@@ -78,7 +80,7 @@ public sealed class QuotaRowView : Border
             countdown = null;
             reset = null;
         }
-        root.Add(layout, 1); Content = root;
+        Content = layout;
         // Keep the alert circle independent of the details hit target.
         foreach (var part in new[] { quota, reset }.OfType<View>())
         {
@@ -97,12 +99,8 @@ public sealed class QuotaRowView : Border
         var enabled = settings.CapacityAlertsEnabled(row.Account.Id, row.Window.Id);
         thresholds.Refresh(rule.LowThreshold!.Value, rule.CriticalThreshold!.Value, rule.InfoThreshold!.Value, enabled);
         bar.SetWarning(warning, critical, info);
-        warningStrip.Color = critical ? Color.FromArgb("#F05B69") : warning ? Color.FromArgb("#F2C94C") : info ? Color.FromArgb("#58A6FF") : Colors.Transparent;
-        if (resetIcon is not null)
-        {
-            resetIcon.Text = warning ? "\uE7BA" : "\uE823";
-            resetIcon.TextColor = Color.FromArgb(critical ? "#F05B69" : warning ? "#F2C94C" : info ? "#58A6FF" : "#B5A0F4");
-        }
+        alertSettings = settings;
+        UpdateClock(DateTimeOffset.Now);
     }
 
     public void SetWideLayout(bool wide)

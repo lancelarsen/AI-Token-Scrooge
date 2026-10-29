@@ -6,12 +6,14 @@ namespace AIResetRadar.App.Controls;
 public sealed class AlertThresholdView : View
 {
     public AlertThresholds Thresholds { get; internal set; }
+    internal double Fill { get; }
     internal string Section { get; }
     internal Func<AlertThresholds, Task<bool>> Save { get; }
     internal Action<bool> Interaction { get; }
     public AlertThresholdView(decimal warning, decimal critical, decimal info, bool alertsEnabled, string section,
-        Func<AlertThresholds, Task<bool>> save, Action<bool> interaction)
+        Func<AlertThresholds, Task<bool>> save, Action<bool> interaction, double fill = 0)
     {
+        Fill = fill;
         Thresholds = new(warning, critical, info); Section = section; Save = save; Interaction = interaction;
         HeightRequest = 48; IsVisible = alertsEnabled;
     }

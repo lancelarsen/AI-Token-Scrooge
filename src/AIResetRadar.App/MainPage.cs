@@ -126,6 +126,7 @@ public sealed partial class MainPage : ContentPage
                                 return false;
                             }
                         }, values => SaveThresholdsAsync(account.Id, row.Window.Id, values), ThresholdInteraction, timeZone: DisplayZone);
+                    view.UpdateAlertRules(preferences);
                     rowViews.Add(view); windows.Add(view);
                 }
                 content = WithAccountSettings(new AccountQuotaView(accountRows[0], windows,
