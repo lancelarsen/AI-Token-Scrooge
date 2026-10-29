@@ -29,7 +29,7 @@ public sealed partial class MainPage : ContentPage
             new Image { Source = "token_baron.png", WidthRequest = 66, HeightRequest = 66 },
             new VerticalStackLayout { Spacing = 0, HeightRequest = 66, VerticalOptions = LayoutOptions.Center, Children = {
                 new Label { Text = "AI Token Scrooge", FontSize = 32, FontFamily = "Segoe UI Semibold", HeightRequest = 40, VerticalTextAlignment = TextAlignment.Center },
-                new Label { Text = "Never Waste a Token!", FontSize = 16, HeightRequest = 26, VerticalTextAlignment = TextAlignment.Center, TextColor = Color.FromArgb("#C3ADF8") }
+                new Label { Text = "Never Waste a Token! Never Miss a Reset!", FontSize = 16, HeightRequest = 26, VerticalTextAlignment = TextAlignment.Center, TextColor = Color.FromArgb("#C3ADF8") }
             } }
         } };
         freshness.VerticalOptions = LayoutOptions.Center;
