@@ -35,12 +35,13 @@ public sealed partial class MainPage
     void ShowBanner(AlertEvent alert)
     {
         if (banner is not null) root.Children.Remove(banner);
+        var severityColor = alert.Severity switch { ReminderSeverity.Critical => "#F05B69", ReminderSeverity.Warning => "#EAAA51", _ => "#C3ADF8" };
         var detail = new VerticalStackLayout { Spacing = 10 };
         var heading = new Grid { ColumnDefinitions = [new(GridLength.Auto), new(GridLength.Star)], ColumnSpacing = 12 };
         heading.Add(new Image { Source = ProviderImage(AlertProvider(alert.AccountId)), WidthRequest = 38, HeightRequest = 38, VerticalOptions = LayoutOptions.Center });
         var title = new VerticalStackLayout { Spacing = 3 };
         title.Children.Add(new Label { Text = AlertProvider(alert.AccountId) == "OpenAI" ? "OpenAI Codex" : AlertProvider(alert.AccountId), FontSize = 12, TextColor = Color.FromArgb("#C3ADF8") });
-        title.Children.Add(new Label { Text = alert.Title, FontFamily = "Segoe UI Semibold", FontSize = 15 });
+        title.Children.Add(new Label { Text = alert.Title, TextColor = Color.FromArgb(severityColor), FontFamily = "Segoe UI Semibold", FontSize = 15 });
         heading.Add(title, 1); detail.Children.Add(heading);
         detail.Children.Add(new Label { Text = alert.Detail, FontSize = 12, TextColor = Color.FromArgb("#B6B8C8") });
         var actions = new HorizontalStackLayout { Spacing = 8 };
@@ -54,7 +55,7 @@ public sealed partial class MainPage
             else await AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, "Snooze not saved", "Alerts remain active. Check available space and folder access, then try Snooze again.", "Close");
         };
         dismiss.Clicked += (_, _) => { AlertSounds.Play(preferences, "dismiss"); Dismiss(); }; actions.Children.Add(view); actions.Children.Add(snooze); actions.Children.Add(dismiss); detail.Children.Add(actions);
-        banner = new Border { Padding = 18, Content = detail, Stroke = Color.FromArgb("#8170B0"), BackgroundColor = Color.FromArgb("#222329"),
+        banner = new Border { Padding = 18, Content = detail, Stroke = Color.FromArgb(severityColor), BackgroundColor = Color.FromArgb("#222329"),
             StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 14 }, MaximumWidthRequest = 520,
             HorizontalOptions = LayoutOptions.End, VerticalOptions = LayoutOptions.End, Margin = new Thickness(20) };
         root.Add(banner, 0, 2);

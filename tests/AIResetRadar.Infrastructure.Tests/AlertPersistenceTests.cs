@@ -38,8 +38,8 @@ public sealed class AlertPersistenceTests
         };
         await page.CommitForTestAsync(account, current, null);
         await page.WaitForCleanupAsync();
-        Assert.Equal(2, notifications.Attempts.Count);
-        Assert.Equal(2, (await store.ReadAsync<AlertEvent[]>("alerts"))!.Length);
+        Assert.Equal(4, notifications.Attempts.Count);
+        Assert.Equal(4, (await store.ReadAsync<AlertEvent[]>("alerts"))!.Length);
     }
     [Theory]
     [InlineData(false)]
@@ -64,7 +64,10 @@ public sealed class AlertPersistenceTests
         await page.CommitForTestAsync(incoming, current, reconnect ? old : null);
         await page.WaitForCleanupAsync();
         Assert.Equal(incoming.CredentialId, (await store.ReadAsync<ProviderAccount[]>("accounts"))!.Single().CredentialId);
-        Assert.Single((await store.ReadAsync<AlertEvent[]>("alerts"))!);
+        var committed = (await store.ReadAsync<AlertEvent[]>("alerts"))!;
+        Assert.Equal(2, committed.Length);
+        Assert.Single(committed, a => a.IsRefreshReminder);
+        Assert.Single(committed, a => a.Key.EndsWith("/low"));
     }
     [Fact] public async Task IntentIsDeduplicatedDurablyAndDeliveryUpdatePreservesOtherEvents()
     {

@@ -67,6 +67,14 @@ public sealed class SettingsPage : ContentPage
         var low = PercentControl("Warning Alert", original.LowThreshold);
         var critical = PercentControl("Critical Alert", original.CriticalThreshold);
         WrapCard(thresholdsStart, "Default Alert Levels");
+        var resetStart = form.Children.Count;
+        var resetReminders = new ReminderEditor(original.EffectiveResetReminders);
+        form.Children.Add(resetReminders);
+        WrapCard(resetStart, "Earned Reset Expiration Alerts");
+        var refreshStart = form.Children.Count;
+        var refreshReminders = new ReminderEditor(original.EffectiveRefreshReminders);
+        form.Children.Add(refreshReminders);
+        WrapCard(refreshStart, "Quota Refresh Alerts");
         var behaviorStart = form.Children.Count;
         var close = Toggle("Keep monitoring in the tray when window closes", original.CloseToTray);
         var startup = Toggle("Launch at Windows Sign-In", original.LaunchAtSignIn);
@@ -160,7 +168,7 @@ public sealed class SettingsPage : ContentPage
             var lowValue = (decimal)low.Value; var criticalValue = (decimal)critical.Value;
             if (quiet.IsToggled && start == end) { status.Text = "Choose different start and end times for quiet hours."; return; }
             if (criticalValue >= lowValue) { status.Text = "Critical capacity must be lower than low capacity."; return; }
-            var settings = original with { Notifications = notifications.IsToggled, Sound = sound.IsToggled, Privacy = false,
+            var settings = original with { ResetExpiryReminders = resetReminders.Value, QuotaRefreshReminders = refreshReminders.Value, Notifications = notifications.IsToggled, Sound = sound.IsToggled, Privacy = false,
                 QuietHours = quiet.IsToggled, QuietStartHour = start, QuietEndHour = end, LowThreshold = lowValue, CriticalThreshold = criticalValue,
                 LaunchAtSignIn = startup.IsToggled, CloseToTray = close.IsToggled,
                 Rules = original.Rules?.Where(r => accounts.Any(a => a.Id == r.AccountId)).ToArray(),
@@ -173,6 +181,8 @@ public sealed class SettingsPage : ContentPage
             }
             finally { saveGate.Release(); }
         }
+        resetReminders.Changed += async (_, _) => await AutoSaveAsync();
+        refreshReminders.Changed += async (_, _) => await AutoSaveAsync();
         volume.ValueChanged += async (_, _) => await AutoSaveAsync();
         volume.Unfocused += async (_, _) => await AutoSaveAsync();
         soundTheme.SelectedIndexChanged += async (_, _) => await AutoSaveAsync();

@@ -5,7 +5,7 @@ public class AlertTests
     static readonly DateTimeOffset Now = DateTimeOffset.Parse("2026-10-25T14:46:00Z");
     static readonly ProviderAccount Account = new("a", "OpenAI", "Personal", "sample", "workspace");
     static QuotaSnapshot Snapshot(decimal used, DateTimeOffset? reset = null, SourceHealth health = SourceHealth.Healthy, bool? allowed = null) =>
-        new("a", "sample", "workspace", Now, [new("weekly", "Codex weekly", UsageUnit.Percent, used, 100, reset ?? Now.AddDays(2))], null, health, UsageAllowed: allowed);
+        new("a", "sample", "workspace", Now, [new("weekly", "Codex weekly", UsageUnit.Percent, used, 100, reset ?? Now.AddDays(20))], null, health, UsageAllowed: allowed);
 
     [Fact] public void MultiThresholdJumpEmitsOnlyMostSevereEvent()
     {

@@ -1,13 +1,19 @@
 namespace AIResetRadar.Core;
 
 public sealed record AlertEvent(string Key, string AccountId, string? WindowId, string Title, string Detail,
-    DateTimeOffset CreatedAt, bool Delivered = false);
+    DateTimeOffset CreatedAt, bool Delivered = false, ReminderSeverity? Severity = null, string? ReminderId = null, bool IsRefreshReminder = false);
 
 public static class AlertEvaluator
 {
-    public static bool IsEnabled(AlertEvent alert, RadarSettings settings) => alert.WindowId is not { } windowId ||
-        !(alert.Key.EndsWith("/low", StringComparison.Ordinal) || alert.Key.EndsWith("/critical", StringComparison.Ordinal) || alert.Key.EndsWith("/exhausted", StringComparison.Ordinal)) ||
-        settings.CapacityAlertsEnabled(alert.AccountId, windowId);
+    public static bool IsEnabled(AlertEvent alert, RadarSettings settings)
+    {
+        if (alert.ReminderId is { } id)
+            return (alert.IsRefreshReminder || settings.RuleFor(alert.AccountId).Expiry) &&
+                (alert.IsRefreshReminder ? settings.EffectiveRefreshReminders : settings.EffectiveResetReminders).Any(r => r.Id == id && r.IsValid);
+        return alert.WindowId is not { } windowId ||
+            !(alert.Key.EndsWith("/low", StringComparison.Ordinal) || alert.Key.EndsWith("/critical", StringComparison.Ordinal) || alert.Key.EndsWith("/exhausted", StringComparison.Ordinal)) ||
+            settings.CapacityAlertsEnabled(alert.AccountId, windowId);
+    }
     public static bool IsQuiet(RadarSettings settings, DateTimeOffset now, TimeZoneInfo zone)
     {
         if (!settings.QuietHours) return false;
@@ -21,6 +27,10 @@ public static class AlertEvaluator
         List<AlertEvent> alerts = [];
         foreach (var window in current.Windows)
         {
+            var priorWindow = previous?.Windows.FirstOrDefault(w => w.Id == window.Id);
+            if (window.ResetsAt is { } refresh && TimedReminder.Due(settings.EffectiveRefreshReminders, refresh, now) is { } reminder &&
+                !IsMovingEstimate(priorWindow?.ResetsAt, refresh, previous?.ObservedAt, reminder, settings, now))
+                alerts.Add(Reminder(account, window.Id, window.Id, refresh, reminder, true, settings, now, window.Name));
             var rule = settings.RuleFor(account.Id, window.Id);
             var state = window.Capacity(rule.LowThreshold!.Value, rule.CriticalThreshold!.Value);
             var period = window.ResetsAt?.ToUnixTimeSeconds().ToString() ?? "unknown";
@@ -42,11 +52,22 @@ public static class AlertEvaluator
         foreach (var credit in settings.RuleFor(account.Id).Expiry && current.Reserve?.AvailableCount != 0 ? current.Reserve?.Credits ?? [] : [])
         {
             if (credit.Status != "available" || credit.ExpiresAt is not { } expiry || expiry <= now) continue;
-            var left = expiry - now;
-            var threshold = left <= TimeSpan.FromHours(1) ? "1h" : left <= TimeSpan.FromHours(24) ? "24h" : null;
-            if (threshold is not null) alerts.Add(new($"{account.Id}/credit/{credit.Id}/{expiry.ToUnixTimeSeconds()}/{threshold}", account.Id, null,
-                "An earned Codex reset expires soon", $"Expires {TimeZones.Format(expiry, TimeZones.Resolve(settings.TimeZoneId), "MMM d, h:mm tt")} Â· {account.Nickname}", now));
+            if (TimedReminder.Due(settings.EffectiveResetReminders, expiry, now) is { } reminder)
+                alerts.Add(Reminder(account, null, credit.Id, expiry, reminder, false, settings, now, "Earned Reset"));
         }
         return alerts;
     }
+    // Some providers recompute a rolling reset estimate on each read. Do not repeat the
+    // same milestone solely because that future timestamp moved by a few minutes.
+    static bool IsMovingEstimate(DateTimeOffset? before, DateTimeOffset at, DateTimeOffset? observed,
+        TimedReminder reminder, RadarSettings settings, DateTimeOffset now) =>
+        before is { } prior && prior != at && prior > now && observed is { } read &&
+        Math.Abs((at - prior).TotalMinutes) <= 10 &&
+        TimedReminder.Due(settings.EffectiveRefreshReminders, prior, read)?.Id == reminder.Id;
+    static AlertEvent Reminder(ProviderAccount account, string? window, string target, DateTimeOffset at,
+        TimedReminder reminder, bool refresh, RadarSettings settings, DateTimeOffset now, string name) =>
+        new($"{account.Id}/{(refresh ? "refresh" : "credit")}/{target}/{at.ToUnixTimeSeconds()}/{reminder.Id}", account.Id, window,
+            $"{reminder.Severity} Alert · {(refresh ? "Quota Refresh" : "Reset Expiration")}",
+            $"{name} · {ResetTime.Countdown(at, now)} · {TimeZones.Format(at, TimeZones.Resolve(settings.TimeZoneId), "ddd, MMM d h:mm tt")} · {account.Nickname}",
+            now, Severity: reminder.Severity, ReminderId: reminder.Id, IsRefreshReminder: refresh);
 }
