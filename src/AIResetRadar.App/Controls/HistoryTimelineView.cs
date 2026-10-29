@@ -9,7 +9,7 @@ public sealed class HistoryTimelineView : Grid
 {
     static readonly Color Accent = Color.FromArgb("#B5A0F4");
     static readonly Color Muted = Color.FromArgb("#BEC1D2");
-    const float PlotTop = 30, AxisLeft = 64, PlotRight = 92;
+    const float PlotTop = 30, AxisLeft = 40, PlotRight = 84;
     static readonly DateOnly CoordinateAnchor = new(2000, 1, 1);
     float plotBottom = 256;
     readonly VerticalStackLayout selectors = new() { Spacing = 9, Padding = new Thickness(3, 8, 10, 0) };
@@ -49,7 +49,7 @@ public sealed class HistoryTimelineView : Grid
     public HistoryTimelineView(Action<HorizonEvent> open, Func<string, bool, Task<bool>> select)
     {
         this.open = open; this.select = select;
-        ColumnDefinitions = [new(new GridLength(132)), new(GridLength.Star)];
+        ColumnDefinitions = [new(new GridLength(112)), new(GridLength.Star)];
         RowDefinitions = [new(GridLength.Auto), new(new GridLength(22))];
         RowSpacing = 12; ColumnSpacing = 10;
         selectorScroll = new ScrollView { Content = selectors, HeightRequest = 294, VerticalScrollBarVisibility = ScrollBarVisibility.Never };
@@ -61,7 +61,7 @@ public sealed class HistoryTimelineView : Grid
         this.Add(navigatorHost, 0, 1); Grid.SetColumnSpan((BindableObject)navigatorHost, 2);
         chart.Drawable = new Plot(this); navigator.Drawable = new Overview(this);
         chart.SizeChanged += (_, _) => Reflow();
-        SizeChanged += (_, _) => { ColumnDefinitions[0].Width = new GridLength(Width < 850 ? 105 : 132); Reflow(); };
+        SizeChanged += (_, _) => { ColumnDefinitions[0].Width = new GridLength(Width < 850 ? 95 : 112); Reflow(); };
         SemanticProperties.SetDescription(navigator, "History Timeline Navigator · Drag Left for the Past Seven Days · Drag Right for Upcoming Events");
         Platforms.Windows.HistoryChartInput.Attach(chart, Hover, ClearHover, MoveCursor, Pan, FollowToday, chartInput);
         Platforms.Windows.HistoryChartInput.AttachNavigator(navigator, Pan, FollowToday, navigatorInput, BeginNavigation, DragNavigation, () => navigating = false);
@@ -105,7 +105,8 @@ public sealed class HistoryTimelineView : Grid
     void Reflow()
     {
         if (chart.Width <= 0) return;
-        model.Update(now, future.LastOrDefault()?.At, zone, Span);
+        var firstRecorded = series.SelectMany(s => s.Points).Select(p => (DateTimeOffset?)p.At).Min() ?? now;
+        model.Update(now, future.LastOrDefault()?.At, zone, Span, earliestHistory: firstRecorded);
         projectionOrigin = model.PositionAt(CoordinateAnchor);
         if (!ReferenceEquals(projectedSeries, series) || projectedZone != zone.Id)
         {

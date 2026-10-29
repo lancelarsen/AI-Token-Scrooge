@@ -11,7 +11,7 @@ public class HorizonViewportTests
     [Fact]
     public void OpensAtTodayAndPansBackSevenDaysThroughTheSameNavigator()
     {
-        var view = new HorizonViewport(Now, Now.AddDays(12), Central, 980);
+        var view = new HorizonViewport(Now, Now.AddDays(4), Central, 980);
         Assert.True(view.FollowingToday);
         Close(Now, view.VisibleStart);
         Assert.Equal(7, view.VisibleDays, 6);
@@ -87,7 +87,7 @@ public class HorizonViewportTests
         Close(browsing, view.VisibleStart);
         view.Update(Now, Now.AddDays(12), Central, 1400);
         Close(browsing, view.VisibleStart);
-        Assert.Equal(7, view.VisibleDays, 6);
+        Assert.True(view.VisibleDays > 12);
     }
 
     [Fact]
@@ -176,6 +176,38 @@ public class HorizonViewportTests
         Assert.Equal(0, view.ScrollOffset);
         Close(Now.AddDays(-6), view.VisibleStart);
         Assert.False(view.FollowingToday);
+    }
+
+    [Fact]
+    public void HistoryCannotScrollBeforeFirstRecordedSample()
+    {
+        var first = Now.AddDays(-3).AddHours(-2);
+        var view = new HorizonViewport(Now, Now.AddDays(8), Central, 980, earliestHistory: first);
+        view.ScrollTo(-10000);
+        Close(first, view.VisibleStart);
+        Assert.Equal(first, view.StartAt);
+        view.FollowToday();
+        Close(Now, view.VisibleStart);
+    }
+
+    [Fact]
+    public void LongerRangeCompactsDaysUntilReadableMinimum()
+    {
+        var shortRange = new HorizonViewport(Now, Now.AddDays(4), Central, 980);
+        var longer = new HorizonViewport(Now, Now.AddDays(9), Central, 980);
+        var longest = new HorizonViewport(Now, Now.AddDays(35), Central, 980);
+        Assert.True(longer.PixelsPerDay < shortRange.PixelsPerDay);
+        Assert.Equal(HorizonViewport.MinimumDayWidth, longest.PixelsPerDay);
+        Assert.True(longer.VisibleEnd >= longer.LastEventAt);
+    }
+
+    [Fact]
+    public void NoRecordedHistoryStopsAtToday()
+    {
+        var view = new HorizonViewport(Now, Now.AddDays(8), Central, 980, earliestHistory: Now);
+        view.ScrollTo(0);
+        Close(Now, view.VisibleStart);
+        Assert.True(double.IsFinite(view.Overview(980).Width));
     }
 
     static void Close(DateTimeOffset expected, DateTimeOffset actual) =>

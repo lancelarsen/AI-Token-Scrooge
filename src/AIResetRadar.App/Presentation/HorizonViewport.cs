@@ -10,8 +10,8 @@ public sealed class HorizonViewport
     bool initialized;
 
     public HorizonViewport(DateTimeOffset now, DateTimeOffset? furthestFuture, TimeZoneInfo timeZone,
-        double viewportWidth, bool historyEnabled = true) =>
-        Update(now, furthestFuture, timeZone, viewportWidth, historyEnabled);
+        double viewportWidth, bool historyEnabled = true, DateTimeOffset? earliestHistory = null) =>
+        Update(now, furthestFuture, timeZone, viewportWidth, historyEnabled, earliestHistory);
 
     public DateTimeOffset Now { get; private set; }
     public DateTimeOffset StartAt { get; private set; }
@@ -35,7 +35,7 @@ public sealed class HorizonViewport
 
     /// <summary>Update data/layout without losing the date a person is browsing.</summary>
     public void Update(DateTimeOffset now, DateTimeOffset? furthestFuture, TimeZoneInfo timeZone,
-        double viewportWidth, bool historyEnabled = true)
+        double viewportWidth, bool historyEnabled = true, DateTimeOffset? earliestHistory = null)
     {
         ArgumentNullException.ThrowIfNull(timeZone);
         var previousLeft = initialized ? VisibleStart : now;
@@ -53,9 +53,12 @@ public sealed class HorizonViewport
             // Preserve the local clock time seven dates earlier. The fractional-day projection
             // below keeps DST dates equally wide while preserving the order of repeated hours.
             StartAt = ResolveLocal(localNow.AddDays(-HistoryDays), timeZone);
+            if (earliestHistory is { } first && first > StartAt) StartAt = first < now ? first : now;
             startCoordinate = Coordinate(StartAt, timeZone);
             var historySpan = Coordinate(now, timeZone) - startCoordinate;
-            PixelsPerDay = Math.Max(MinimumDayWidth, ViewportWidth / historySpan);
+            // Fit the larger side of Today, compacting longer ranges down to readable day widths.
+            var futureSpan = Coordinate(futureEnd, timeZone) - Coordinate(now, timeZone);
+            PixelsPerDay = Math.Max(MinimumDayWidth, ViewportWidth / Math.Max(1, Math.Max(historySpan, futureSpan)));
             // Empty space beyond a short future range lets Today stay at the left edge.
             // It is layout space only; LastEventAt remains the actual final reported event.
             endCoordinate = Math.Max(Coordinate(futureEnd, timeZone), Coordinate(now, timeZone) + VisibleDays);
