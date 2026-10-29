@@ -67,9 +67,9 @@ public sealed class SettingsPage : ContentPage
         form.Children.Add(quietRange);
         WrapCard(quietCardStart, "Quiet Hours", "A little peace, right on schedule.", quiet);
         var thresholdsStart = form.Children.Count;
-        var info = PercentControl("Info Alert", Math.Max(original.InfoThreshold, original.LowThreshold));
-        var low = PercentControl("Warning Alert", original.LowThreshold);
-        var critical = PercentControl("Critical Alert", original.CriticalThreshold);
+        var info = PercentControl("Info Alert", Math.Max(original.InfoThreshold, original.LowThreshold), "#58A6FF");
+        var low = PercentControl("Warning Alert", original.LowThreshold, "#F2C94C");
+        var critical = PercentControl("Critical Alert", original.CriticalThreshold, "#F05B69");
         WrapCard(thresholdsStart, "Default Alert Levels");
         var resetStart = form.Children.Count;
         var resetReminders = new ReminderEditor(original.EffectiveResetReminders);
@@ -277,11 +277,11 @@ public sealed class SettingsPage : ContentPage
             TextColor = Color.FromArgb(size == 26 ? "#F2F1F5" : "#C3ADF8"), VerticalOptions = LayoutOptions.Center }, 1);
         return heading;
     }
-    Slider PercentControl(string title, decimal value)
+    Slider PercentControl(string title, decimal value, string color)
     {
-        var label = new Label { TextColor = Color.FromArgb("#BEC1D2") };
+        var label = new Label { TextColor = Color.FromArgb(color) };
         var slider = new Slider { Minimum = 0, Maximum = 100, Value = (double)value,
-            MinimumTrackColor = Color.FromArgb("#A990ED"), MaximumTrackColor = Color.FromArgb("#41434F"), ThumbColor = Color.FromArgb("#C3ADF8") };
+            MinimumTrackColor = Color.FromArgb(color), MaximumTrackColor = Color.FromArgb("#41434F"), ThumbColor = Color.FromArgb(color) };
         SemanticProperties.SetDescription(slider, title + ": percent remaining");
         void Update() => label.Text = $"{title} @ {slider.Value:0}% Left";
         slider.ValueChanged += (_, _) => { var rounded = Math.Round(slider.Value); if (Math.Abs(slider.Value - rounded) > 0.001) slider.Value = rounded; Update(); };
