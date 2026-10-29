@@ -332,3 +332,7 @@ The transparent chart input surface inherited the global 44-pixel Button height.
 ### Compact Long-Horizon Native Pass — 2026-10-29
 
 Launched the latest build with `--demo --scenario history-long --compact` in the separate `artifacts/qa-history` profile. At the observed 788x694 capture, the header wraps, the four account selectors remain usable, and the shared navigator is reachable by page scrolling outside the chart. Wheel input over the chart pans dates. Dragging the navigator to its left boundary showed multiple percent-used histories and scheduled refresh markers; dragging to its right boundary showed the Dec 3 expiry, 35 days beyond Oct 29. Daily spacing remained equal and the thumb stayed within its track. This verifies the available compact display scale only, not separate 100/125/150 percent scale passes. Restored the signed-in profile after the demo. Desktop-shortcut delivery and remaining interaction/audit coverage are still pending.
+
+### Desktop Shortcut Delivery — 2026-10-29
+
+Updated the existing OneDrive Desktop `AI Token Scrooge.lnk` from `settings-panels-win-x64` to the verified `history-input-fill-win-x64` executable, working directory, and icon. Preserved the explicit existing account-profile argument. Stopped the prior instance and launched through the shortcut itself; native inspection confirmed the updated horizon, signed-in account cards, and persisted Pro-only history selection. The shortcut delivery gate is now verified. Remaining final audit and interaction coverage are not implied by this check.
