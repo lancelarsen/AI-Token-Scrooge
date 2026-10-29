@@ -209,7 +209,7 @@ public sealed class SettingsPage : ContentPage
         }
         closePanel = CloseAsync;
         var heading = new Grid { Padding = new Thickness(20, 12), ColumnDefinitions = [new(GridLength.Star), new(GridLength.Auto)] };
-        heading.Add(new Label { Text = pageTitle, FontSize = 26, FontFamily = "Segoe UI Semibold", VerticalOptions = LayoutOptions.Center });
+        heading.Add(SectionHeading(pageTitle, selected is null ? "\uE713" : "\uE77B", 26));
         var headerClose = new AIResetRadar.App.Controls.ActionButton { Text = "Close" }; headerClose.Clicked += async (_, _) => await CloseAsync(); heading.Add(headerClose, 1);
         var layout = new Grid { RowDefinitions = [new(GridLength.Auto), new(GridLength.Star), new(GridLength.Auto)] };
         var settingsScroll = new ScrollView { Content = form };
@@ -240,7 +240,22 @@ public sealed class SettingsPage : ContentPage
         var contents = form.Children.Skip(start).ToArray();
         var stack = new VerticalStackLayout { Spacing = 8 };
         var header = new Grid { ColumnDefinitions = [new(GridLength.Star), new(GridLength.Auto)], ColumnSpacing = 16 };
-        header.Add(new Label { Text = title, FontSize = 21, FontFamily = "Segoe UI Semibold", TextColor = Color.FromArgb("#C3ADF8"), VerticalOptions = LayoutOptions.Center });
+        header.Add(SectionHeading(title, title switch
+        {
+            "Time Zone" => "\uE909",
+            "Notifications" => "\uE7F4",
+            "Sounds" => "\uE767",
+            "Quiet Hours" => "\uE708",
+            "Default Alert Levels" => "\uE9E9",
+            "Earned Reset Expiration Alerts" => "\uE823",
+            "Quota Refresh Alerts" => "\uE72C",
+            "App Behavior" => "\uE713",
+            "Account" => "\uE77B",
+            "Available Resets" => "\uE8B7",
+            "Other Alerts" => "\uE7F4",
+            "Connection" => "\uE71B",
+            _ => "\uE713"
+        }));
         if (headerAction is not null) header.Add(headerAction, 1);
         var heading = new VerticalStackLayout { Spacing = 2, Children = { header } };
         if (!string.IsNullOrEmpty(description))
@@ -250,6 +265,17 @@ public sealed class SettingsPage : ContentPage
         var card = new Border { Content = stack, Padding = 16, BackgroundColor = Color.FromArgb("#1C1E24"), Stroke = Color.FromArgb("#383B46"),
             StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 15 } };
         form.Children.Add(card); return card;
+    }
+    static View SectionHeading(string title, string glyph, double size = 21)
+    {
+        var icon = new Label { Text = glyph, FontFamily = "Segoe Fluent Icons", FontSize = size,
+            TextColor = Color.FromArgb("#C3ADF8"), VerticalOptions = LayoutOptions.Center, WidthRequest = size + 3 };
+        AutomationProperties.SetIsInAccessibleTree(icon, false);
+        var heading = new Grid { ColumnDefinitions = [new(GridLength.Auto), new(GridLength.Star)], ColumnSpacing = 10 };
+        heading.Add(icon);
+        heading.Add(new Label { Text = title, FontSize = size, FontFamily = "Segoe UI Semibold",
+            TextColor = Color.FromArgb(size == 26 ? "#F2F1F5" : "#C3ADF8"), VerticalOptions = LayoutOptions.Center }, 1);
+        return heading;
     }
     Slider PercentControl(string title, decimal value)
     {
