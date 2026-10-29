@@ -33,11 +33,11 @@ public sealed class ReminderEditor : VerticalStackLayout
             error.IsVisible = false;
             var index = reminders.FindIndex(r => r.Id == item.Id); if (index < 0) return;
             reminders[index] = item with { Amount = value, Unit = unit.SelectedIndex == 0 ? "Days" : "Hours", Severity = (ReminderSeverity)Math.Max(0, severity.SelectedIndex) };
-            severity.TextColor = Color.FromArgb(severity.SelectedIndex == 2 ? "#F05B69" : severity.SelectedIndex == 1 ? "#EAAA51" : "#C3ADF8");
+            severity.TextColor = Color.FromArgb(severity.SelectedIndex == 2 ? "#F05B69" : severity.SelectedIndex == 1 ? "#F2C94C" : "#58A6FF");
             SortRows();
             Changed?.Invoke(this, EventArgs.Empty);
         }
-        severity.TextColor = Color.FromArgb(item.Severity == ReminderSeverity.Critical ? "#F05B69" : item.Severity == ReminderSeverity.Warning ? "#EAAA51" : "#C3ADF8");
+        severity.TextColor = Color.FromArgb(item.Severity == ReminderSeverity.Critical ? "#F05B69" : item.Severity == ReminderSeverity.Warning ? "#F2C94C" : "#58A6FF");
         amount.TextChanged += (_, _) => Save(); severity.SelectedIndexChanged += (_, _) => Save(); unit.SelectedIndexChanged += (_, _) => Save();
         remove.Clicked += (_, _) => { reminders.RemoveAll(r => r.Id == item.Id); rows.Children.Remove(row); rowViews.Remove(item.Id); SortRows(); error.IsVisible = false; Changed?.Invoke(this, EventArgs.Empty); };
     }

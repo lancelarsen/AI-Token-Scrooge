@@ -4,10 +4,19 @@ public sealed record RadarSettings(bool Notifications = true, bool Sound = false
     decimal CriticalThreshold = 10, bool LaunchAtSignIn = true, bool CloseToTray = true, IReadOnlyList<AlertRule>? Rules = null,
     string TimeZoneId = TimeZones.DefaultId, AccountSortMode AccountSort = AccountSortMode.NextReset,
     IReadOnlyList<string>? AccountOrder = null, IReadOnlyList<QuotaAlertSection>? DisabledCapacityAlerts = null, string SoundTheme = "Ducks", double SoundVolume = 65,
-    IReadOnlyList<TimedReminder>? ResetExpiryReminders = null, IReadOnlyList<TimedReminder>? QuotaRefreshReminders = null, decimal InfoThreshold = 50, bool AlertOnIcon = true)
+    IReadOnlyList<TimedReminder>? ResetExpiryReminders = null, IReadOnlyList<TimedReminder>? QuotaRefreshReminders = null, decimal InfoThreshold = 50, bool AlertOnIcon = true, int ReminderDefaultsVersion = 0)
 {
     public IReadOnlyList<TimedReminder> EffectiveResetReminders => ResetExpiryReminders ?? TimedReminder.Defaults(true);
     public IReadOnlyList<TimedReminder> EffectiveRefreshReminders => QuotaRefreshReminders ?? TimedReminder.Defaults(false);
+    public RadarSettings UpgradeReminderDefaults()
+    {
+        if (ReminderDefaultsVersion >= 1) return this;
+        static IReadOnlyList<TimedReminder>? Upgrade(IReadOnlyList<TimedReminder>? reminders) => reminders?.Select(r =>
+            (r.Id == "default-72" && r.Hours == 72 && r.Severity == ReminderSeverity.Info) ||
+            (r.Id == "default-48" && r.Hours == 48 && r.Severity == ReminderSeverity.Critical)
+                ? r with { Severity = ReminderSeverity.Warning } : r).ToArray();
+        return this with { ResetExpiryReminders = Upgrade(ResetExpiryReminders), QuotaRefreshReminders = Upgrade(QuotaRefreshReminders), ReminderDefaultsVersion = 1 };
+    }
     public bool CapacityAlertsEnabled(string accountId, string windowId) =>
         !(DisabledCapacityAlerts ?? []).Any(section => section.AccountId == accountId && section.WindowId == windowId);
     public RadarSettings WithCapacityAlerts(string accountId, string windowId, bool enabled)

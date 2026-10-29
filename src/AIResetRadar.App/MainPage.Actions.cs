@@ -16,13 +16,13 @@ public sealed partial class MainPage
         try
         {
             var savedSettings = await AppServices.Current.Store.ReadAsync<RadarSettings>("settings");
-            preferences = savedSettings ?? new();
+            preferences = (savedSettings ?? new()).UpgradeReminderDefaults();
             if (!state.IsDemo && preferences.LaunchAtSignIn)
             {
                 try { AIResetRadar.App.Platforms.Windows.StartupService.SetEnabled(true); }
                 catch { preferences = preferences with { LaunchAtSignIn = false }; }
             }
-            if (!state.IsDemo && savedSettings is null) await AppServices.Current.Store.WriteAsync("settings", preferences);
+            if (!state.IsDemo && (savedSettings is null || savedSettings.ReminderDefaultsVersion < 1)) await AppServices.Current.Store.WriteAsync("settings", preferences);
             retiredCredentials.Clear();
             alertHistory.Clear(); snoozed.Clear();
             if (!state.IsDemo)
