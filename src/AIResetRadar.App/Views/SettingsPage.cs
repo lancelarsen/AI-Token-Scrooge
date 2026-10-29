@@ -46,6 +46,14 @@ public sealed class SettingsPage : ContentPage
         var soundGroup = $"SoundStyle-{Guid.NewGuid():N}";
         var duckSounds = new RadioButton { Content = "Duck Sounds", GroupName = soundGroup, IsChecked = original.SoundTheme != "Classic", TextColor = Color.FromArgb("#F2F1F5") };
         var classicChimes = new RadioButton { Content = "Classic Chimes", GroupName = soundGroup, IsChecked = original.SoundTheme == "Classic", TextColor = Color.FromArgb("#F2F1F5") };
+        foreach (var option in new[] { duckSounds, classicChimes })
+            option.HandlerChanged += (_, _) =>
+            {
+                if (option.Handler?.PlatformView is Microsoft.UI.Xaml.Controls.RadioButton native)
+                    foreach (var state in new[] { "", "PointerOver", "Pressed" })
+                        foreach (var part in new[] { "Fill", "Stroke" })
+                            native.Resources[$"RadioButtonOuterEllipseChecked{part}{state}"] = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 169, 144, 237));
+            };
         form.Children.Add(new VerticalStackLayout { Spacing = 0, Children = { duckSounds, classicChimes } });
         var previewStatus = new Label { FontSize = 12, TextColor = Color.FromArgb("#EAAA51") };
         var previews = new Grid { ColumnDefinitions = [new(GridLength.Star), new(GridLength.Star)], RowDefinitions = [new(GridLength.Auto), new(GridLength.Auto)], ColumnSpacing = 8, RowSpacing = 8 };
