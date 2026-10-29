@@ -55,7 +55,7 @@ public sealed class ThresholdEditor : NativeCanvas, IDisposable
                 <ControlTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" TargetType="Thumb">
                     <Grid Width="32" Height="48" Background="Transparent">
-                        <Rectangle x:Name="ContrastOutline" Width="3.5" Fill="White" Visibility="Collapsed" IsHitTestVisible="False" />
+                        <Rectangle x:Name="ContrastOutline" Width="5.5" Fill="#30333E" Visibility="Collapsed" IsHitTestVisible="False" />
                         <Rectangle Width="1.5" Fill="{{color}}" IsHitTestVisible="False" />
                     </Grid>
                 </ControlTemplate>
