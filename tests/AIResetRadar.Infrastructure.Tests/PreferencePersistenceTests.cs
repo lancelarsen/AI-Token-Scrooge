@@ -39,7 +39,7 @@ public sealed class PreferencePersistenceTests
     [Fact] public async Task DemoDragsLeaveSavedThresholdsUntouched()
     {
         using var files = new Fixture(); var store = new LocalStore(files.Path);
-        await store.WriteAsync("settings", new RadarSettings());
+        await store.WriteAsync("settings", new RadarSettings(LaunchAtSignIn: false));
         var page = new AIResetRadar.App.MainPage(store, new(), null, null, true);
         await page.SetThresholdsForTestAsync("demo", "short", 40, 20);
         Assert.Equal(40, page.PreferencesForTest.RuleFor("demo", "short").LowThreshold);
@@ -78,7 +78,7 @@ public sealed class PreferencePersistenceTests
     [Fact] public async Task DemoBarChoicesDoNotChangeSavedPreferences()
     {
         using var files = new Fixture(); var store = new LocalStore(files.Path);
-        await store.WriteAsync("settings", new RadarSettings());
+        await store.WriteAsync("settings", new RadarSettings(LaunchAtSignIn: false));
         var page = new AIResetRadar.App.MainPage(store, new(), null, null, true);
         await page.SetCapacityAlertsForTestAsync("a", "weekly", false);
         Assert.False(page.PreferencesForTest.CapacityAlertsEnabled("a", "weekly"));
@@ -90,7 +90,7 @@ public sealed class PreferencePersistenceTests
     public async Task UnchangedStartupOrDemoSaveDoesNotWriteRegistration(bool demo)
     {
         using var files = new Fixture(); var store = new LocalStore(files.Path);
-        await store.WriteAsync("settings", new RadarSettings());
+        await store.WriteAsync("settings", new RadarSettings(LaunchAtSignIn: false));
         var page = new AIResetRadar.App.MainPage(store, new(), null, null, demo);
         await page.SavePreferencesForTestAsync(new(LowThreshold: 44, LaunchAtSignIn: demo));
         Assert.Equal(0, StartupService.Writes);
@@ -110,7 +110,7 @@ public sealed class PreferencePersistenceTests
     [Fact] public async Task StartupFailureRestoresRegistrationAndDoesNotSavePreferences()
     {
         using var files = new Fixture(); var store = new LocalStore(files.Path);
-        await store.WriteAsync("settings", new RadarSettings());
+        await store.WriteAsync("settings", new RadarSettings(LaunchAtSignIn: false));
         var page = new AIResetRadar.App.MainPage(store, new(), null, null, false);
         StartupService.FailWrite = true;
         var error = await Assert.ThrowsAsync<AIResetRadar.App.Services.SettingsSaveException>(() => page.SavePreferencesForTestAsync(new(LaunchAtSignIn: true)));
@@ -136,7 +136,7 @@ public sealed class PreferencePersistenceTests
     public async Task FailedPreferenceWriteRestoresExactStartupRegistration(bool previouslyEnabled, bool missingRegistration)
     {
         using var files = new Fixture(); var store = new LocalStore(files.Path);
-        await store.WriteAsync("settings", new RadarSettings());
+        await store.WriteAsync("settings", new RadarSettings(LaunchAtSignIn: false));
         var page = new AIResetRadar.App.MainPage(store, new(), null, null, false);
         if (previouslyEnabled) await page.SavePreferencesForTestAsync(new(LaunchAtSignIn: true));
         if (missingRegistration) StartupService.Value = null;

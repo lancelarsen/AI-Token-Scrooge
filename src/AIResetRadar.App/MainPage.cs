@@ -12,6 +12,9 @@ public sealed partial class MainPage : ContentPage
     readonly Button refresh = MakeButton("Refresh", "\uE72C");
     readonly Button settings = MakeButton("Settings", "\uE713");
     readonly Grid root = new() { RowDefinitions = [new(GridLength.Auto), new(new GridLength(1)), new(GridLength.Star)] };
+    readonly ScrollView dashboardScroll = new();
+    readonly Dictionary<string, Border> notificationCards = [];
+    string? highlightedAccount;
     readonly List<QuotaRowView> rowViews = [];
     bool dashboardVisible = true;
     bool renderPending;
@@ -47,7 +50,7 @@ public sealed partial class MainPage : ContentPage
             Grid.SetColumn(actions, wide ? 1 : 0); Grid.SetRow(actions, wide ? 0 : 1);
             Grid.SetColumnSpan(actions, wide ? 1 : 2);
         };
-        root.Add(header); root.Add(new BoxView { Color = Color.FromArgb("#363842") }, 0, 1); root.Add(new ScrollView { Content = body }, 0, 2); Content = root;
+        root.Add(header); root.Add(new BoxView { Color = Color.FromArgb("#363842") }, 0, 1); dashboardScroll.Content = body; root.Add(dashboardScroll, 0, 2); Content = root;
         refresh.Clicked += async (_, _) => await RefreshAsync(); settings.Clicked += async (_, _) => await OpenSettingsAsync();
         if (Environment.GetCommandLineArgs().Contains("--demo")) state.LoadDemo(DateTimeOffset.Now);
         var args = Environment.GetCommandLineArgs(); var scenario = Array.IndexOf(args, "--scenario");
@@ -81,6 +84,7 @@ public sealed partial class MainPage : ContentPage
         body.Children.Clear();
         rowViews.Clear();
         orderCards.Clear();
+        notificationCards.Clear();
         body.Children.Add(new HorizonView(state.Events(DateTimeOffset.Now), e => OpenAccount(e.AccountId, e.WindowId), DisplayZone));
         var toolbar = new Grid { ColumnDefinitions = [new(GridLength.Star), new(GridLength.Auto)], ColumnSpacing = 12 };
         var add = MakeButton(state.IsDemo ? "Exit demo" : "Add account", "\uE710"); add.Clicked += async (_, _) => { if (state.IsDemo) { state.ClearDemo(); initialized = false; await InitializeAsync(); } else await AddAccountAsync(); };
@@ -131,6 +135,8 @@ public sealed partial class MainPage : ContentPage
                 StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 13 } };
             if (preferences.AccountSort == AccountSortMode.CustomOrder)
                 card.Content = WithOrderControls(content, card, account);
+            notificationCards[account.Id] = card;
+            if (highlightedAccount == account.Id) { card.Stroke = Color.FromArgb("#C3ADF8"); card.StrokeThickness = 3; }
             body.Children.Add(card);
         }
         renderSignature = signature;

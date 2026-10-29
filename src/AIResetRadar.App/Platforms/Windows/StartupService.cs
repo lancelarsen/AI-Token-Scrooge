@@ -20,7 +20,7 @@ public static class StartupService
     public static void SetEnabled(bool enabled)
     {
         using var key = Registry.CurrentUser.CreateSubKey(RunKey);
-        if (enabled) key.SetValue(ValueName, $"\"{Environment.ProcessPath}\" --tray");
+        if (enabled) key.SetValue(ValueName, $"\"{Environment.ProcessPath}\" --tray --data-dir \"{AIResetRadar.App.Services.AppServices.Current.DirectoryPath}\"");
         else key.DeleteValue(ValueName, false);
     }
 }

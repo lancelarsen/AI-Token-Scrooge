@@ -32,13 +32,15 @@ public sealed partial class MainPage
         {
             if (action == "snooze")
             {
-                if (!await SaveSnoozeAsync(account))
+                if (await SaveSnoozeAsync(account)) { AlertSounds.Play(preferences, "snooze"); DismissBanner(account); }
+                else
                 {
                     ShowMain();
                     await AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, "Snooze not saved", "Alerts remain active. Check available space and folder access, then try Snooze again.", "Close");
                 }
             }
-            else { ShowMain(); OpenAccount(account, quotaWindow); }
+            else if (action == "dismiss") { AlertSounds.Play(preferences, "dismiss"); DismissBanner(account); }
+            else { AlertSounds.Play(preferences, "info"); DismissBanner(account); await ShowAlertAccountAsync(account); }
         };
         NotificationService.Current.Drain();
         native.AppWindow.Closing += (_, args) =>
@@ -56,7 +58,12 @@ public sealed partial class MainPage
         if (Environment.GetCommandLineArgs().Contains("--tray")) native.DispatcherQueue.TryEnqueue(() => native.AppWindow.Hide());
         UpdateTray();
     }
-    void ShowMain() { nativeWindow?.AppWindow.Show(); nativeWindow?.Activate(); }
+    void ShowMain()
+    {
+        nativeWindow?.AppWindow.Show();
+        if (nativeWindow?.AppWindow.Presenter is Microsoft.UI.Windowing.OverlappedPresenter presenter && presenter.State == Microsoft.UI.Windowing.OverlappedPresenterState.Minimized) presenter.Restore();
+        nativeWindow?.Activate();
+    }
     void UpdateTray()
     {
         var rows = state.Rows.ToArray();

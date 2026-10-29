@@ -21,8 +21,8 @@ public sealed partial class MainPage
             // The user may have turned off this bar while the alert intent was saving.
             if (!AlertEvaluator.IsEnabled(alert, preferences)) continue;
             var canDeliver = preferences.Notifications && !AlertEvaluator.IsQuiet(preferences, now, TimeZones.Resolve(preferences.TimeZoneId)) && (!snoozed.TryGetValue(account.Id, out var until) || until <= now);
-            var sent = canDeliver && NotificationService.Current.Show(alert, preferences);
-            if (canDeliver) ShowBanner(alert);
+            var sent = canDeliver && NotificationService.Current.Show(alert, preferences, account.Provider);
+            if (canDeliver) { ShowBanner(alert); AIResetRadar.App.Services.AlertSounds.Play(preferences, "alert"); }
             try { await MarkAlertDeliveredAsync(alert, sent); }
             catch { deliveryStatusFailed = true; }
         }

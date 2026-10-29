@@ -19,6 +19,7 @@
     <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.120" />
     <ProjectReference Include="../AIResetRadar.Core/AIResetRadar.Core.csproj" />
     <ProjectReference Include="../AIResetRadar.Infrastructure/AIResetRadar.Infrastructure.csproj" />
+    <Content Include="Resources/Sounds/*" Link="Sounds/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <MauiImage Include="Resources/Images/*" />
     <Content Include="Resources/app.ico" Link="app.ico" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Resources/LUCIDE-LICENSE.txt" Link="LUCIDE-LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />

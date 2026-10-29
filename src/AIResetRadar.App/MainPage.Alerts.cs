@@ -13,24 +13,48 @@ public sealed partial class MainPage
         if (banner is not null) root.Children.Remove(banner);
         banner = null; bannerAccountId = null;
     }
+    async Task ShowAlertAccountAsync(string accountId)
+    {
+        ShowMain();
+        while (AppPanels.IsOpen) await AppPanels.CloseAsync();
+        foreach (var entry in notificationCards) { entry.Value.Stroke = Color.FromArgb("#383B46"); entry.Value.StrokeThickness = 1; }
+        highlightedAccount = accountId;
+        Render();
+        if (notificationCards.TryGetValue(accountId, out var card))
+        {
+            card.Stroke = Color.FromArgb("#C3ADF8"); card.StrokeThickness = 3;
+            await dashboardScroll.ScrollToAsync(card, ScrollToPosition.Center, true);
+            Dispatcher.StartTimer(TimeSpan.FromSeconds(6), () => {
+                if (highlightedAccount == accountId) { highlightedAccount = null; if (notificationCards.TryGetValue(accountId, out var current)) { current.Stroke = Color.FromArgb("#383B46"); current.StrokeThickness = 1; } }
+                return false;
+            });
+        }
+    }
+    string AlertProvider(string accountId) => state.Accounts.FirstOrDefault(a => a.Id == accountId)?.Provider ?? "Scrooge";
+    static string ProviderImage(string provider) => provider switch { "OpenAI" => "openai.png", "Claude" => "claude.png", "GitHub Copilot" => "github.png", _ => "token_baron.png" };
     void ShowBanner(AlertEvent alert)
     {
         if (banner is not null) root.Children.Remove(banner);
-        var detail = new VerticalStackLayout { Spacing = 8 };
-        detail.Children.Add(new Label { Text = preferences.Privacy ? "AI usage alert" : alert.Title, FontFamily = "Segoe UI Semibold", FontSize = 15 });
-        detail.Children.Add(new Label { Text = preferences.Privacy ? "Open Scrooge to see details." : alert.Detail, FontSize = 12, TextColor = Color.FromArgb("#B6B8C8") });
+        var detail = new VerticalStackLayout { Spacing = 10 };
+        var heading = new Grid { ColumnDefinitions = [new(GridLength.Auto), new(GridLength.Star)], ColumnSpacing = 12 };
+        heading.Add(new Image { Source = ProviderImage(AlertProvider(alert.AccountId)), WidthRequest = 38, HeightRequest = 38, VerticalOptions = LayoutOptions.Center });
+        var title = new VerticalStackLayout { Spacing = 3 };
+        title.Children.Add(new Label { Text = AlertProvider(alert.AccountId) == "OpenAI" ? "OpenAI Codex" : AlertProvider(alert.AccountId), FontSize = 12, TextColor = Color.FromArgb("#C3ADF8") });
+        title.Children.Add(new Label { Text = alert.Title, FontFamily = "Segoe UI Semibold", FontSize = 15 });
+        heading.Add(title, 1); detail.Children.Add(heading);
+        detail.Children.Add(new Label { Text = alert.Detail, FontSize = 12, TextColor = Color.FromArgb("#B6B8C8") });
         var actions = new HorizontalStackLayout { Spacing = 8 };
         Border? displayedBanner = null;
-        var view = new AIResetRadar.App.Controls.ActionButton { Text = "View account" };
-        var snooze = new AIResetRadar.App.Controls.ActionButton { Text = "Snooze 1 hour" }; var dismiss = new AIResetRadar.App.Controls.ActionButton { Text = "Dismiss" };
-        view.Clicked += (_, _) => { OpenAccount(alert.AccountId, alert.WindowId); Dismiss(); };
+        var view = new AIResetRadar.App.Controls.ActionButton { Text = "Show Info" };
+        var snooze = new AIResetRadar.App.Controls.ActionButton { Text = "Snooze 1 Hour" }; var dismiss = new AIResetRadar.App.Controls.ActionButton { Text = "Dismiss" };
+        view.Clicked += async (_, _) => { AlertSounds.Play(preferences, "info"); Dismiss(); await ShowAlertAccountAsync(alert.AccountId); };
         snooze.Clicked += async (_, _) =>
         {
-            if (await SaveSnoozeAsync(alert.AccountId)) Dismiss();
+            if (await SaveSnoozeAsync(alert.AccountId)) { AlertSounds.Play(preferences, "snooze"); Dismiss(); }
             else await AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, "Snooze not saved", "Alerts remain active. Check available space and folder access, then try Snooze again.", "Close");
         };
-        dismiss.Clicked += (_, _) => Dismiss(); actions.Children.Add(view); actions.Children.Add(snooze); actions.Children.Add(dismiss); detail.Children.Add(actions);
-        banner = new Border { Padding = 18, Content = detail, Stroke = Color.FromArgb("#55515F"), BackgroundColor = Color.FromArgb("#222329"),
+        dismiss.Clicked += (_, _) => { AlertSounds.Play(preferences, "dismiss"); Dismiss(); }; actions.Children.Add(view); actions.Children.Add(snooze); actions.Children.Add(dismiss); detail.Children.Add(actions);
+        banner = new Border { Padding = 18, Content = detail, Stroke = Color.FromArgb("#8170B0"), BackgroundColor = Color.FromArgb("#222329"),
             StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 14 }, MaximumWidthRequest = 520,
             HorizontalOptions = LayoutOptions.End, VerticalOptions = LayoutOptions.End, Margin = new Thickness(20) };
         root.Add(banner, 0, 2);
@@ -61,13 +85,13 @@ public sealed partial class MainPage
     async Task TestNotificationAsync()
     {
         var id = state.Accounts.FirstOrDefault()?.Id ?? "test";
-        var alert = new AlertEvent("test/" + Guid.NewGuid().ToString("N"), id, null, "Scrooge notification test", "This is a test. Your account usage has not changed.", DateTimeOffset.UtcNow);
+        var alert = new AlertEvent("test/" + Guid.NewGuid().ToString("N"), id, null, "Scrooge Notification Test", "This is a test. Your account usage has not changed.", DateTimeOffset.UtcNow);
         try { if (!await RecordAlertIntentAsync(alert)) return; }
         catch { await AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, "Local history unavailable", "Scrooge could not record the test notification. Check available space and folder access, then try again.", "Close"); return; }
-        var sent = NotificationService.Current.Show(alert, preferences with { Notifications = true });
+        var sent = NotificationService.Current.Show(alert, preferences with { Notifications = true }, AlertProvider(id));
         var deliverySaved = true;
         try { await MarkAlertDeliveredAsync(alert, sent); } catch { deliverySaved = false; }
-        await AppPanels.CloseAsync(); ShowBanner(alert);
+        await AppPanels.CloseAsync(); ShowBanner(alert); AlertSounds.Play(preferences, "alert");
         if (!sent) await AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, "Notification test", NotificationService.Current.Problem ?? "Windows did not confirm delivery. The test is recorded in history.", "OK");
         else if (!deliverySaved) await AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, "Notification test", "Windows accepted the notification, but Scrooge could not save the delivery status. The test will not be replayed.", "Close");
     }

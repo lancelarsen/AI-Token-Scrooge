@@ -46,7 +46,8 @@ namespace AIResetRadar.App
     public sealed partial class MainPage
     {
         readonly Presentation.DashboardState state = new();
-        RadarSettings preferences = new();
+        // Existing-install fixture starts with startup explicitly disabled.
+        RadarSettings preferences = new(LaunchAtSignIn: false);
         readonly List<AlertEvent> alertHistory = [];
         readonly Dictionary<string, DateTimeOffset> snoozed = [];
         readonly Dictionary<string, DateTimeOffset> nextRefresh = [], throttledUntil = [];
@@ -108,13 +109,14 @@ namespace AIResetRadar.App.Platforms.Windows
         public static NotificationService Current { get; set; } = new();
         public List<AlertEvent> Attempts { get; } = [];
         public Action<AlertEvent>? OnShow { get; set; }
-        public bool Show(AlertEvent alert, RadarSettings settings)
+        public bool Show(AlertEvent alert, RadarSettings settings, string provider)
         { Attempts.Add(alert); OnShow?.Invoke(alert); return true; }
     }
 }
 
 namespace AIResetRadar.App.Services
 {
+    public static class AlertSounds { public static string? Play(RadarSettings settings, string action) => null; }
     public sealed class AppServices
     {
         public static AppServices Current { get; set; } = null!;

@@ -52,6 +52,8 @@ public sealed class ActionButton : Button
     public static string GlyphFor(string? text)
     {
         var value = (text ?? "").ToLowerInvariant();
+        if (value.StartsWith("preview")) return "\uE768";
+        if (value == "show info") return "\uE946";
         if (value == "custom order") return "\uE80A";
         if (value == "most remaining") return "\uE9D9";
         if (value == "least remaining") return "\uE9D2";

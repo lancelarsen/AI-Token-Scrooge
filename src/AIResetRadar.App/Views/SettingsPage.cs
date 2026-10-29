@@ -28,9 +28,27 @@ public sealed class SettingsPage : ContentPage
         WrapCard(displayStart, "Time Zone");
         var notificationStart = form.Children.Count;
         var notifications = Toggle("Popup Notifications", original.Notifications);
-        var sound = Toggle("Notification Sound", original.Sound);
-        var privacy = Toggle("Hide Account Names in Notifications", original.Privacy);
+
+
         WrapCard(notificationStart, "Notifications", "Choose how Scrooge gets your attention.");
+        var soundsStart = form.Children.Count;
+        var sound = Toggle("Notification Sounds", original.Sound);
+        var soundTheme = new Picker { ItemsSource = new[] { "Duck Sounds", "Classic Chimes" }, SelectedIndex = original.SoundTheme == "Classic" ? 1 : 0,
+            TextColor = Color.FromArgb("#F2F1F5"), BackgroundColor = Color.FromArgb("#232429") };
+        SemanticProperties.SetDescription(soundTheme, "Sound Style");
+        form.Children.Add(soundTheme);
+        var previewStatus = new Label { FontSize = 12, TextColor = Color.FromArgb("#EAAA51") };
+        var previews = new Grid { ColumnDefinitions = [new(GridLength.Star), new(GridLength.Star)], RowDefinitions = [new(GridLength.Auto), new(GridLength.Auto)], ColumnSpacing = 8, RowSpacing = 8 };
+        var previewIndex = 0;
+        foreach (var cue in new[] { ("Alarm", "alert"), ("Snooze", "snooze"), ("Dismiss", "dismiss"), ("Show Info", "info") })
+        {
+            var preview = new ActionButton { Text = "Preview " + cue.Item1 };
+            preview.Clicked += (_, _) => previewStatus.Text = AlertSounds.Play(original with { SoundTheme = soundTheme.SelectedIndex == 1 ? "Classic" : "Ducks" }, cue.Item2, preview: true) ?? "";
+            previews.Add(preview, previewIndex % 2, previewIndex / 2); previewIndex++;
+        }
+        form.Children.Add(previews);
+        form.Children.Add(previewStatus);
+        WrapCard(soundsStart, "Sounds");
         var quietCardStart = form.Children.Count;
         var quiet = new Switch { IsToggled = original.QuietHours, OnColor = Color.FromArgb("#8170CF"), VerticalOptions = LayoutOptions.Center };
         SemanticProperties.SetDescription(quiet, "Enable Quiet Hours");
@@ -135,10 +153,11 @@ public sealed class SettingsPage : ContentPage
             var lowValue = (decimal)low.Value; var criticalValue = (decimal)critical.Value;
             if (quiet.IsToggled && start == end) { status.Text = "Choose different start and end times for quiet hours."; return; }
             if (criticalValue >= lowValue) { status.Text = "Critical capacity must be lower than low capacity."; return; }
-            var settings = original with { Notifications = notifications.IsToggled, Sound = sound.IsToggled, Privacy = privacy.IsToggled,
+            var settings = original with { Notifications = notifications.IsToggled, Sound = sound.IsToggled, Privacy = false,
                 QuietHours = quiet.IsToggled, QuietStartHour = start, QuietEndHour = end, LowThreshold = lowValue, CriticalThreshold = criticalValue,
                 LaunchAtSignIn = startup.IsToggled, CloseToTray = close.IsToggled,
                 Rules = original.Rules?.Where(r => accounts.Any(a => a.Id == r.AccountId)).ToArray(),
+                SoundTheme = soundTheme.SelectedIndex == 1 ? "Classic" : "Ducks",
                 TimeZoneId = (timeZone.SelectedItem as TimeZoneInfo)?.Id ?? TimeZones.DefaultId };
             if (!settings.HasValidThresholds) { status.Text = "An account/window rule conflicts with these defaults. Adjust its thresholds first."; return; }
             try { await save(settings); original = settings; status.Text = ""; }
@@ -147,8 +166,9 @@ public sealed class SettingsPage : ContentPage
             }
             finally { saveGate.Release(); }
         }
+        soundTheme.SelectedIndexChanged += async (_, _) => await AutoSaveAsync();
         timeZone.SelectedIndexChanged += async (_, _) => await AutoSaveAsync();
-        foreach (var toggle in new[] { notifications, sound, privacy, quiet, close, startup })
+        foreach (var toggle in new[] { notifications, sound, quiet, close, startup })
             toggle.Toggled += async (_, _) => await AutoSaveAsync();
         low.ValueChanged += async (_, _) => await AutoSaveAsync();
         critical.ValueChanged += async (_, _) => await AutoSaveAsync();
