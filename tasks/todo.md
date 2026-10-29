@@ -1,5 +1,7 @@
 # AI Reset Radar — implementation task cards
 
+Current feature queue (October 29, 2026): [Unified Reset Horizon History Task Cards](history-todo.md). See [the feature plan](history-plan.md) for the selected visual, unified scrolling behavior, and Weekly/Monthly-only history scope.
+
 Implementation is in progress. Checked items have concrete evidence; unmarked combined acceptance items can have implemented portions and still require live/native verification. Read `plan.md` and `../docs/verification.md`. Each task should leave a working increment; likely files are guidance, not a mandate to spread simple logic across files. Tests and evidence belong beside the task's actual behavior.
 
 ## Phase A — decisions and feasibility

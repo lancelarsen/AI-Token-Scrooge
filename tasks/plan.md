@@ -1,5 +1,7 @@
 # AI Reset Radar — Windows implementation plan
 
+Current feature plan (October 29, 2026): [Unified Reset Horizon History](history-plan.md), with [task cards](history-todo.md). It uses one Weekly history series per OpenAI/Claude account and one Monthly series per Copilot account. The original project plan below is preserved as historical implementation context; the feature plan and current user decisions govern this addition.
+
 Planning date: October 25, 2026. Status: implementation in progress under the active build goal. The final visual target is selected: round 2 image 7, Quiet Warning, with tall bars containing Used/Left text, no duplicate numeric column, and amber warning states. The exact user-selected screenshot is `D:/Dev/AI/AIResetRadar/design/references/approved-ui.png`. See `../design/selection.md`. This document and `todo.md` remain the execution contract; current evidence and required open gates are recorded in `../docs/verification.md`.
 
 ## Product outcome
