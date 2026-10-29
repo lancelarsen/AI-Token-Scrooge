@@ -1,4 +1,4 @@
-# Regenerate the app's duck cues from the user-selected audition #02.
+# Regenerate the app's duck cues from the user-selected auditions #02 and #08.
 # Requires ffmpeg on PATH. Source and license are recorded in SOUND-CREDITS.txt.
 $ErrorActionPreference = 'Stop'
 $source = Join-Path ([IO.Path]::GetTempPath()) 'scrooge-selected-quack.mp3'
@@ -16,3 +16,9 @@ foreach ($cue in $cues.GetEnumerator()) {
     & ffmpeg -y -hide_banner -loglevel error -i $source -af $cue.Value -ar 48000 -ac 1 -c:a pcm_s16le (Join-Path $output "duck-$($cue.Key).wav")
     if ($LASTEXITCODE -ne 0) { throw "Failed to generate $($cue.Key)" }
 }
+
+# The longer alarm uses the complete natural calling sequence from audition #08.
+$alarmSource = Join-Path ([IO.Path]::GetTempPath()) 'scrooge-long-duck.mp3'
+Invoke-WebRequest 'https://cdn.freesound.org/previews/185/185134_8043-hq.mp3' -OutFile $alarmSource
+& ffmpeg -y -hide_banner -loglevel error -i $alarmSource -af 'afade=t=in:d=0.01,afade=t=out:st=3.78:d=0.05' -ar 48000 -ac 1 -c:a pcm_s16le (Join-Path $output 'duck-alert.wav')
+if ($LASTEXITCODE -ne 0) { throw 'Failed to generate longer alarm' }

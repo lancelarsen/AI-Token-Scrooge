@@ -5,7 +5,14 @@ Source: https://cdn.pixabay.com/audio/2022/06/08/audio_98351be2c8.mp3
 Retrieved: 2026-10-29
 Integrated into AI Token Scrooge notification cues; not offered as standalone stock audio.
 Edits: silence trim, short edge fades, mono PCM conversion, pitch, volume and repetition.
-Alarm: three natural-pitch quacks. Snooze: one softer, lower quack.
+Snooze: one softer, lower quack.
 Dismiss: one quiet, slightly higher quack. Show Info: two brighter quacks.
 Regenerate with scripts/Build-DuckSounds.ps1 (requires ffmpeg).
 Classic Chimes: original synthesized sine-tone cues for AI Token Scrooge.
+
+Longer Duck Alarm: 20130403_duck.04.wav by dobroide (audition #08, Duck Calling in Chile)
+Source: https://freesound.org/people/dobroide/sounds/185134/
+License: Creative Commons Attribution 4.0 https://creativecommons.org/licenses/by/4.0/
+Retrieved: 2026-10-29 from https://cdn.freesound.org/previews/185/185134_8043-hq.mp3
+Changes: high-quality MP3 preview converted to mono 48 kHz 16-bit PCM with brief edge fades.
+Original calling sequence and pitch preserved. No endorsement by the creator is implied.
