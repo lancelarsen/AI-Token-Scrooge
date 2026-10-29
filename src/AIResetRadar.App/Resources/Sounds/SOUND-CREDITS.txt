@@ -1,6 +1,11 @@
-Duck Sounds: adapted from Cartoon - Duck Quack by Breviceps
-https://freesound.org/people/Breviceps/sounds/445960/
-License: CC0 1.0 https://creativecommons.org/publicdomain/zero/1.0/
-Source: Freesound high-quality preview, retrieved 2026-10-28
-Edits: pitch, volume, spacing and repetition for four actions.
+Duck Sounds: adapted from Duck Quack by iedurodrigues (audition #02)
+https://pixabay.com/sound-effects/nature-duck-quack-112941/
+License: Pixabay Content License https://pixabay.com/service/license-summary/
+Source: https://cdn.pixabay.com/audio/2022/06/08/audio_98351be2c8.mp3
+Retrieved: 2026-10-29
+Integrated into AI Token Scrooge notification cues; not offered as standalone stock audio.
+Edits: silence trim, short edge fades, mono PCM conversion, pitch, volume and repetition.
+Alarm: three natural-pitch quacks. Snooze: one softer, lower quack.
+Dismiss: one quiet, slightly higher quack. Show Info: two brighter quacks.
+Regenerate with scripts/Build-DuckSounds.ps1 (requires ffmpeg).
 Classic Chimes: original synthesized sine-tone cues for AI Token Scrooge.
