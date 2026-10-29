@@ -1,7 +1,7 @@
 using AIResetRadar.Core;
 namespace AIResetRadar.App.Presentation;
 
-public sealed record QuotaRow(ProviderAccount Account, QuotaSnapshot Snapshot, QuotaWindow Window, decimal Low = 30, decimal Critical = 10)
+public sealed record QuotaRow(ProviderAccount Account, QuotaSnapshot Snapshot, QuotaWindow Window, decimal Low = 30, decimal Critical = 10, decimal Info = 50)
 {
     public string AccountLabel => $"{Account.Nickname} · {PlanLabels.Display(Account.Provider, Snapshot.PlanType)}";
     public string WindowTitle => UiTitle.CapitalizeWords(Window.Name);
@@ -64,7 +64,7 @@ public sealed class DashboardState
     public IEnumerable<QuotaRow> Rows => OrderedAccounts.Where(a => a.Enabled && Snapshots.ContainsKey(a.Id))
         .SelectMany(a => Snapshots[a.Id].Windows.Select(w => {
             var rule = Settings.RuleFor(a.Id, w.Id);
-            return new QuotaRow(a, Snapshots[a.Id], w, rule.LowThreshold!.Value, rule.CriticalThreshold!.Value);
+            return new QuotaRow(a, Snapshots[a.Id], w, rule.LowThreshold!.Value, rule.CriticalThreshold!.Value, rule.InfoThreshold!.Value);
         }));
 
     public IEnumerable<HorizonEvent> Events(DateTimeOffset now) => Rows

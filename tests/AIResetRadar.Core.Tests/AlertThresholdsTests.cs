@@ -53,7 +53,7 @@ public class AlertThresholdsTests
         var account = new ProviderAccount("a", "OpenAI", "Personal", "qa", "personal");
         var snapshot = new QuotaSnapshot("a", "qa", "personal", now,
             [new("weekly", "Weekly", UsageUnit.Percent, 65, 100, now.AddDays(20))], null);
-        Assert.Empty(AlertEvaluator.Evaluate(account, null, snapshot, new(), now));
+        Assert.EndsWith("/info", Assert.Single(AlertEvaluator.Evaluate(account, null, snapshot, new(), now)).Key);
         var settings = new RadarSettings().WithWindowThresholds("a", "weekly", 40, 15);
         var reopened = System.Text.Json.JsonSerializer.Deserialize<RadarSettings>(System.Text.Json.JsonSerializer.Serialize(settings))!;
         Assert.Contains("/low", Assert.Single(AlertEvaluator.Evaluate(account, null, snapshot, reopened, now)).Key);

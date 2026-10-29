@@ -31,25 +31,26 @@ public sealed class QuotaRowView : Border
     {
         this.row = row;
         var warning = row.IsWarning;
+        var info = row.Window.Capacity(row.Low, row.Critical, row.Info) == CapacityState.Info;
         var critical = row.Window.Capacity(row.Low, row.Critical) is CapacityState.Critical or CapacityState.Exhausted;
         resetsAt = row.Window.ResetsAt;
         hasReset = resetsAt.HasValue;
         Stroke = Colors.Transparent; BackgroundColor = Colors.Transparent;
         Padding = new Thickness(0); MinimumHeightRequest = 56;
         var root = new Grid { ColumnDefinitions = [new(new GridLength(4)), new(GridLength.Star)] };
-        warningStrip = new BoxView { Color = critical ? Color.FromArgb("#F05B69") : warning ? Color.FromArgb("#EAAA51") : Colors.Transparent };
+        warningStrip = new BoxView { Color = critical ? Color.FromArgb("#F05B69") : warning ? Color.FromArgb("#F2C94C") : info ? Color.FromArgb("#58A6FF") : Colors.Transparent };
         root.Add(warningStrip);
         layout = new Grid { ColumnSpacing = 12, RowSpacing = 8 };
         var quotaText = new VerticalStackLayout { Spacing = 4, VerticalOptions = LayoutOptions.Center };
         quotaText.Children.Add(new Label { Text = row.WindowTitle, TextColor = Color.FromArgb("#BEC1D2"), FontSize = 14 });
         if (row.CardNote != "") quotaText.Children.Add(new Label { Text = row.CardNote, FontSize = 11, TextColor = Color.FromArgb("#A5A8BA") });
         quota = quotaText;
-        bar = new UsageBar(row.Window.Fill, row.UsedText, row.LeftText, warning, critical) { VerticalOptions = LayoutOptions.Center };
+        bar = new UsageBar(row.Window.Fill, row.UsedText, row.LeftText, warning, critical, info) { VerticalOptions = LayoutOptions.Center };
         var details = new Button { Text = "", BackgroundColor = Colors.Transparent, BorderWidth = 0, HeightRequest = -1,
             HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Fill };
         SemanticProperties.SetDescription(details, $"{row.Account.Provider}, {row.AccountLabel}, {row.WindowTitle}, {row.UsedText}, {row.LeftText}. Open details.");
         details.Clicked += (_, _) => open(row);
-        thresholds = new AlertThresholdView(row.Low, row.Critical, capacityAlertsEnabled,
+        thresholds = new AlertThresholdView(row.Low, row.Critical, row.Info, capacityAlertsEnabled,
             $"{row.Account.Provider} / {row.AccountLabel} · {row.WindowTitle}", saveThresholds, thresholdInteraction);
         bar.AddAlertEditor(details, thresholds);
         var capacityToggle = new CapacityAlertToggle(capacityAlertsEnabled,
@@ -67,7 +68,7 @@ public sealed class QuotaRowView : Border
                 TextColor = Color.FromArgb("#BEC1D2"), VerticalOptions = LayoutOptions.Center };
             var resetText = new VerticalStackLayout { Spacing = 3, VerticalOptions = LayoutOptions.Center, Children = { countdown, exactReset } };
             resetIcon = new Label { Text = warning ? "\uE7BA" : "\uE823", FontFamily = "Segoe Fluent Icons", FontSize = 25,
-                TextColor = Color.FromArgb(critical ? "#F05B69" : warning ? "#EAAA51" : "#B5A0F4"), VerticalOptions = LayoutOptions.Start, Margin = new Thickness(0, 3, 0, 0) };
+                TextColor = Color.FromArgb(critical ? "#F05B69" : warning ? "#F2C94C" : info ? "#58A6FF" : "#B5A0F4"), VerticalOptions = LayoutOptions.Start, Margin = new Thickness(0, 3, 0, 0) };
             reset = new HorizontalStackLayout { Spacing = 12, VerticalOptions = LayoutOptions.Center, Children = {
                 resetIcon, resetText
             }};
@@ -89,17 +90,18 @@ public sealed class QuotaRowView : Border
     public void UpdateAlertRules(RadarSettings settings)
     {
         var rule = settings.RuleFor(row.Account.Id, row.Window.Id);
-        var capacity = row.Window.Capacity(rule.LowThreshold!.Value, rule.CriticalThreshold!.Value);
+        var capacity = row.Window.Capacity(rule.LowThreshold!.Value, rule.CriticalThreshold!.Value, rule.InfoThreshold!.Value);
+        var info = capacity == CapacityState.Info;
         var critical = capacity is CapacityState.Critical or CapacityState.Exhausted;
         var warning = capacity is CapacityState.Low or CapacityState.Critical or CapacityState.Exhausted;
         var enabled = settings.CapacityAlertsEnabled(row.Account.Id, row.Window.Id);
-        thresholds.Refresh(rule.LowThreshold!.Value, rule.CriticalThreshold!.Value, enabled);
-        bar.SetWarning(warning, critical);
-        warningStrip.Color = critical ? Color.FromArgb("#F05B69") : warning ? Color.FromArgb("#EAAA51") : Colors.Transparent;
+        thresholds.Refresh(rule.LowThreshold!.Value, rule.CriticalThreshold!.Value, rule.InfoThreshold!.Value, enabled);
+        bar.SetWarning(warning, critical, info);
+        warningStrip.Color = critical ? Color.FromArgb("#F05B69") : warning ? Color.FromArgb("#F2C94C") : info ? Color.FromArgb("#58A6FF") : Colors.Transparent;
         if (resetIcon is not null)
         {
             resetIcon.Text = warning ? "\uE7BA" : "\uE823";
-            resetIcon.TextColor = Color.FromArgb(critical ? "#F05B69" : warning ? "#EAAA51" : "#B5A0F4");
+            resetIcon.TextColor = Color.FromArgb(critical ? "#F05B69" : warning ? "#F2C94C" : info ? "#58A6FF" : "#B5A0F4");
         }
     }
 

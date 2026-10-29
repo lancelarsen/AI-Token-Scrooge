@@ -11,7 +11,7 @@ public sealed partial class MainPage
 
     async Task<bool> SaveThresholdsAsync(string account, string window, AlertThresholds values)
     {
-        try { await SetWindowThresholdsAsync(account, window, values.Warning, values.Critical); return true; }
+        try { await SetWindowThresholdsAsync(account, window, values.Warning, values.Critical, values.Info); return true; }
         catch
         {
             await ThemedDialogs.ShowAsync(this, "Alert Levels Not Saved",

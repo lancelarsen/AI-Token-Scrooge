@@ -14,8 +14,8 @@ public sealed partial class MainPage
     Task SetCapacityAlertsAsync(string accountId, string windowId, bool enabled) =>
         UpdateSettingsAsync(current => current.WithCapacityAlerts(accountId, windowId, enabled), renderDashboard: false);
 
-    Task SetWindowThresholdsAsync(string accountId, string windowId, decimal low, decimal critical) =>
-        UpdateSettingsAsync(current => current.WithWindowThresholds(accountId, windowId, low, critical), renderDashboard: true);
+    Task SetWindowThresholdsAsync(string accountId, string windowId, decimal low, decimal critical, decimal info = 50) =>
+        UpdateSettingsAsync(current => current.WithWindowThresholds(accountId, windowId, low, critical, info), renderDashboard: true);
 
     async Task UpdateSettingsAsync(Func<RadarSettings, RadarSettings> update, bool renderDashboard)
     {

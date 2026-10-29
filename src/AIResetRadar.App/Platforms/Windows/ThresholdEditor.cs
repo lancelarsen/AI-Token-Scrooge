@@ -17,13 +17,14 @@ namespace AIResetRadar.App.Platforms.Windows;
 // A generous transparent drag target surrounds each thin line; its visual never grows.
 public sealed class ThresholdEditor : NativeCanvas, IDisposable
 {
-    sealed record Marker(bool Warning, Thumb Grip, NativePopup Popup, TextBlock Readout)
+    sealed record Marker(int Kind, Thumb Grip, NativePopup Popup, TextBlock Readout)
     {
         public double? PopupTop { get; set; }
         public bool PointerInside { get; set; }
     }
     static WeakReference<ThresholdEditor>? popupOwner;
     readonly AlertThresholdView view;
+    readonly Marker info;
     readonly Marker warning;
     readonly Marker critical;
     AlertThresholds values;
@@ -35,16 +36,17 @@ public sealed class ThresholdEditor : NativeCanvas, IDisposable
     public ThresholdEditor(AlertThresholdView view)
     {
         this.view = view; values = view.Thresholds; Height = 48;
-        warning = CreateMarker(true); critical = CreateMarker(false);
+        info = CreateMarker(0); warning = CreateMarker(1); critical = CreateMarker(2);
         SizeChanged += (_, _) => { if (active is not null && !saving) Cancel(); UpdatePositions(); };
         Unloaded += (_, _) => Cancel();
         EffectiveViewportChanged += (_, _) => { if (active is null) HidePopups(); };
         UpdatePositions();
     }
 
-    Marker CreateMarker(bool isWarning)
+    Marker CreateMarker(int kind)
     {
-        var color = isWarning ? "#F2C94C" : "#FF5D68";
+        var isWarning = kind == 1;
+        var color = kind == 0 ? "#58A6FF" : isWarning ? "#F2C94C" : "#FF5D68";
         var image = isWarning ? "threshold_warning.png" : "threshold_critical.png";
         var grip = new Thumb { Width = 32, Height = 48, IsTabStop = true, UseSystemFocusVisuals = true,
             Template = (NativeControlTemplate)XamlReader.Load($$"""
@@ -58,7 +60,8 @@ public sealed class ThresholdEditor : NativeCanvas, IDisposable
         var readout = new TextBlock { FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe UI"),
             FontSize = 14, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = new NativeBrush(Microsoft.UI.Colors.White) };
         var popupContent = new Microsoft.UI.Xaml.Controls.StackPanel { Orientation = Microsoft.UI.Xaml.Controls.Orientation.Horizontal, Spacing = 8 };
-        popupContent.Children.Add(new Microsoft.UI.Xaml.Controls.Image { Width = 18, Height = 18,
+        if (kind == 0) popupContent.Children.Add(new FontIcon { Glyph = "\uE946", FontSize = 18, Foreground = new NativeBrush(Microsoft.UI.ColorHelper.FromArgb(255, 88, 166, 255)) });
+        else popupContent.Children.Add(new Microsoft.UI.Xaml.Controls.Image { Width = 18, Height = 18,
             Source = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri($"ms-appx:///{image}")) });
         popupContent.Children.Add(readout);
         var popup = new NativePopup { IsHitTestVisible = false, Child = new NativeBorder {
@@ -66,7 +69,7 @@ public sealed class ThresholdEditor : NativeCanvas, IDisposable
             BorderThickness = new Microsoft.UI.Xaml.Thickness(1),
             Background = new NativeBrush(Microsoft.UI.ColorHelper.FromArgb(255, 34, 35, 41)),
             BorderBrush = new NativeBrush(Microsoft.UI.ColorHelper.FromArgb(255, 101, 87, 127)) } };
-        var marker = new Marker(isWarning, grip, popup, readout);
+        var marker = new Marker(kind, grip, popup, readout);
         grip.PointerEntered += (_, _) => { marker.PointerInside = true; if (!saving) ShowValue(marker); };
         grip.PointerExited += (_, _) => { marker.PointerInside = false; if (active != marker) HidePopup(marker); };
         grip.LostFocus += (_, _) => { if (active != marker) HidePopup(marker); };
@@ -80,7 +83,7 @@ public sealed class ThresholdEditor : NativeCanvas, IDisposable
         {
             if (active != marker || saving || Span <= 0) return;
             dragPosition += args.HorizontalChange;
-            values = values.Move(isWarning, AlertThresholds.RemainingAt(dragPosition, Span));
+            values = kind == 0 ? values.MoveInfo(AlertThresholds.RemainingAt(dragPosition, Span)) : values.Move(isWarning, AlertThresholds.RemainingAt(dragPosition, Span));
             UpdatePositions(); ShowValue(marker);
         };
         grip.DragCompleted += async (_, args) =>
@@ -95,7 +98,7 @@ public sealed class ThresholdEditor : NativeCanvas, IDisposable
             var step = args.Key switch { VirtualKey.Left or VirtualKey.Up => 1, VirtualKey.Right or VirtualKey.Down => -1, _ => 0 };
             if (step == 0 || saving || (active is not null && active != marker)) return;
             if (active is null && !Begin(marker)) return;
-            values = values.Move(isWarning, Value(marker) + step);
+            values = kind == 0 ? values.MoveInfo(Value(marker) + step) : values.Move(isWarning, Value(marker) + step);
             args.Handled = true; UpdatePositions(); ShowValue(marker);
         };
         grip.KeyUp += async (_, args) =>
@@ -107,7 +110,7 @@ public sealed class ThresholdEditor : NativeCanvas, IDisposable
         return marker;
     }
 
-    decimal Value(Marker marker) => marker.Warning ? values.Warning : values.Critical;
+    decimal Value(Marker marker) => marker.Kind == 0 ? values.Info : marker.Kind == 1 ? values.Warning : values.Critical;
     bool Begin(Marker marker)
     {
         if (disposed || saving || active is not null || !view.IsVisible) return false;
@@ -152,8 +155,8 @@ public sealed class ThresholdEditor : NativeCanvas, IDisposable
         if (disposed || XamlRoot?.Content is null || !view.IsVisible) return;
         if (popupOwner is not null && popupOwner.TryGetTarget(out var previous) && previous != this) previous.HidePopups();
         popupOwner = new(this);
-        var other = marker.Warning ? critical : warning;
-        if (other is not null) HidePopup(other);
+        foreach (var other in new[] { info, warning, critical })
+            if (other is not null && other != marker) HidePopup(other);
         UpdateMarker(marker);
         if (!marker.Popup.IsOpen) marker.Popup.XamlRoot = XamlRoot;
         var surface = (NativeBorder)marker.Popup.Child;
@@ -172,18 +175,20 @@ public sealed class ThresholdEditor : NativeCanvas, IDisposable
     {
         var x = 8 + Span * (1 - (double)Value(marker) / 100);
         SetLeft(marker.Grip, x - 16);
-        marker.Readout.Text = $"{(marker.Warning ? "Warning" : "Critical")} Alert @ {Value(marker):0.#}% Left";
+        marker.Readout.Text = $"{(marker.Kind == 0 ? "Info" : marker.Kind == 1 ? "Warning" : "Critical")} Alert @ {Value(marker):0.#}% Left";
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(marker.Grip, $"{marker.Readout.Text} · {view.Section}");
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetHelpText(marker.Grip, "Drag Horizontally or Use Arrow Keys to Adjust");
     }
     void UpdatePositions()
     {
         if (disposed) return;
+        if (info is not null) UpdateMarker(info);
         if (warning is not null) UpdateMarker(warning);
         if (critical is not null) UpdateMarker(critical);
     }
     void HidePopups()
     {
+        if (info is not null) HidePopup(info);
         if (warning is not null) HidePopup(warning);
         if (critical is not null) HidePopup(critical);
     }

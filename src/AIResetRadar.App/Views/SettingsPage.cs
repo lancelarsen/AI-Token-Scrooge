@@ -64,6 +64,7 @@ public sealed class SettingsPage : ContentPage
         form.Children.Add(quietRange);
         WrapCard(quietCardStart, "Quiet Hours", "A little peace, right on schedule.", quiet);
         var thresholdsStart = form.Children.Count;
+        var info = PercentControl("Info Alert", Math.Max(original.InfoThreshold, original.LowThreshold));
         var low = PercentControl("Warning Alert", original.LowThreshold);
         var critical = PercentControl("Critical Alert", original.CriticalThreshold);
         WrapCard(thresholdsStart, "Default Alert Levels");
@@ -167,9 +168,10 @@ public sealed class SettingsPage : ContentPage
             var start = quietRange.StartHour; var end = quietRange.EndHour;
             var lowValue = (decimal)low.Value; var criticalValue = (decimal)critical.Value;
             if (quiet.IsToggled && start == end) { status.Text = "Choose different start and end times for quiet hours."; return; }
+            if ((decimal)info.Value < lowValue) { status.Text = "Info Must Be At or Above Warning"; return; }
             if (criticalValue >= lowValue) { status.Text = "Critical capacity must be lower than low capacity."; return; }
             var settings = original with { ResetExpiryReminders = resetReminders.Value, QuotaRefreshReminders = refreshReminders.Value, Notifications = notifications.IsToggled, Sound = sound.IsToggled, Privacy = false,
-                QuietHours = quiet.IsToggled, QuietStartHour = start, QuietEndHour = end, LowThreshold = lowValue, CriticalThreshold = criticalValue,
+                QuietHours = quiet.IsToggled, QuietStartHour = start, QuietEndHour = end, InfoThreshold = (decimal)info.Value, LowThreshold = lowValue, CriticalThreshold = criticalValue,
                 LaunchAtSignIn = startup.IsToggled, CloseToTray = close.IsToggled,
                 Rules = original.Rules?.Where(r => accounts.Any(a => a.Id == r.AccountId)).ToArray(),
                 SoundTheme = soundTheme.SelectedIndex == 1 ? "Classic" : "Ducks", SoundVolume = Math.Round(volume.Value),
@@ -189,6 +191,7 @@ public sealed class SettingsPage : ContentPage
         timeZone.SelectedIndexChanged += async (_, _) => await AutoSaveAsync();
         foreach (var toggle in new[] { notifications, sound, quiet, close, startup })
             toggle.Toggled += async (_, _) => await AutoSaveAsync();
+        info.ValueChanged += async (_, _) => await AutoSaveAsync();
         low.ValueChanged += async (_, _) => await AutoSaveAsync();
         critical.ValueChanged += async (_, _) => await AutoSaveAsync();
         quietRange.Changed += async (_, _) => await AutoSaveAsync();

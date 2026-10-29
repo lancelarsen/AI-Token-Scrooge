@@ -18,11 +18,11 @@ public sealed record MonitorStatus(CapacityState Capacity, bool HasUnavailableDa
             foreach (var window in snapshot.Windows)
             {
                 var rule = settings.RuleFor(account.Id, window.Id);
-                var state = window.Capacity(rule.LowThreshold!.Value, rule.CriticalThreshold!.Value);
+                var state = window.Capacity(rule.LowThreshold!.Value, rule.CriticalThreshold!.Value, rule.InfoThreshold!.Value);
                 unavailable |= state == CapacityState.Unknown; windows.Add((account.Id, window, state));
             }
         }
-        var limiting = windows.OrderByDescending(w => w.State).ThenBy(w => w.Window.RemainingPercent ?? decimal.MaxValue).FirstOrDefault();
+        var limiting = windows.OrderByDescending(w => w.State switch { CapacityState.Exhausted => 5, CapacityState.Critical => 4, CapacityState.Low => 3, CapacityState.Info => 2, CapacityState.Healthy => 1, _ => 0 }).ThenBy(w => w.Window.RemainingPercent ?? decimal.MaxValue).FirstOrDefault();
         var notice = paused ? "Provider reports usage is paused" : unavailable ? "Some current usage data is unavailable" : null;
         return new(windows.Count == 0 ? CapacityState.Unknown : limiting.State, unavailable, paused, limiting.Account, limiting.Window?.Id, notice);
     }

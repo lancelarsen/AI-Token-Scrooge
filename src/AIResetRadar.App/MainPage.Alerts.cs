@@ -35,7 +35,7 @@ public sealed partial class MainPage
     void ShowBanner(AlertEvent alert)
     {
         if (banner is not null) root.Children.Remove(banner);
-        var severityColor = alert.Severity switch { ReminderSeverity.Critical => "#F05B69", ReminderSeverity.Warning => "#EAAA51", _ => "#C3ADF8" };
+        var severityColor = alert.Severity switch { ReminderSeverity.Critical => "#F05B69", ReminderSeverity.Warning => "#F2C94C", ReminderSeverity.Info => "#58A6FF", _ => "#C3ADF8" };
         var detail = new VerticalStackLayout { Spacing = 10 };
         var heading = new Grid { ColumnDefinitions = [new(GridLength.Auto), new(GridLength.Star)], ColumnSpacing = 12 };
         heading.Add(new Image { Source = ProviderImage(AlertProvider(alert.AccountId)), WidthRequest = 38, HeightRequest = 38, VerticalOptions = LayoutOptions.Center });

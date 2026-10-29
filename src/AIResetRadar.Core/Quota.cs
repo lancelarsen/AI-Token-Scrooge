@@ -3,7 +3,7 @@ namespace AIResetRadar.Core;
 public enum UsageUnit { Percent, Credits, Requests }
 public enum SourceHealth { Healthy, Loading, Stale, Offline, AuthenticationRequired, PermissionRequired, Unsupported, Demo }
 public enum AllowanceProvenance { Unknown, Provider, Manual }
-public enum CapacityState { Unknown, Healthy, Low, Critical, Exhausted }
+public enum CapacityState { Unknown, Healthy, Low, Critical, Exhausted, Info }
 
 public sealed record ProviderAccount(string Id, string Provider, string Nickname, string Subject, string Scope,
     bool Enabled = true, decimal? Allowance = null, UsageUnit Unit = UsageUnit.Credits, string? Login = null, string? CredentialId = null)
@@ -21,11 +21,12 @@ public sealed record QuotaWindow(string Id, string Name, UsageUnit Unit, decimal
         Math.Max(0, 100 - Used.Value) : Limit is >= 0 ? Limit - Used : null;
     public decimal? RemainingPercent => UsedPercent is { } value ? Math.Clamp(100 - value, 0, 100) : null;
     public double Fill => UsedPercent is { } value ? (double)Math.Clamp(value / 100, 0, 1) : 0;
-    public CapacityState Capacity(decimal low = 30, decimal critical = 10) => RemainingPercent switch
+    public CapacityState Capacity(decimal low = 30, decimal critical = 10, decimal info = 50) => RemainingPercent switch
     {
         null => CapacityState.Unknown, <= 0 => CapacityState.Exhausted,
         var left when left <= critical => CapacityState.Critical,
-        var left when left <= low => CapacityState.Low, _ => CapacityState.Healthy
+        var left when left <= low => CapacityState.Low,
+        var left when left <= info => CapacityState.Info, _ => CapacityState.Healthy
     };
 }
 

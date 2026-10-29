@@ -11,7 +11,7 @@ public static class AlertEvaluator
             return (alert.IsRefreshReminder || settings.RuleFor(alert.AccountId).Expiry) &&
                 (alert.IsRefreshReminder ? settings.EffectiveRefreshReminders : settings.EffectiveResetReminders).Any(r => r.Id == id && r.IsValid);
         return alert.WindowId is not { } windowId ||
-            !(alert.Key.EndsWith("/low", StringComparison.Ordinal) || alert.Key.EndsWith("/critical", StringComparison.Ordinal) || alert.Key.EndsWith("/exhausted", StringComparison.Ordinal)) ||
+            !(alert.Key.EndsWith("/info", StringComparison.Ordinal) || alert.Key.EndsWith("/low", StringComparison.Ordinal) || alert.Key.EndsWith("/critical", StringComparison.Ordinal) || alert.Key.EndsWith("/exhausted", StringComparison.Ordinal)) ||
             settings.CapacityAlertsEnabled(alert.AccountId, windowId);
     }
     public static bool IsQuiet(RadarSettings settings, DateTimeOffset now, TimeZoneInfo zone)
@@ -32,18 +32,18 @@ public static class AlertEvaluator
                 !IsMovingEstimate(priorWindow?.ResetsAt, refresh, previous?.ObservedAt, reminder, settings, now))
                 alerts.Add(Reminder(account, window.Id, window.Id, refresh, reminder, true, settings, now, window.Name));
             var rule = settings.RuleFor(account.Id, window.Id);
-            var state = window.Capacity(rule.LowThreshold!.Value, rule.CriticalThreshold!.Value);
+            var state = window.Capacity(rule.LowThreshold!.Value, rule.CriticalThreshold!.Value, rule.InfoThreshold!.Value);
             var period = window.ResetsAt?.ToUnixTimeSeconds().ToString() ?? "unknown";
             var before = previous?.Windows.FirstOrDefault(w => w.Id == window.Id);
-            var threshold = state == CapacityState.Exhausted ? 0 : state == CapacityState.Critical ? rule.CriticalThreshold!.Value : rule.LowThreshold!.Value;
+            var threshold = state == CapacityState.Exhausted ? 0 : state == CapacityState.Critical ? rule.CriticalThreshold!.Value : state == CapacityState.Info ? rule.InfoThreshold!.Value : rule.LowThreshold!.Value;
             var crossed = before?.RemainingPercent is not { } oldLeft || before.ResetsAt != window.ResetsAt || oldLeft > threshold;
-            var enabled = state switch { CapacityState.Low => rule.Low, CapacityState.Critical => rule.Critical, CapacityState.Exhausted => rule.Exhausted, _ => false };
+            var enabled = state switch { CapacityState.Info => rule.Info, CapacityState.Low => rule.Low, CapacityState.Critical => rule.Critical, CapacityState.Exhausted => rule.Exhausted, _ => false };
             if (crossed && enabled && settings.CapacityAlertsEnabled(account.Id, window.Id))
             {
                 var severity = state.ToString().ToLowerInvariant();
                 alerts.Add(new($"{account.Id}/{window.Id}/{period}/{severity}", account.Id, window.Id,
-                    $"{window.Name} {(state == CapacityState.Exhausted ? "is exhausted" : "is running low")}",
-                    $"{window.RemainingPercent:0.#}% left · {account.Provider} / {account.Nickname}", now));
+                    $"{window.Name} {(state == CapacityState.Exhausted ? "is exhausted" : state == CapacityState.Info ? "Info Alert" : "is running low")}",
+                    $"{window.RemainingPercent:0.#}% left · {account.Provider} / {account.Nickname}", now, Severity: state == CapacityState.Info ? ReminderSeverity.Info : state == CapacityState.Low ? ReminderSeverity.Warning : ReminderSeverity.Critical));
             }
             if (rule.Restored && before?.Capacity() == CapacityState.Exhausted && window.RemainingPercent > 0 && current.UsageAllowed == true)
                 alerts.Add(new($"{account.Id}/{window.Id}/{period}/restored", account.Id, window.Id, $"{window.Name} is available again",

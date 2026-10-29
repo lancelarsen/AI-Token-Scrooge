@@ -5,13 +5,13 @@ public sealed class UsageBar : ContentView
     readonly Border track;
     readonly Grid content;
     readonly Grid labels;
-    public UsageBar(double fill, string used, string left, bool warning, bool critical = false)
+    public UsageBar(double fill, string used, string left, bool warning, bool critical = false, bool info = false)
     {
         HeightRequest = 48;
         content = new Grid { BackgroundColor = Color.FromArgb("#30333E") };
         track = new Border { StrokeThickness = 0, StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 11 },
             HorizontalOptions = LayoutOptions.Start };
-        SetWarning(warning, critical);
+        SetWarning(warning, critical, info);
         content.Children.Add(track);
         content.SizeChanged += (_, _) => track.WidthRequest = Math.Max(0, content.Width * fill);
         labels = new Grid { ColumnDefinitions = [new(GridLength.Star), new(GridLength.Star)], Padding = new Thickness(15, 0), InputTransparent = true };
@@ -23,9 +23,9 @@ public sealed class UsageBar : ContentView
             StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 11 }, Content = content };
         SemanticProperties.SetDescription(this, $"{used}, {left}");
     }
-    public void SetWarning(bool warning, bool critical = false) => track.Background = new LinearGradientBrush([
-        new GradientStop(Color.FromArgb(critical ? "#B52D42" : warning ? "#B76C27" : "#7560CE"), 0),
-        new GradientStop(Color.FromArgb(critical ? "#F05B69" : warning ? "#DF9B46" : "#A990ED"), 1)], new Point(0, 0), new Point(1, 0));
+    public void SetWarning(bool warning, bool critical = false, bool info = false) => track.Background = new LinearGradientBrush([
+        new GradientStop(Color.FromArgb(critical ? "#B52D42" : warning ? "#AE8519" : info ? "#2367B5" : "#208455"), 0),
+        new GradientStop(Color.FromArgb(critical ? "#F05B69" : warning ? "#F2C94C" : info ? "#58A6FF" : "#4DCE8A"), 1)], new Point(0, 0), new Point(1, 0));
     public void AddAlertEditor(Button details, AlertThresholdView editor)
     {
         // The interactive children provide their own names instead of a single read-only summary.
