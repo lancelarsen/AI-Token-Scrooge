@@ -22,7 +22,7 @@ public sealed partial class MainPage
             if (mode == AccountSortMode.CustomOrder && !(order ?? []).Any(id => state.Accounts.Any(a => a.Id == id)))
                 order = state.OrderedAccounts.Select(a => a.Id).ToArray();
             focusSort = true;
-            await SaveSettingsAsync(preferences with { AccountSort = mode, AccountOrder = order });
+            await UpdateSettingsAsync(current => current with { AccountSort = mode, AccountOrder = order }, renderDashboard: true);
         }
         catch
         {
@@ -41,7 +41,7 @@ public sealed partial class MainPage
         orderSaving = true;
         try
         {
-            await SaveSettingsAsync(preferences with { AccountOrder = moved }, renderDashboard: false);
+            await UpdateSettingsAsync(current => current with { AccountOrder = moved }, renderDashboard: false);
         }
         catch
         {

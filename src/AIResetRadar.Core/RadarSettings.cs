@@ -13,6 +13,14 @@ public sealed record RadarSettings(bool Notifications = true, bool Sound = false
         if (!enabled) disabled.Add(new(accountId, windowId));
         return this with { DisabledCapacityAlerts = disabled.ToArray() };
     }
+    public RadarSettings WithWindowThresholds(string accountId, string windowId, decimal low, decimal critical)
+    {
+        if (!new AlertThresholds(low, critical).IsValid) throw new ArgumentOutOfRangeException(nameof(low), "Use 0 ≤ critical < warning ≤ 100.");
+        var stored = Rules?.FirstOrDefault(rule => rule.AccountId == accountId && rule.WindowId == windowId)
+            ?? Rules?.FirstOrDefault(rule => rule.AccountId == accountId && rule.WindowId is null) ?? new AlertRule(accountId);
+        var updated = stored with { WindowId = windowId, LowThreshold = low, CriticalThreshold = critical };
+        return this with { Rules = (Rules ?? []).Where(rule => rule.AccountId != accountId || rule.WindowId != windowId).Append(updated).ToArray() };
+    }
     public bool HasValidThresholds => Valid(LowThreshold, CriticalThreshold) && (Rules ?? []).All(r =>
     {
         var effective = RuleFor(r.AccountId, r.WindowId); return Valid(effective.LowThreshold!.Value, effective.CriticalThreshold!.Value);

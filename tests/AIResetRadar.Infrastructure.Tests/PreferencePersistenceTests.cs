@@ -7,6 +7,44 @@ namespace AIResetRadar.Infrastructure.Tests;
 [Collection("App orchestration")]
 public sealed class PreferencePersistenceTests
 {
+    [Fact] public async Task ConcurrentThresholdDragsPreserveOtherBarsAndMutedChoices()
+    {
+        using var files = new Fixture(); var store = new LocalStore(files.Path);
+        var page = new AIResetRadar.App.MainPage(store, new(), null, null, false);
+        await Task.WhenAll(page.SetThresholdsForTestAsync("a", "short", 40, 15),
+            page.SetThresholdsForTestAsync("a", "weekly", 35, 12), page.SetCapacityAlertsForTestAsync("a", "weekly", false));
+        var saved = (await new LocalStore(files.Path).ReadAsync<RadarSettings>("settings"))!;
+        Assert.Equal(40, saved.RuleFor("a", "short").LowThreshold);
+        Assert.Equal(15, saved.RuleFor("a", "short").CriticalThreshold);
+        Assert.Equal(35, saved.RuleFor("a", "weekly").LowThreshold);
+        Assert.Equal(12, saved.RuleFor("a", "weekly").CriticalThreshold);
+        Assert.Equal(30, saved.RuleFor("b", "short").LowThreshold);
+        Assert.False(saved.CapacityAlertsEnabled("a", "weekly"));
+    }
+    [Fact] public async Task FailedThresholdSaveKeepsPreviouslyAcceptedLevels()
+    {
+        using var files = new Fixture(); var store = new LocalStore(files.Path);
+        var page = new AIResetRadar.App.MainPage(store, new(), null, null, false);
+        await page.SetThresholdsForTestAsync("a", "short", 35, 12);
+        await using (var database = new SqliteConnection($"Data Source={files.Path}"))
+        {
+            await database.OpenAsync(); await using var command = database.CreateCommand();
+            command.CommandText = "CREATE TRIGGER reject_settings BEFORE UPDATE ON state WHEN NEW.key='settings' BEGIN SELECT RAISE(ABORT,'fixture settings failure'); END;";
+            await command.ExecuteNonQueryAsync();
+        }
+        await Assert.ThrowsAsync<SqliteException>(() => page.SetThresholdsForTestAsync("a", "short", 50, 20));
+        Assert.Equal(35, page.PreferencesForTest.RuleFor("a", "short").LowThreshold);
+        Assert.Equal(12, (await store.ReadAsync<RadarSettings>("settings"))!.RuleFor("a", "short").CriticalThreshold);
+    }
+    [Fact] public async Task DemoDragsLeaveSavedThresholdsUntouched()
+    {
+        using var files = new Fixture(); var store = new LocalStore(files.Path);
+        await store.WriteAsync("settings", new RadarSettings());
+        var page = new AIResetRadar.App.MainPage(store, new(), null, null, true);
+        await page.SetThresholdsForTestAsync("demo", "short", 40, 20);
+        Assert.Equal(40, page.PreferencesForTest.RuleFor("demo", "short").LowThreshold);
+        Assert.Empty((await store.ReadAsync<RadarSettings>("settings"))!.Rules ?? []);
+    }
     [Fact] public async Task IndependentBarChoicesSurviveConcurrentChangesAndOtherSettingsSaves()
     {
         using var files = new Fixture(); var store = new LocalStore(files.Path);

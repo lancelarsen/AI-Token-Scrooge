@@ -11,6 +11,11 @@ public sealed class QuotaRowView : Border
     readonly Label? countdown;
     readonly DateTimeOffset? resetsAt;
     readonly bool hasReset;
+    readonly QuotaRow row;
+    readonly UsageBar bar;
+    readonly BoxView warningStrip;
+    readonly Label? resetIcon;
+    readonly AlertThresholdView thresholds;
     bool? wideLayout;
     public void UpdateClock(DateTimeOffset now)
     {
@@ -21,30 +26,38 @@ public sealed class QuotaRowView : Border
         var summary = ResetTime.Summary(reset, now);
         return summary.StartsWith("Resets: ", StringComparison.Ordinal) ? summary[8..] : summary;
     }
-    public QuotaRowView(QuotaRow row, Action<QuotaRow> open, bool capacityAlertsEnabled, Func<bool, Task<bool>> saveCapacityAlerts, TimeZoneInfo? timeZone = null)
+    public QuotaRowView(QuotaRow row, Action<QuotaRow> open, bool capacityAlertsEnabled, Func<bool, Task<bool>> saveCapacityAlerts,
+        Func<AlertThresholds, Task<bool>> saveThresholds, Action<bool> thresholdInteraction, TimeZoneInfo? timeZone = null)
     {
+        this.row = row;
         var warning = row.IsWarning;
         resetsAt = row.Window.ResetsAt;
         hasReset = resetsAt.HasValue;
         Stroke = Colors.Transparent; BackgroundColor = Colors.Transparent;
         Padding = new Thickness(0); MinimumHeightRequest = 56;
         var root = new Grid { ColumnDefinitions = [new(new GridLength(4)), new(GridLength.Star)] };
-        root.Add(new BoxView { Color = warning ? Color.FromArgb("#EAAA51") : Colors.Transparent });
+        warningStrip = new BoxView { Color = warning ? Color.FromArgb("#EAAA51") : Colors.Transparent };
+        root.Add(warningStrip);
         layout = new Grid { ColumnSpacing = 12, RowSpacing = 8 };
         var quotaText = new VerticalStackLayout { Spacing = 4, VerticalOptions = LayoutOptions.Center };
         quotaText.Children.Add(new Label { Text = row.WindowTitle, TextColor = Color.FromArgb("#BEC1D2"), FontSize = 14 });
         if (row.CardNote != "") quotaText.Children.Add(new Label { Text = row.CardNote, FontSize = 11, TextColor = Color.FromArgb("#A5A8BA") });
         quota = quotaText;
-        var bar = new UsageBar(row.Window.Fill, row.UsedText, row.LeftText, warning) { VerticalOptions = LayoutOptions.Center };
-        var barArea = new Grid(); barArea.Add(bar);
+        bar = new UsageBar(row.Window.Fill, row.UsedText, row.LeftText, warning) { VerticalOptions = LayoutOptions.Center };
         var details = new Button { Text = "", BackgroundColor = Colors.Transparent, BorderWidth = 0, HeightRequest = -1,
             HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Fill };
         SemanticProperties.SetDescription(details, $"{row.Account.Provider}, {row.AccountLabel}, {row.WindowTitle}, {row.UsedText}, {row.LeftText}. Open details.");
-        details.Clicked += (_, _) => open(row); barArea.Add(details);
+        details.Clicked += (_, _) => open(row);
+        thresholds = new AlertThresholdView(row.Low, row.Critical, capacityAlertsEnabled,
+            $"{row.Account.Provider} / {row.AccountLabel} · {row.WindowTitle}", saveThresholds, thresholdInteraction);
+        bar.AddAlertEditor(details, thresholds);
         var capacityToggle = new CapacityAlertToggle(capacityAlertsEnabled,
-            $"Capacity Alerts · {row.Account.Provider} / {row.AccountLabel} · {row.WindowTitle} · Low {row.Low:0.#}% · Critical {row.Critical:0.#}% · Exhausted 0%", saveCapacityAlerts);
+            $"Capacity Alerts · {row.Account.Provider} / {row.AccountLabel} · {row.WindowTitle}", async enabled => {
+                if (!await saveCapacityAlerts(enabled)) return false;
+                thresholds.SetAlertsEnabled(enabled); return true;
+            });
         var usageArea = new Grid { ColumnDefinitions = [new(GridLength.Auto), new(GridLength.Star)], ColumnSpacing = 8 };
-        usageArea.Add(capacityToggle); usageArea.Add(barArea, 1); usage = usageArea;
+        usageArea.Add(capacityToggle); usageArea.Add(bar, 1); usage = usageArea;
         var now = DateTimeOffset.Now;
         if (hasReset)
         {
@@ -52,10 +65,10 @@ public sealed class QuotaRowView : Border
             var exactReset = new Label { Text = TimeZones.Format(row.Window.ResetsAt, timeZone ?? TimeZones.Resolve(null)), FontSize = 12,
                 TextColor = Color.FromArgb("#BEC1D2"), VerticalOptions = LayoutOptions.Center };
             var resetText = new VerticalStackLayout { Spacing = 3, VerticalOptions = LayoutOptions.Center, Children = { countdown, exactReset } };
+            resetIcon = new Label { Text = warning ? "\uE7BA" : "\uE823", FontFamily = "Segoe Fluent Icons", FontSize = 25,
+                TextColor = Color.FromArgb(warning ? "#EAAA51" : "#B5A0F4"), VerticalOptions = LayoutOptions.Start, Margin = new Thickness(0, 3, 0, 0) };
             reset = new HorizontalStackLayout { Spacing = 12, VerticalOptions = LayoutOptions.Center, Children = {
-                new Label { Text = warning ? "\uE7BA" : "\uE823", FontFamily = "Segoe Fluent Icons", FontSize = 25,
-                    TextColor = Color.FromArgb(warning ? "#EAAA51" : "#B5A0F4"), VerticalOptions = LayoutOptions.Start, Margin = new Thickness(0, 3, 0, 0) },
-                resetText
+                resetIcon, resetText
             }};
         }
         else
@@ -70,6 +83,22 @@ public sealed class QuotaRowView : Border
             var tap = new TapGestureRecognizer(); tap.Tapped += (_, _) => open(row); part.GestureRecognizers.Add(tap);
         }
         SetWideLayout(false);
+    }
+
+    public void UpdateAlertRules(RadarSettings settings)
+    {
+        var rule = settings.RuleFor(row.Account.Id, row.Window.Id);
+        var warning = row.Window.Capacity(rule.LowThreshold!.Value, rule.CriticalThreshold!.Value)
+            is CapacityState.Low or CapacityState.Critical or CapacityState.Exhausted;
+        var enabled = settings.CapacityAlertsEnabled(row.Account.Id, row.Window.Id);
+        thresholds.Refresh(rule.LowThreshold!.Value, rule.CriticalThreshold!.Value, enabled);
+        bar.SetWarning(warning);
+        warningStrip.Color = warning ? Color.FromArgb("#EAAA51") : Colors.Transparent;
+        if (resetIcon is not null)
+        {
+            resetIcon.Text = warning ? "\uE7BA" : "\uE823";
+            resetIcon.TextColor = Color.FromArgb(warning ? "#EAAA51" : "#B5A0F4");
+        }
     }
 
     public void SetWideLayout(bool wide)

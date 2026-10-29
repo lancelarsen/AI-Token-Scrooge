@@ -66,7 +66,7 @@ public sealed partial class MainPage : ContentPage
     {
         // Refresh continues collecting data behind connection/settings pages.
         // Preserve the covered visual tree and its focus targets until we return.
-        if (!dashboardVisible || Navigation.ModalStack.Count > 0 || draggedAccountId is not null) { renderPending = true; return; }
+        if (!dashboardVisible || Navigation.ModalStack.Count > 0 || draggedAccountId is not null || thresholdEditing) { renderPending = true; return; }
         renderPending = false;
         state.Settings = preferences;
         var now = DateTimeOffset.Now;
@@ -120,7 +120,7 @@ public sealed partial class MainPage : ContentPage
                                     "Scrooge could not save this alert choice. Check local folder access and try again.", "Close");
                                 return false;
                             }
-                        }, timeZone: DisplayZone);
+                        }, values => SaveThresholdsAsync(account.Id, row.Window.Id, values), ThresholdInteraction, timeZone: DisplayZone);
                     rowViews.Add(view); windows.Add(view);
                 }
                 content = WithAccountSettings(new AccountQuotaView(accountRows[0], windows,
