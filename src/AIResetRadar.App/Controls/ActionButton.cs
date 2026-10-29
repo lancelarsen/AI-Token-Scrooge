@@ -56,7 +56,7 @@ public sealed class ActionButton : Button
             meter.Children.Add(new Microsoft.UI.Xaml.Controls.Border { Height = 14, BorderBrush = accent,
                 BorderThickness = new Microsoft.UI.Xaml.Thickness(1.5), CornerRadius = new Microsoft.UI.Xaml.CornerRadius(3),
                 VerticalAlignment = Microsoft.UI.Xaml.VerticalAlignment.Center });
-            meter.Children.Add(new Microsoft.UI.Xaml.Controls.Border { Width = Text == "Most Remaining" ? 14 : 4,
+            meter.Children.Add(new Microsoft.UI.Xaml.Controls.Border { Width = Text == "Least Remaining" ? 14 : 4,
                 Height = 7, Background = accent, CornerRadius = new Microsoft.UI.Xaml.CornerRadius(1),
                 Margin = new Microsoft.UI.Xaml.Thickness(4, 0, 0, 0),
                 HorizontalAlignment = Microsoft.UI.Xaml.HorizontalAlignment.Left,
