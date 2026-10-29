@@ -42,17 +42,17 @@ Verification: pure viewport tests for initial anchor, left/right bounds, seven-d
 
 ## Checkpoint: Data and Navigation
 
-- [ ] H1-H4 focused tests pass and the current Windows app still builds
+- [x] H1-H4 focused tests pass and the current Windows app still builds
 - [ ] No provider/account behavior has been changed beyond accepted-snapshot recording
-- [ ] The graph contract treats scheduled times and measured values separately
+- [x] The graph contract treats scheduled times and measured values separately
 
 ## H5. Draw the Selected History View
 
 Implement the shared chart using existing MAUI graphics and popup patterns.
 
-- [ ] The graph shows percent used, stable per-account colors, restrained fills, actual historical event icons, and legible endpoint labels; no future line projection.
+- [x] The graph shows percent used, stable per-account colors, restrained fills, actual historical event icons, and legible endpoint labels; no future line projection.
 - [ ] Hover/click/focus reveals actual sample/event details without delay; estimated spans and partial history are identified.
-- [ ] Renderer clips and downsamples appropriately without smoothing away replenishment or creating false precision.
+- [x] Renderer clips and downsamples appropriately without smoothing away replenishment or creating false precision.
 
 Verification: projection-to-render fixtures where useful, then native screenshots at desktop/narrow widths and 100%/125%/150% display scaling where available. Compare with the selected reference and existing horizon. Dependencies: H3, H4. Likely files: new history graphics control/drawable, `HorizonView.cs`, focused projection tests. Scope: M.
 
@@ -60,9 +60,9 @@ Verification: projection-to-render fixtures where useful, then native screenshot
 
 Add the History toggle and compact provider selector rail, with one clickable icon per eligible account.
 
-- [ ] Weekly/monthly account icons use nickname/plan identity; no quota-window sub-selectors. Multiple providers/accounts can be selected together; deselection hides the line.
-- [ ] Selection auto-saves across restart and cannot disable monitoring or alerts; removed accounts are cleaned up and newly eligible accounts start visible.
-- [ ] The History toggle starts at Today, reuses the navigator, and returns to the existing future-only behavior when off.
+- [x] Weekly/monthly account icons use nickname/plan identity; no quota-window sub-selectors. Multiple providers/accounts can be selected together; deselection hides the line.
+- [x] Selection auto-saves across restart and cannot disable monitoring or alerts; removed accounts are cleaned up and newly eligible accounts start visible.
+- [x] The History toggle starts at Today, reuses the navigator, and returns to the existing future-only behavior when off.
 
 Verification: persistence/defaults tests plus keyboard and native click checks for duplicate-provider accounts. Dependencies: H5. Likely files: horizon/selector control, settings or dedicated view preferences, preference persistence, focused tests. Scope: M.
 
@@ -70,15 +70,15 @@ Verification: persistence/defaults tests plus keyboard and native click checks f
 
 Integrate asynchronous loading with the dashboard without recreating or flashing the horizon.
 
-- [ ] Refresh/update history data in place, cancel obsolete loads, and preserve fixed-date or Today-following state as appropriate.
-- [ ] Meaningful new history samples update the graph even when the existing dashboard render signature would otherwise remain unchanged.
-- [ ] Account ordering, modal dialogs, alert-threshold drags, selector changes, and ordinary polling do not reset history scroll or interrupt native input.
+- [x] Refresh/update history data in place, cancel obsolete loads, and preserve fixed-date or Today-following state as appropriate.
+- [x] Meaningful new history samples update the graph even when the existing dashboard render signature would otherwise remain unchanged.
+- [x] Account ordering, modal dialogs, alert-threshold drags, selector changes, and ordinary polling do not reset history scroll or interrupt native input.
 
 Verification: focused state tests and repeated native pan/refresh/reorder/resize cycles, including partial history and an empty account list. Dependencies: H2, H6. Likely files: `MainPage.cs`, history-loading partial, `HorizonView.cs`, render/view state, focused tests. Scope: M.
 
 ## H8. Verify and Ship the Running App
 
-- [ ] Run relevant automated tests and Windows build, then restart the latest build using the existing data/profile path. Confirm signed-in accounts remain available.
+- [x] Run relevant automated tests and Windows build, then restart the latest build using the existing data/profile path. Confirm signed-in accounts remain available.
 - [ ] Compare the running app with the selected reference at desktop and narrow widths; verify the unified navigator, seven days of history, 30+ future days, selection persistence, immediate details, no invented history, and no scroll jump on refresh.
 - [ ] Update verification evidence, commit/push the completed increment, and report any unverified native/DPI or historical-data coverage limits precisely.
 
