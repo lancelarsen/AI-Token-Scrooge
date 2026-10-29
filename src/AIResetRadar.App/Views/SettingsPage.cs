@@ -1,4 +1,4 @@
-﻿using AIResetRadar.App.Controls;
+using AIResetRadar.App.Controls;
 using AIResetRadar.Core;
 using AIResetRadar.App.Services;
 namespace AIResetRadar.App.Views;
@@ -80,7 +80,7 @@ public sealed class SettingsPage : ContentPage
         form.Children.Add(refreshReminders);
         WrapCard(refreshStart, "Quota Refresh Alerts");
         var behaviorStart = form.Children.Count;
-        var close = Toggle("Keep monitoring in the tray when window closes", original.CloseToTray);
+        var close = Toggle("Keep Monitoring When Window Closes", original.CloseToTray);
         var startup = Toggle("Launch at Windows Sign-In", original.LaunchAtSignIn);
         startup.IsEnabled = !demo;
         var showHistory = new AIResetRadar.App.Controls.ActionButton { Text = "Alert History" }; showHistory.Clicked += async (_, _) => await history(); form.Children.Add(showHistory);
