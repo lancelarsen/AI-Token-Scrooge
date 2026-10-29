@@ -42,7 +42,7 @@ public sealed class SettingsPage : ContentPage
         var thresholdsStart = form.Children.Count;
         var low = PercentControl("Warning Alert", original.LowThreshold);
         var critical = PercentControl("Critical Alert", original.CriticalThreshold);
-        WrapCard(thresholdsStart, "Default Alert Levels", "Used when a bar has no custom levels. Adjust individual alerts on the dashboard.");
+        WrapCard(thresholdsStart, "Default Alert Levels");
         var behaviorStart = form.Children.Count;
         var close = Toggle("Keep monitoring in the tray when window closes", original.CloseToTray);
         var startup = Toggle("Launch at Windows Sign-In", original.LaunchAtSignIn);
@@ -201,7 +201,7 @@ public sealed class SettingsPage : ContentPage
         var slider = new Slider { Minimum = 0, Maximum = 100, Value = (double)value,
             MinimumTrackColor = Color.FromArgb("#A990ED"), MaximumTrackColor = Color.FromArgb("#41434F"), ThumbColor = Color.FromArgb("#C3ADF8") };
         SemanticProperties.SetDescription(slider, title + ": percent remaining");
-        void Update() => label.Text = $"{title} \u00b7 {slider.Value:0}% remaining";
+        void Update() => label.Text = $"{title} @ {slider.Value:0}% Left";
         slider.ValueChanged += (_, _) => { var rounded = Math.Round(slider.Value); if (Math.Abs(slider.Value - rounded) > 0.001) slider.Value = rounded; Update(); };
         Update(); form.Children.Add(new VerticalStackLayout { Spacing = 2, Children = { label, slider } }); return slider;
     }
