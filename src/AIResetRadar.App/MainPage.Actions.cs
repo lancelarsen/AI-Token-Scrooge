@@ -111,12 +111,12 @@ public sealed partial class MainPage
     }
     async Task OpenSettingsAsync() => await Navigation.PushModalAsync(new SettingsPage(state.Accounts, state.Snapshots, preferences, state.IsDemo,
         SaveSettingsAsync,
-        UpdateAccountAsync, OpenHistoryAsync, TestNotificationAsync, ReconnectAsync, ShowQuickView, reserves: OpenReserveAsync));
+        UpdateAccountAsync, OpenHistoryAsync, TestNotificationAsync, ReconnectAsync, reserves: OpenReserveAsync));
     async Task OpenAccountSettingsAsync(string accountId)
     {
         if (!state.Accounts.Any(a => a.Id == accountId)) return;
         await Navigation.PushModalAsync(new SettingsPage(state.Accounts, state.Snapshots, preferences, state.IsDemo,
-            SaveSettingsAsync, UpdateAccountAsync, OpenHistoryAsync, TestNotificationAsync, ReconnectAsync, ShowQuickView, accountId, OpenReserveAsync));
+            SaveSettingsAsync, UpdateAccountAsync, OpenHistoryAsync, TestNotificationAsync, ReconnectAsync, accountId, OpenReserveAsync));
     }
     async Task ReconnectAsync(ProviderAccount original)
     {

@@ -7,7 +7,7 @@ public sealed class SettingsPage : ContentPage
 {
     readonly VerticalStackLayout form = new() { Padding = new Thickness(16, 12), Spacing = 12, MaximumWidthRequest = 960, HorizontalOptions = LayoutOptions.Center };
     public SettingsPage(IReadOnlyList<ProviderAccount> accounts, IReadOnlyDictionary<string, QuotaSnapshot> snapshots, RadarSettings original, bool demo,
-        Func<RadarSettings, Task> save, Func<ProviderAccount, bool, Task> update, Func<Task> history, Func<Task> test, Func<ProviderAccount, Task> reconnect, Action quickView, string? accountId = null, Func<string, Task>? reserves = null)
+        Func<RadarSettings, Task> save, Func<ProviderAccount, bool, Task> update, Func<Task> history, Func<Task> test, Func<ProviderAccount, Task> reconnect, string? accountId = null, Func<string, Task>? reserves = null)
     {
         var selected = accounts.FirstOrDefault(a => a.Id == accountId);
         var pageTitle = selected is null ? "Settings" : $"{selected.Provider} / {selected.Nickname} · {PlanLabels.Display(selected.Provider, snapshots.GetValueOrDefault(selected.Id)?.PlanType)}";
@@ -42,8 +42,6 @@ public sealed class SettingsPage : ContentPage
         var close = Toggle("Keep monitoring in the tray when window closes", original.CloseToTray);
         var startup = Toggle("Launch at Windows sign-in", original.LaunchAtSignIn);
         startup.IsEnabled = !demo;
-        var showQuickView = new AIResetRadar.App.Controls.ActionButton { Text = "Open quick view" };
-        showQuickView.Clicked += (_, _) => quickView(); form.Children.Add(showQuickView);
         var showHistory = new AIResetRadar.App.Controls.ActionButton { Text = "Alert history" }; showHistory.Clicked += async (_, _) => await history(); form.Children.Add(showHistory);
         var testNotification = new AIResetRadar.App.Controls.ActionButton { Text = "Send test notification" }; testNotification.Clicked += async (_, _) => await test(); form.Children.Add(testNotification);
         WrapCard(behaviorStart, "App behavior", "Keep your capacity within reach.");

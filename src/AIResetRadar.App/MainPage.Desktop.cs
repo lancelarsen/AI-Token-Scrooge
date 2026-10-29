@@ -8,7 +8,6 @@ public sealed partial class MainPage
 {
     TrayService? tray;
     Microsoft.UI.Xaml.Window? nativeWindow;
-    Window? quickWindow;
     bool exiting;
     readonly List<AlertEvent> alertHistory = [];
     readonly Dictionary<string, DateTimeOffset> snoozed = [];
@@ -23,10 +22,10 @@ public sealed partial class MainPage
         try
         {
             tray = new(native);
-            tray.Open += ShowMain; tray.QuickView += ShowQuickView;
+            tray.Open += ShowMain;
             tray.Refresh += async () => await RefreshAsync();
             tray.ResumeOrClockChanged += async () => { nextRefresh.Clear(); if (!state.IsDemo) await RefreshAsync(); };
-            tray.Exit += () => { exiting = true; if (quickWindow is not null) Application.Current!.CloseWindow(quickWindow); Application.Current!.CloseWindow(window); };
+            tray.Exit += () => { exiting = true; Application.Current!.CloseWindow(window); };
         }
         catch { freshness.Text = "Tray is unavailable; keep the window open to monitor."; }
         NotificationService.Current.Invoked += async (action, account, quotaWindow) =>
@@ -69,6 +68,5 @@ public sealed partial class MainPage
         var text = limiting is null ? "AI Token Scrooge" : $"Scrooge · {limiting.Account.Provider} / {limiting.AccountLabel} / {limiting.Window.Name}: {limiting.LeftText}";
         if (status.Notice is not null) text += " · " + status.Notice; if (state.IsDemo) text = "DEMO · " + text;
         tray?.Update(text, warning, exhausted, unknown);
-        UpdateQuickView();
     }
 }

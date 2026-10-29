@@ -13,7 +13,6 @@ public sealed class TrayService : IDisposable
     NotifyIconData data;
     (string Tip, bool Warning, bool Exhausted, bool Unknown)? lastStatus;
     public event Action? Open;
-    public event Action? QuickView;
     public event Action? Refresh;
     public event Action? Exit;
     public event Action? ResumeOrClockChanged;
@@ -45,7 +44,7 @@ public sealed class TrayService : IDisposable
         if (message == 0x001E || message == 0x0218 && wParam is 7 or 18) ResumeOrClockChanged?.Invoke();
         if (message == Callback)
         {
-            if ((uint)lParam == 0x0202) QuickView?.Invoke();
+            if ((uint)lParam == 0x0202) Open?.Invoke();
             else if ((uint)lParam == 0x0203) Open?.Invoke();
             else if ((uint)lParam == 0x0205) Menu();
             return 0;
