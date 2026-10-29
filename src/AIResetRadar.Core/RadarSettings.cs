@@ -3,7 +3,7 @@ public sealed record RadarSettings(bool Notifications = true, bool Sound = false
     bool QuietHours = false, int QuietStartHour = 22, int QuietEndHour = 8, decimal LowThreshold = 30,
     decimal CriticalThreshold = 10, bool LaunchAtSignIn = true, bool CloseToTray = true, IReadOnlyList<AlertRule>? Rules = null,
     string TimeZoneId = TimeZones.DefaultId, AccountSortMode AccountSort = AccountSortMode.NextReset,
-    IReadOnlyList<string>? AccountOrder = null, IReadOnlyList<QuotaAlertSection>? DisabledCapacityAlerts = null, string SoundTheme = "Ducks")
+    IReadOnlyList<string>? AccountOrder = null, IReadOnlyList<QuotaAlertSection>? DisabledCapacityAlerts = null, string SoundTheme = "Ducks", double SoundVolume = 65)
 {
     public bool CapacityAlertsEnabled(string accountId, string windowId) =>
         !(DisabledCapacityAlerts ?? []).Any(section => section.AccountId == accountId && section.WindowId == windowId);

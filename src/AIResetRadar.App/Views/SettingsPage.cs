@@ -37,13 +37,20 @@ public sealed class SettingsPage : ContentPage
             TextColor = Color.FromArgb("#F2F1F5"), BackgroundColor = Color.FromArgb("#232429") };
         SemanticProperties.SetDescription(soundTheme, "Sound Style");
         form.Children.Add(soundTheme);
+        var volumeLabel = new Label { TextColor = Color.FromArgb("#BEC1D2") };
+        var volume = new Slider { MinimumTrackColor = Color.FromArgb("#A990ED"), MaximumTrackColor = Color.FromArgb("#41434F"), ThumbColor = Color.FromArgb("#C3ADF8"), Minimum = 0, Maximum = 100, Value = double.IsFinite(original.SoundVolume) ? Math.Clamp(original.SoundVolume, 0, 100) : 65 };
+        void UpdateVolumeLabel() => volumeLabel.Text = $"Volume: {Math.Round(volume.Value)}%";
+        UpdateVolumeLabel();
+        SemanticProperties.SetDescription(volume, "Notification Volume");
+        volume.ValueChanged += (_, _) => UpdateVolumeLabel();
+        form.Children.Add(volumeLabel); form.Children.Add(volume);
         var previewStatus = new Label { FontSize = 12, TextColor = Color.FromArgb("#EAAA51") };
         var previews = new Grid { ColumnDefinitions = [new(GridLength.Star), new(GridLength.Star)], RowDefinitions = [new(GridLength.Auto), new(GridLength.Auto)], ColumnSpacing = 8, RowSpacing = 8 };
         var previewIndex = 0;
         foreach (var cue in new[] { ("Alarm", "alert"), ("Snooze", "snooze"), ("Dismiss", "dismiss"), ("Show Info", "info") })
         {
             var preview = new ActionButton { Text = "Preview " + cue.Item1 };
-            preview.Clicked += (_, _) => previewStatus.Text = AlertSounds.Play(original with { SoundTheme = soundTheme.SelectedIndex == 1 ? "Classic" : "Ducks" }, cue.Item2, preview: true) ?? "";
+            preview.Clicked += (_, _) => previewStatus.Text = AlertSounds.Play(original with { SoundTheme = soundTheme.SelectedIndex == 1 ? "Classic" : "Ducks", SoundVolume = volume.Value }, cue.Item2, preview: true) ?? "";
             previews.Add(preview, previewIndex % 2, previewIndex / 2); previewIndex++;
         }
         form.Children.Add(previews);
@@ -157,7 +164,7 @@ public sealed class SettingsPage : ContentPage
                 QuietHours = quiet.IsToggled, QuietStartHour = start, QuietEndHour = end, LowThreshold = lowValue, CriticalThreshold = criticalValue,
                 LaunchAtSignIn = startup.IsToggled, CloseToTray = close.IsToggled,
                 Rules = original.Rules?.Where(r => accounts.Any(a => a.Id == r.AccountId)).ToArray(),
-                SoundTheme = soundTheme.SelectedIndex == 1 ? "Classic" : "Ducks",
+                SoundTheme = soundTheme.SelectedIndex == 1 ? "Classic" : "Ducks", SoundVolume = Math.Round(volume.Value),
                 TimeZoneId = (timeZone.SelectedItem as TimeZoneInfo)?.Id ?? TimeZones.DefaultId };
             if (!settings.HasValidThresholds) { status.Text = "An account/window rule conflicts with these defaults. Adjust its thresholds first."; return; }
             try { await save(settings); original = settings; status.Text = ""; }
@@ -166,6 +173,8 @@ public sealed class SettingsPage : ContentPage
             }
             finally { saveGate.Release(); }
         }
+        volume.ValueChanged += async (_, _) => await AutoSaveAsync();
+        volume.Unfocused += async (_, _) => await AutoSaveAsync();
         soundTheme.SelectedIndexChanged += async (_, _) => await AutoSaveAsync();
         timeZone.SelectedIndexChanged += async (_, _) => await AutoSaveAsync();
         foreach (var toggle in new[] { notifications, sound, quiet, close, startup })

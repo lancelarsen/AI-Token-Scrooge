@@ -16,6 +16,7 @@ internal static class AlertSounds
             var path = Path.Combine(AppContext.BaseDirectory, "Sounds", $"{theme}-{action}.wav");
             if (!File.Exists(path)) return "Sound File Unavailable";
             player.Pause();
+            player.Volume = double.IsFinite(settings.SoundVolume) ? Math.Clamp(settings.SoundVolume, 0, 100) / 100 : 0.65;
             var previous = player.Source;
             player.Source = MediaSource.CreateFromUri(new Uri(path));
             (previous as IDisposable)?.Dispose();
