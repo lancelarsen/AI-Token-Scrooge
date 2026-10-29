@@ -56,7 +56,7 @@ public sealed class ThresholdEditor : NativeCanvas, IDisposable
                     <Grid Width="32" Height="48" Background="Transparent">
                         <Grid Width="8" Height="40" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
                             <Rectangle RadiusX="4" RadiusY="4" Fill="#30333E" />
-                            <Rectangle Width="3" Height="30" RadiusX="1.5" RadiusY="1.5" HorizontalAlignment="Center" VerticalAlignment="Center" Fill="{{color}}" />
+                            <Rectangle Width="4" Height="30" RadiusX="2" RadiusY="2" HorizontalAlignment="Center" VerticalAlignment="Center" Fill="{{color}}" />
                         </Grid>
                     </Grid>
                 </ControlTemplate>
