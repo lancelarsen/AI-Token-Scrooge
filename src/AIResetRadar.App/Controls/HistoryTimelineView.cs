@@ -227,7 +227,7 @@ public sealed class HistoryTimelineView : Grid
         {
             var x = values.Average(v => PlotX(v.Event.At));
             var kinds = values.Select(v => v.Event.Kind).Distinct().Order().ToArray();
-            var width = kinds.Length > 1 ? 54 : 28;
+            var width = kinds.Length * 28 + (kinds.Length - 1) * 2;
             var details = string.Join("\n\n", values.Select(v => $"{v.Series.Account.Provider} / {v.Series.Account.Nickname} · {v.Series.PlanLabel}\n{v.Event.Detail}\n{TimeZones.Format(v.Event.At, zone)}\nReported {TimeZones.Format(v.Event.ReportedAt, zone)}"));
             var key = "history:" + details;
             active.Add(key);
@@ -248,7 +248,7 @@ public sealed class HistoryTimelineView : Grid
         {
             var expiry = kind == HistoryEventKind.ReportedExpiration;
             var numeric = kinds.Length == 1 && count > 1;
-            badges.Add(new Border { WidthRequest = kinds.Length > 1 ? 26 : 28, HeightRequest = 28,
+            badges.Add(new Border { WidthRequest = 28, HeightRequest = 28,
                 BackgroundColor = Color.FromArgb(expiry ? "#EAAA51" : "#B99AF8"), StrokeThickness = 0,
                 StrokeShape = new RoundRectangle { CornerRadius = 14 },
                 Content = new Label { Text = numeric ? count.ToString() : expiry ? "\uE823" : "\uE72C",
@@ -256,7 +256,10 @@ public sealed class HistoryTimelineView : Grid
                     TextColor = Color.FromArgb("#232429"), HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center } });
         }
         target.Add(badges);
-        var hit = new Button { Text = "", BackgroundColor = Colors.Transparent, Padding = 0 };
+        // This is a hit target over the circular badges, not a themed rectangular button.
+        var hit = new Button { Text = "", BackgroundColor = Colors.Transparent, Padding = 0,
+            BorderWidth = 0, HeightRequest = 28, MinimumHeightRequest = 0, MinimumWidthRequest = 0,
+            CornerRadius = 14, HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Center };
         SemanticProperties.SetDescription(hit, details); Platforms.Windows.ImmediateToolTip.Attach(hit, details);
         hit.Clicked += async (_, _) => await Services.ThemedDialogs.ShowAsync(Application.Current!.Windows[0].Page!, "History Event", details, "Close");
         target.Add(hit); return target;

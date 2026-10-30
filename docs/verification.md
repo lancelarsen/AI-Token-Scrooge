@@ -389,3 +389,8 @@ All 288 tests passed, including new earliest-sample, empty-history, and adaptive
 - All 292 tests passed (105 Core, 187 Infrastructure), including morning/afternoon/late-night and narrow-width future-anchor regressions across DST. Two existing xUnit2031 warnings remain.
 - Release publish succeeded. Restarted equal-days-win-x64 with the existing signed-in data directory and updated the desktop shortcut.
 - Native desktop inspection against the user's screenshot confirmed Today through Nov 6 have uniform adjacent spacing, with service icons centered beneath their days. Narrow-width geometry was tested automatically; no additional native narrow-window inspection was performed.
+
+## History Marker Outlines — 2026-10-30
+- Removed the inherited rectangular button border and oversized hit-target height from historical refresh/expiration badges. Grouped badges now also use equal 28px dimensions.
+- Release publish succeeded; restarted history-markers-win-x64 using the existing account profile and updated the desktop shortcut.
+- Native inspection of the history chart confirmed purple refresh and amber expiration circles no longer have the extra rounded rectangular outline shown in the user's reference. No behavior changes or new tests for this scoped styling correction.
