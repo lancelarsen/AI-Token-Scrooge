@@ -9,7 +9,7 @@ public sealed class HistoryTimelineView : Grid
 {
     static readonly Color Accent = Color.FromArgb("#B5A0F4");
     static readonly Color Muted = Color.FromArgb("#BEC1D2");
-    const float PlotTop = 30, AxisLeft = 40, PlotRight = 84;
+    const float PlotTop = 108, AxisLeft = 40, PlotRight = 84;
     static readonly DateOnly CoordinateAnchor = new(2000, 1, 1);
     float plotBottom = 256;
     readonly VerticalStackLayout selectors = new() { Spacing = 9, Padding = new Thickness(3, 8, 10, 0) };
@@ -235,7 +235,7 @@ public sealed class HistoryTimelineView : Grid
                 view = EventMarker(kinds, values.Count, details);
                 eventViews[key] = view; eventsLayer.Add(view);
             }
-            AbsoluteLayout.SetLayoutBounds(view, new Rect(x - width / 2f, 0, width, 28));
+            AbsoluteLayout.SetLayoutBounds(view, new Rect(x - width / 2f, 70, width, 28));
         }
         foreach (var key in eventViews.Keys.Where(key => !active.Contains(key)).ToArray()) { eventsLayer.Remove(eventViews[key]); eventViews.Remove(key); }
     }
@@ -353,13 +353,13 @@ public sealed class HistoryTimelineView : Grid
                 if (x > end + owner.model.PixelsPerDay) break;
                 if (x >= AxisLeft && x <= pastEnd) {
                     c.StrokeColor = Color.FromArgb("#30333C"); c.DrawLine(x, PlotTop, x, owner.plotBottom);
-                    c.FontColor = Muted; c.FontSize = 11; c.DrawString(date.ToString("MMM d"), x - 30, owner.plotBottom + 10, 60, 20, HorizontalAlignment.Center, VerticalAlignment.Center);
                 }
                 var futureX = AxisLeft + (float)(owner.model.FutureDayPosition(date) - owner.model.ScrollOffset);
-                if (date < owner.model.Today || futureX < Math.Max(today, AxisLeft) || futureX > end || date > owner.model.LastDate) continue;
+                if (futureX < AxisLeft || futureX > end || date > owner.model.LastDate) continue;
                 c.FontColor = Accent; c.FontSize = 13;
                 c.DrawString(date == owner.model.Today ? "Today" : date.ToString("ddd"), futureX - 32, 12, 64, 20, HorizontalAlignment.Center, VerticalAlignment.Center);
                 c.FontColor = Muted; c.FontSize = 11; c.DrawString(date.ToString("MMM d"), futureX - 35, 38, 70, 20, HorizontalAlignment.Center, VerticalAlignment.Center);
+                if (date < owner.model.Today) continue;
                 c.StrokeColor = Accent; c.FillColor = Color.FromArgb("#1C1E24"); c.StrokeSize = 2;
                 var hasEvents = owner.future.Any(e => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(e.At, owner.zone).DateTime) == date);
                 if (hasEvents || date == owner.model.Today) { c.FillColor = Accent; c.FillCircle(futureX, 76, date == owner.model.Today ? 6 : 4); }
@@ -402,7 +402,6 @@ public sealed class HistoryTimelineView : Grid
             c.RestoreState();
             if (today >= AxisLeft - 1 && today <= end + 1) {
                 c.StrokeColor = Accent; c.StrokeSize = 1.5f; c.StrokeDashPattern = [4, 4]; c.DrawLine(today, PlotTop, today, owner.plotBottom); c.StrokeDashPattern = null;
-                if (today > AxisLeft + 60) { c.FontColor = Colors.White; c.FontSize = 12; c.DrawString("Today", today - 30, 2, 60, 20, HorizontalAlignment.Center, VerticalAlignment.Center); }
             }
             var labels = owner.Visible.Select(s => (Series: s, Point: owner.PointsWithin(s, owner.model.ScrollOffset, owner.model.ScrollOffset + owner.Span).LastOrDefault()))
                 .Where(v => v.Point is not null).OrderBy(v => v.Point!.RemainingPercent).ToArray();

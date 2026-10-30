@@ -399,3 +399,9 @@ All 288 tests passed, including new earliest-sample, empty-history, and adaptive
 - All horizon updates project history series through the saved AccountOrder using the same normalization as the account cards; alternate dashboard sorts do not override it.
 - Completing an account drag updates the persistent horizon in place. Selector signatures include sequence, so reordering rebuilds the rail without losing selections or colors.
 - Release publish succeeded. Restarted history-order-win-x64 with existing accounts and updated the shortcut. Native inspection confirmed the rail order is OpenAI Pro, GitHub Copilot, Claude Pro, OpenAI Plus, matching the saved custom sequence rather than the previous account-ID ordering.
+
+## Unified History Date Headers — 2026-10-30
+- History now shares the future timeline's purple weekday / muted date header and equal day anchors. Removed bottom date labels and duplicate Today caption.
+- Moved historical event badges below the date header and lowered the plot top to keep icons and dates clear. Timestamp-based event guides and usage data remain intact.
+- Release build succeeded; restarted history-headers-win-x64 with existing accounts and updated shortcut. Native desktop and snapped narrow-window checks confirmed aligned headers, clear event markers, and slider scrolling. Existing narrow selector badges wrap tightly; unrelated styling left unchanged.
+- All 292 tests passed; two existing xUnit2031 warnings remain.
