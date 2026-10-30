@@ -394,3 +394,8 @@ All 288 tests passed, including new earliest-sample, empty-history, and adaptive
 - Removed the inherited rectangular button border and oversized hit-target height from historical refresh/expiration badges. Grouped badges now also use equal 28px dimensions.
 - Release publish succeeded; restarted history-markers-win-x64 using the existing account profile and updated the desktop shortcut.
 - Native inspection of the history chart confirmed purple refresh and amber expiration circles no longer have the extra rounded rectangular outline shown in the user's reference. No behavior changes or new tests for this scoped styling correction.
+
+## History Selector Custom Order — 2026-10-30
+- All horizon updates project history series through the saved AccountOrder using the same normalization as the account cards; alternate dashboard sorts do not override it.
+- Completing an account drag updates the persistent horizon in place. Selector signatures include sequence, so reordering rebuilds the rail without losing selections or colors.
+- Release publish succeeded. Restarted history-order-win-x64 with existing accounts and updated the shortcut. Native inspection confirmed the rail order is OpenAI Pro, GitHub Copilot, Claude Pro, OpenAI Plus, matching the saved custom sequence rather than the previous account-ID ordering.

@@ -16,6 +16,13 @@ public sealed partial class MainPage
     string? historyError;
     bool historyLoading;
 
+    HistorySeries[] OrderedUsageHistory()
+    {
+        var byId = usageHistory.ToDictionary(s => s.Account.Id);
+        return AccountOrdering.Normalize(preferences.AccountOrder, state.Accounts.Select(a => a.Id))
+            .Where(byId.ContainsKey).Select(id => byId[id]).ToArray();
+    }
+
     void UpdateHorizon()
     {
         var now = DateTimeOffset.Now;
@@ -44,7 +51,7 @@ public sealed partial class MainPage
                 (id, visible) => SaveHistoryChoiceAsync(p => p.WithAccount(id, visible)));
             body.Children.Insert(0, horizon);
         }
-        horizon.Update(state.Events(now), usageHistory, historyPreferences, DisplayZone, now, historyLoading, historyError);
+        horizon.Update(state.Events(now), OrderedUsageHistory(), historyPreferences, DisplayZone, now, historyLoading, historyError);
     }
 
     async Task LoadUsageHistoryAsync(ProviderAccount[] accounts, DateTimeOffset now, TimeZoneInfo zone, bool demo,
@@ -66,7 +73,7 @@ public sealed partial class MainPage
             }, ct);
             if (ct.IsCancellationRequested || historyReadSignature != signature) return;
             usageHistory = data; historyLoading = false; historyError = null;
-            horizon?.Update(state.Events(DateTimeOffset.Now), usageHistory, historyPreferences, DisplayZone, DateTimeOffset.Now);
+            horizon?.Update(state.Events(DateTimeOffset.Now), OrderedUsageHistory(), historyPreferences, DisplayZone, DateTimeOffset.Now);
         }
         catch (OperationCanceledException) { }
         catch
@@ -74,7 +81,7 @@ public sealed partial class MainPage
             if (ct.IsCancellationRequested || historyReadSignature != signature) return;
             historyLoading = false; historyError = "History Could Not Be Loaded · Refresh to Retry";
             historyReadSignature = null;
-            horizon?.Update(state.Events(DateTimeOffset.Now), usageHistory, historyPreferences, DisplayZone, DateTimeOffset.Now, error: historyError);
+            horizon?.Update(state.Events(DateTimeOffset.Now), OrderedUsageHistory(), historyPreferences, DisplayZone, DateTimeOffset.Now, error: historyError);
         }
     }
 
@@ -86,7 +93,7 @@ public sealed partial class MainPage
             var next = change(historyPreferences).ForAccounts(state.Accounts.Select(a => a.Id));
             if (!state.IsDemo) await AppServices.Current.Store.WriteAsync("history-view", next);
             historyPreferences = next;
-            horizon?.Update(state.Events(DateTimeOffset.Now), usageHistory, historyPreferences, DisplayZone, DateTimeOffset.Now, historyLoading, historyError);
+            horizon?.Update(state.Events(DateTimeOffset.Now), OrderedUsageHistory(), historyPreferences, DisplayZone, DateTimeOffset.Now, historyLoading, historyError);
             return true;
         }
         catch

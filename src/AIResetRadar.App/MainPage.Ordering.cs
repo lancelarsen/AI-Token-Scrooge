@@ -83,6 +83,7 @@ public sealed partial class MainPage
         var onlyOrderChanged = settingsAtDragStart is not null && signatureAtDragStart == RenderSignatureFor(settingsAtDragStart, now);
         if (renderPending && !onlyOrderChanged) { Render(); return; }
         ApplyAccountOrderInPlace();
+        UpdateHorizon();
         renderPending = false;
         UpdateFreshness();
         foreach (var row in rowViews) row.UpdateClock(now);
