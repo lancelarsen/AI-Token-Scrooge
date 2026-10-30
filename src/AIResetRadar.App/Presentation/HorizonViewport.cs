@@ -61,7 +61,7 @@ public sealed class HorizonViewport
             PixelsPerDay = Math.Max(MinimumDayWidth, ViewportWidth / Math.Max(1, Math.Max(historySpan, futureSpan)));
             // Empty space beyond a short future range lets Today stay at the left edge.
             // It is layout space only; LastEventAt remains the actual final reported event.
-            endCoordinate = Coordinate(now, timeZone) + Math.Max(futureSpan, VisibleDays);
+            endCoordinate = Today.DayNumber + Math.Max(futureSpan, VisibleDays);
         }
         else
         {
@@ -79,14 +79,14 @@ public sealed class HorizonViewport
     public void FollowToday()
     {
         FollowingToday = true;
-        ScrollOffset = HistoryEnabled ? ClampOffset(TodayPosition) : 0;
+        ScrollOffset = HistoryEnabled ? ClampOffset(PositionAt(Today)) : 0;
     }
 
     public void ScrollTo(double offset)
     {
         if (double.IsNaN(offset)) return;
         ScrollOffset = ClampOffset(offset);
-        var anchor = HistoryEnabled ? ClampOffset(TodayPosition) : 0;
+        var anchor = HistoryEnabled ? ClampOffset(PositionAt(Today)) : 0;
         FollowingToday = Math.Abs(ScrollOffset - anchor) < 0.5;
     }
 
@@ -98,8 +98,7 @@ public sealed class HorizonViewport
 
     /// <summary>Equal-width future day buckets, including Today; never clamp individual markers.</summary>
     public double FutureDayPosition(DateOnly date) =>
-        (HistoryEnabled ? TodayPosition : PositionAt(Today)) +
-        (date.DayNumber - Today.DayNumber + 0.5) * PixelsPerDay;
+        PositionAt(date) + 0.5 * PixelsPerDay;
 
     public DateTimeOffset DateAt(double contentX)
     {

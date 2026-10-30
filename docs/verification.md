@@ -405,3 +405,11 @@ All 288 tests passed, including new earliest-sample, empty-history, and adaptive
 - Moved historical event badges below the date header and lowered the plot top to keep icons and dates clear. Timestamp-based event guides and usage data remain intact.
 - Release build succeeded; restarted history-headers-win-x64 with existing accounts and updated shortcut. Native desktop and snapped narrow-window checks confirmed aligned headers, clear event markers, and slider scrolling. Existing narrow selector badges wrap tightly; unrelated styling left unchanged.
 - All 292 tests passed; two existing xUnit2031 warnings remain.
+
+### 2026-10-30 - Historical Event Times and Continuous Day Rail
+- Extended the purple day rail and dots through history, preserving equal calendar-day spacing.
+- Reduced historical refresh/expiration circles to 22px; placed events at their exact timestamp, stacking collisions vertically rather than averaging event times.
+- Hover/click details include provider, account, event type and selected-zone date/time.
+- Unified day-heading centers with the graph timestamp scale; Today opens at the start of its calendar day (bounded by recorded history).
+- Release publish succeeded; 293 tests passed, including day/time alignment and existing DST/spacing coverage.
+- Restarted the app with the existing account profile and updated the desktop shortcut. Native wide and narrow checks confirmed the rail, markers, and click details. Hover remains wired to ImmediateToolTip; not independently exercised by an explicit hover action. Existing narrow selector badge wrapping remains outside this change.

@@ -8,3 +8,4 @@
 ## Reset Horizon Geometry
 - Consecutive calendar-day markers must always be equally spaced, including Today and the first/last visible days. Compact all day widths together as the range grows; never reposition or clamp one day independently.
 - Day labels, timeline dots, and grouped service icons must share the same day anchor. Preserve spacing during scrolling, resizing, history toggles, and daylight-saving transitions. Cover rendered day-anchor geometry with regression tests.
+- Historical event markers and usage samples must share the actual timestamp scale. Center day headings in calendar-day buckets; never offset them by the current time of day or average nearby event timestamps.

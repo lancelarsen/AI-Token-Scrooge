@@ -217,25 +217,26 @@ public sealed class HistoryTimelineView : Grid
         var historical = Visible.SelectMany(s => s.Events.Select(e => (Series: s, Event: e)))
             .Where(item => item.Event.At <= now && PlotX(item.Event.At) >= AxisLeft + 10 && PlotX(item.Event.At) <= AxisLeft + Span - 10)
             .OrderBy(item => item.Event.At).ToArray();
-        var clusters = new List<List<(HistorySeries Series, HistoryEvent Event)>>();
-        foreach (var item in historical)
+        // Keep each event at its actual timestamp, never an average of nearby events.
+        var laneEnds = new List<float>();
+        foreach (var group in historical.GroupBy(item => (item.Event.At, item.Event.Kind)))
         {
-            if (clusters.Count == 0 || PlotX(item.Event.At) - PlotX(clusters[^1][^1].Event.At) >= 56) clusters.Add([]);
-            clusters[^1].Add(item);
-        }
-        foreach (var values in clusters)
-        {
-            var x = values.Average(v => PlotX(v.Event.At));
+            var values = group.ToArray();
+            var x = PlotX(group.Key.At);
             var kinds = values.Select(v => v.Event.Kind).Distinct().Order().ToArray();
-            var width = kinds.Length * 28 + (kinds.Length - 1) * 2;
-            var details = string.Join("\n\n", values.Select(v => $"{v.Series.Account.Provider} / {v.Series.Account.Nickname} · {v.Series.PlanLabel}\n{v.Event.Detail}\n{TimeZones.Format(v.Event.At, zone)}\nReported {TimeZones.Format(v.Event.ReportedAt, zone)}"));
+            var width = kinds.Length * 22 + (kinds.Length - 1) * 2;
+            var lane = laneEnds.FindIndex(right => x - width / 2f >= right + 2);
+            if (lane < 0) { lane = laneEnds.Count; laneEnds.Add(0); }
+            laneEnds[lane] = x + width / 2f;
+            var eventType = group.Key.Kind == HistoryEventKind.ReportedExpiration ? "Reset Expiration" : "Quota Refresh";
+            var details = string.Join("\n\n", values.Select(v => $"{v.Series.Account.Provider} / {v.Series.Account.Nickname} · {v.Series.PlanLabel}\n{eventType}: {TimeZones.Format(v.Event.At, zone)}\n{v.Event.Detail}"));
             var key = "history:" + details;
             active.Add(key);
             if (!eventViews.TryGetValue(key, out var view)) {
-                view = EventMarker(kinds, values.Count, details);
+                view = EventMarker(kinds, values.Length, details);
                 eventViews[key] = view; eventsLayer.Add(view);
             }
-            AbsoluteLayout.SetLayoutBounds(view, new Rect(x - width / 2f, 70, width, 28));
+            AbsoluteLayout.SetLayoutBounds(view, new Rect(x - width / 2f, 65 + lane * 24, width, 22));
         }
         foreach (var key in eventViews.Keys.Where(key => !active.Contains(key)).ToArray()) { eventsLayer.Remove(eventViews[key]); eventViews.Remove(key); }
     }
@@ -248,18 +249,18 @@ public sealed class HistoryTimelineView : Grid
         {
             var expiry = kind == HistoryEventKind.ReportedExpiration;
             var numeric = kinds.Length == 1 && count > 1;
-            badges.Add(new Border { WidthRequest = 28, HeightRequest = 28,
+            badges.Add(new Border { WidthRequest = 22, HeightRequest = 22,
                 BackgroundColor = Color.FromArgb(expiry ? "#EAAA51" : "#B99AF8"), StrokeThickness = 0,
-                StrokeShape = new RoundRectangle { CornerRadius = 14 },
+                StrokeShape = new RoundRectangle { CornerRadius = 11 },
                 Content = new Label { Text = numeric ? count.ToString() : expiry ? "\uE823" : "\uE72C",
-                    FontFamily = numeric ? "Segoe UI Semibold" : "Segoe Fluent Icons", FontSize = 17,
+                    FontFamily = numeric ? "Segoe UI Semibold" : "Segoe Fluent Icons", FontSize = 14,
                     TextColor = Color.FromArgb("#232429"), HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center } });
         }
         target.Add(badges);
         // This is a hit target over the circular badges, not a themed rectangular button.
         var hit = new Button { Text = "", BackgroundColor = Colors.Transparent, Padding = 0,
-            BorderWidth = 0, HeightRequest = 28, MinimumHeightRequest = 0, MinimumWidthRequest = 0,
-            CornerRadius = 14, HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Center };
+            BorderWidth = 0, HeightRequest = 22, MinimumHeightRequest = 0, MinimumWidthRequest = 0,
+            CornerRadius = 11, HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Center };
         SemanticProperties.SetDescription(hit, details); Platforms.Windows.ImmediateToolTip.Attach(hit, details);
         hit.Clicked += async (_, _) => await Services.ThemedDialogs.ShowAsync(Application.Current!.Windows[0].Page!, "History Event", details, "Close");
         target.Add(hit); return target;
@@ -347,6 +348,8 @@ public sealed class HistoryTimelineView : Grid
                 c.SaveState(); c.Translate(7, (PlotTop + owner.plotBottom) / 2); c.Rotate(-90);
                 c.FontSize = 10; c.DrawString("% Used", -70, -7, 140, 16, HorizontalAlignment.Center, VerticalAlignment.Center); c.RestoreState();
             }
+            c.StrokeColor = Color.FromArgb("#8170B7"); c.StrokeSize = 2;
+            c.DrawLine(AxisLeft, 76, end, 76);
             var first = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(owner.model.VisibleStart, owner.zone).DateTime);
             for (var date = first; date <= owner.model.LastDate.AddDays(7); date = date.AddDays(1)) {
                 var x = AxisLeft + (float)(owner.model.PositionAt(date) - owner.model.ScrollOffset);
@@ -359,15 +362,10 @@ public sealed class HistoryTimelineView : Grid
                 c.FontColor = Accent; c.FontSize = 13;
                 c.DrawString(date == owner.model.Today ? "Today" : date.ToString("ddd"), futureX - 32, 12, 64, 20, HorizontalAlignment.Center, VerticalAlignment.Center);
                 c.FontColor = Muted; c.FontSize = 11; c.DrawString(date.ToString("MMM d"), futureX - 35, 38, 70, 20, HorizontalAlignment.Center, VerticalAlignment.Center);
-                if (date < owner.model.Today) continue;
                 c.StrokeColor = Accent; c.FillColor = Color.FromArgb("#1C1E24"); c.StrokeSize = 2;
                 var hasEvents = owner.future.Any(e => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(e.At, owner.zone).DateTime) == date);
                 if (hasEvents || date == owner.model.Today) { c.FillColor = Accent; c.FillCircle(futureX, 76, date == owner.model.Today ? 6 : 4); }
                 else c.DrawCircle(futureX, 76, 4);
-            }
-            if (today < end) {
-                c.StrokeColor = Color.FromArgb("#8170B7"); c.StrokeSize = 2;
-                c.DrawLine(Math.Max(AxisLeft, today), 76, end, 76);
             }
             c.SaveState(); c.ClipRectangle(AxisLeft, PlotTop, owner.Span, owner.plotBottom - PlotTop);
             foreach (var s in owner.Visible) {

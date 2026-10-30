@@ -13,7 +13,7 @@ public class HorizonViewportTests
     {
         var view = new HorizonViewport(Now, Now.AddDays(4), Central, 980);
         Assert.True(view.FollowingToday);
-        Close(Now, view.VisibleStart);
+        Close(DateTimeOffset.Parse("2026-10-29T00:00:00-05:00"), view.VisibleStart);
         Assert.Equal(7, view.VisibleDays, 6);
         view.ScrollTo(0);
         Assert.False(view.FollowingToday);
@@ -26,7 +26,7 @@ public class HorizonViewportTests
     public void ShortFutureRangeStillKeepsTodayAtTheFront()
     {
         var view = new HorizonViewport(Now, Now.AddHours(2), Central, 980);
-        Close(Now, view.VisibleStart);
+        Close(DateTimeOffset.Parse("2026-10-29T00:00:00-05:00"), view.VisibleStart);
         Assert.Equal(Now.AddHours(2), view.LastEventAt);
         Assert.True(view.EndAt > view.LastEventAt);
         Assert.Equal(view.MaximumScrollOffset, view.ScrollOffset, 6);
@@ -65,14 +65,14 @@ public class HorizonViewportTests
     {
         var view = new HorizonViewport(Now, Now.AddDays(12), Central, 980);
         view.Update(Now.AddHours(2), Now.AddDays(12), Central, 980);
-        Close(Now.AddHours(2), view.VisibleStart);
+        Close(DateTimeOffset.Parse("2026-10-29T00:00:00-05:00"), view.VisibleStart);
         view.ScrollTo(view.PositionAt(Now.AddDays(-3)));
         var browsing = view.VisibleStart;
         view.Update(Now.AddHours(3), Now.AddDays(20), Central, 980);
         Close(browsing, view.VisibleStart);
         Assert.False(view.FollowingToday);
         view.FollowToday();
-        Close(Now.AddHours(3), view.VisibleStart);
+        Close(DateTimeOffset.Parse("2026-10-29T00:00:00-05:00"), view.VisibleStart);
     }
 
     [Fact]
@@ -113,7 +113,7 @@ public class HorizonViewportTests
         Assert.Equal(980, view.ContentWidth, 6);
         Assert.Equal(new DateOnly(2026, 10, 29), view.FirstDate);
         view.Update(Now, Now.AddDays(4), Central, 980, true);
-        Close(Now, view.VisibleStart);
+        Close(DateTimeOffset.Parse("2026-10-29T00:00:00-05:00"), view.VisibleStart);
         Assert.True(view.FollowingToday);
     }
 
@@ -187,7 +187,7 @@ public class HorizonViewportTests
         Close(first, view.VisibleStart);
         Assert.Equal(first, view.StartAt);
         view.FollowToday();
-        Close(Now, view.VisibleStart);
+        Close(DateTimeOffset.Parse("2026-10-29T00:00:00-05:00"), view.VisibleStart);
     }
 
     [Fact]
@@ -235,6 +235,18 @@ public class HorizonViewportTests
             view.FollowToday();
             Assert.Equal(view.PixelsPerDay / 2, view.FutureDayPosition(view.Today) - view.ScrollOffset, 6);
         }
+    }
+
+    [Fact]
+    public void EventTimeSharesCalendarDayScaleWithHeaders()
+    {
+        var view = new HorizonViewport(Now, Now.AddDays(8), Central, 980);
+        var day = new DateOnly(2026, 10, 28);
+        var morning = DateTimeOffset.Parse("2026-10-28T06:00:00-05:00");
+        var afternoon = DateTimeOffset.Parse("2026-10-28T18:00:00-05:00");
+        var center = view.FutureDayPosition(day);
+        Assert.Equal(center - view.PixelsPerDay / 4, view.PositionAt(morning), 6);
+        Assert.Equal(center + view.PixelsPerDay / 4, view.PositionAt(afternoon), 6);
     }
 
     static void Close(DateTimeOffset expected, DateTimeOffset actual) =>
