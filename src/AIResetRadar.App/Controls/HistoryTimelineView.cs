@@ -9,7 +9,7 @@ public sealed class HistoryTimelineView : Grid
 {
     static readonly Color Accent = Color.FromArgb("#B5A0F4");
     static readonly Color Muted = Color.FromArgb("#BEC1D2");
-    const float PlotTop = 108, AxisLeft = 40, PlotRight = 84;
+    const float PlotTop = 108, AxisLeft = 40, PlotRight = 12;
     static readonly DateOnly CoordinateAnchor = new(2000, 1, 1);
     float plotBottom = 256;
     readonly VerticalStackLayout selectors = new() { Spacing = 9, Padding = new Thickness(3, 8, 10, 0) };
@@ -409,11 +409,12 @@ public sealed class HistoryTimelineView : Grid
                 var labelY = labelPositions[i];
                 var color = Color.FromArgb(owner.ColorOf(item.Series)); c.FillColor = color; c.FillCircle(x, y, 3);
                 if (today < end - 80 || x < end - 70) continue;
-                c.StrokeColor = color.WithAlpha(.6f); c.StrokeSize = 1; c.DrawLine(x + 4, y, end + 7, labelY + 10);
-                c.FillColor = Color.FromArgb("#202229"); c.FillRoundedRectangle(end + 7, labelY, 80, 21, 6);
-                c.StrokeColor = color; c.StrokeSize = 1; c.DrawRoundedRectangle(end + 7, labelY, 80, 21, 6);
+                var labelX = end - 86;
+                c.StrokeColor = color.WithAlpha(.6f); c.StrokeSize = 1; c.DrawLine(x - 4, y, labelX + 80, labelY + 10);
+                c.FillColor = Color.FromArgb("#202229"); c.FillRoundedRectangle(labelX, labelY, 80, 21, 6);
+                c.StrokeColor = color; c.StrokeSize = 1; c.DrawRoundedRectangle(labelX, labelY, 80, 21, 6);
                 c.FontColor = color; c.FontSize = 10;
-                c.DrawString($"{item.Series.PlanLabel} {100 - p.RemainingPercent:0.#}%", end + 10, labelY, 74, 21, HorizontalAlignment.Center, VerticalAlignment.Center);
+                c.DrawString($"{item.Series.PlanLabel} {100 - p.RemainingPercent:0.#}%", labelX + 3, labelY, 74, 21, HorizontalAlignment.Center, VerticalAlignment.Center);
             }
         }
     }

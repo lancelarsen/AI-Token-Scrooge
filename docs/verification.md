@@ -413,3 +413,8 @@ All 288 tests passed, including new earliest-sample, empty-history, and adaptive
 - Unified day-heading centers with the graph timestamp scale; Today opens at the start of its calendar day (bounded by recorded history).
 - Release publish succeeded; 293 tests passed, including day/time alignment and existing DST/spacing coverage.
 - Restarted the app with the existing account profile and updated the desktop shortcut. Native wide and narrow checks confirmed the rail, markers, and click details. Hover remains wired to ImmediateToolTip; not independently exercised by an explicit hover action. Existing narrow selector badge wrapping remains outside this change.
+
+### 2026-10-30 - Reset Horizon Right Gutter
+- Reduced the chart right gutter from 84 to 12 logical pixels. The former gutter reserved room for history endpoint labels even in the future view.
+- Moved endpoint labels inside the plot so they remain within the control without reserving exterior space. Day spacing and calendar geometry are unchanged.
+- Release publish succeeded; restarted with existing accounts and updated the desktop shortcut. Compared the native future/history views with the existing timeline design at desktop and narrow widths.
