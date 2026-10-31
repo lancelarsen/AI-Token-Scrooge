@@ -4,18 +4,21 @@ using Microsoft.Maui.Controls.Shapes;
 
 namespace AIResetRadar.App.Controls;
 
-// One date projection drives the plot, future events, and the existing overview gesture.
+// One renderer for both horizon modes; history only adds selectors, graph and past events.
 public sealed class HistoryTimelineView : Grid
 {
     static readonly Color Accent = Color.FromArgb("#B5A0F4");
     static readonly Color Muted = Color.FromArgb("#BEC1D2");
-    const float AxisLeft = 40, PlotRight = 12;
+    bool historyEnabled = true;
+    float AxisLeft => historyEnabled ? 40 : 0;
+    float PlotRight => historyEnabled ? 12 : 0;
     float railY = 60;
     float PlotTop => railY + 32;
     static readonly DateOnly CoordinateAnchor = new(2000, 1, 1);
     float plotBottom = 256;
     readonly VerticalStackLayout selectors = new() { Spacing = 9, Padding = new Thickness(3, 8, 10, 0) };
     readonly ScrollView selectorScroll;
+    readonly Grid selectorRail;
     readonly Grid chartHost = new() { HeightRequest = 294, IsClippedToBounds = true, BackgroundColor = Colors.Transparent };
     readonly GraphicsView chart = new() { HeightRequest = 294 };
     readonly Button chartInput = new() { Text = "", BackgroundColor = Colors.Transparent, BorderWidth = 0, Padding = 0,
@@ -58,18 +61,25 @@ public sealed class HistoryTimelineView : Grid
         RowDefinitions = [new(GridLength.Auto), new(new GridLength(22))];
         RowSpacing = 12; ColumnSpacing = 10;
         selectorScroll = new ScrollView { Content = selectors, HeightRequest = 294, VerticalScrollBarVisibility = ScrollBarVisibility.Never };
-        var rail = new Grid { ColumnDefinitions = [new(GridLength.Star), new(new GridLength(1))] };
-        rail.Add(selectorScroll); rail.Add(new BoxView { Color = Color.FromArgb("#383B46"), Margin = new Thickness(0, 6) }, 1);
-        this.Add(rail); chartHost.Add(chart); chartHost.Add(chartInput); chartHost.Add(headingsLayer); chartHost.Add(eventsLayer); chartHost.Add(status); this.Add(chartHost, 1);
+        selectorRail = new Grid { ColumnDefinitions = [new(GridLength.Star), new(new GridLength(1))] };
+        selectorRail.Add(selectorScroll); selectorRail.Add(new BoxView { Color = Color.FromArgb("#383B46"), Margin = new Thickness(0, 6) }, 1);
+        this.Add(selectorRail); chartHost.Add(chart); chartHost.Add(chartInput); chartHost.Add(headingsLayer); chartHost.Add(eventsLayer); chartHost.Add(status); this.Add(chartHost, 1);
         var navigatorHost = new Grid { HeightRequest = 22 };
         navigatorHost.Add(navigator); navigatorHost.Add(navigatorInput);
         this.Add(navigatorHost, 0, 1); Grid.SetColumnSpan((BindableObject)navigatorHost, 2);
         chart.Drawable = new Plot(this); navigator.Drawable = new Overview(this);
         chart.SizeChanged += (_, _) => Reflow();
-        SizeChanged += (_, _) => { ColumnDefinitions[0].Width = new GridLength(Width < 850 ? 95 : 112); Reflow(); };
+        SizeChanged += (_, _) => Reflow();
         SemanticProperties.SetDescription(navigator, "History Timeline Navigator · Drag Left for the Past Seven Days · Drag Right for Upcoming Events");
         Platforms.Windows.HistoryChartInput.Attach(chart, Hover, ClearHover, MoveCursor, Pan, FollowToday, chartInput);
         Platforms.Windows.HistoryChartInput.AttachNavigator(navigator, Pan, FollowToday, navigatorInput, BeginNavigation, DragNavigation, () => navigating = false);
+    }
+
+    public void SetHistoryEnabled(bool enabled)
+    {
+        if (historyEnabled == enabled) return;
+        historyEnabled = enabled;
+        ClearHover(); Reflow();
     }
 
     void BeginNavigation(double x)
@@ -110,8 +120,11 @@ public sealed class HistoryTimelineView : Grid
     void Reflow()
     {
         if (chart.Width <= 0) return;
+        selectorRail.IsVisible = historyEnabled;
+        ColumnDefinitions[0].Width = new GridLength(historyEnabled ? (Width < 850 ? 95 : 112) : 0);
+        ColumnSpacing = historyEnabled ? 10 : 0;
         var firstRecorded = series.SelectMany(s => s.Points).Select(p => (DateTimeOffset?)p.At).Min() ?? now;
-        model.Update(now, future.LastOrDefault()?.At, zone, Span, earliestHistory: firstRecorded);
+        model.Update(now, future.LastOrDefault()?.At, zone, Span, historyEnabled, earliestHistory: firstRecorded);
         projectionOrigin = model.PositionAt(CoordinateAnchor);
         if (!ReferenceEquals(projectedSeries, series) || projectedZone != zone.Id)
         {
@@ -122,7 +135,7 @@ public sealed class HistoryTimelineView : Grid
         }
         var futureRows = future.GroupBy(e => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(e.At, zone).DateTime))
             .Select(g => g.Count()).DefaultIfEmpty().Max();
-        var height = HistoryChartLayout.Height(series.Length, futureRows);
+        var height = historyEnabled ? HistoryChartLayout.Height(series.Length, futureRows) : railY + 21 + Math.Max(1, futureRows) * 76;
         plotBottom = height - 38;
         if (chart.HeightRequest != height)
             chart.HeightRequest = chartHost.HeightRequest = selectorScroll.HeightRequest = height;
@@ -179,7 +192,7 @@ public sealed class HistoryTimelineView : Grid
         var next = (float)headingHeight + 18;
         if (Math.Abs(railY - next) < .25f) return;
         railY = next;
-        Dispatcher.Dispatch(Redraw);
+        Dispatcher.Dispatch(Reflow);
     }
 
     void BuildSelectors()
@@ -229,8 +242,11 @@ public sealed class HistoryTimelineView : Grid
     void UpdateStatus()
     {
         var inPast = TodayX > AxisLeft + 30;
-        status.IsVisible = inPast && (loadError is not null || loading && series.All(s => s.Points.Length == 0) || !Visible.Any() ||
+        status.IsVisible = historyEnabled && inPast && (loadError is not null || loading && series.All(s => s.Points.Length == 0) || !Visible.Any() ||
             !Visible.Any(s => PointsWithin(s, model.ScrollOffset, model.ScrollOffset + Span).Any()));
+        if (!historyEnabled && future.Length == 0) {
+            status.IsVisible = true; status.Text = "No Upcoming Events Reported"; return;
+        }
         status.Text = loadError ?? (loading ? "Loading History" : !Visible.Any() ? "Select an Account to View History" : "No Recorded Usage in This Period");
     }
 
@@ -243,7 +259,7 @@ public sealed class HistoryTimelineView : Grid
         foreach (var group in groups)
         {
             var dateX = AxisLeft + (float)(model.FutureDayPosition(group.Key) - model.ScrollOffset);
-            if (dateX < Math.Max(AxisLeft, TodayX) - 24 || dateX > AxisLeft + Span + 12) continue;
+            if (dateX < (historyEnabled ? Math.Max(AxisLeft, TodayX) : AxisLeft) - 24 || dateX > AxisLeft + Span + 12) continue;
             var slot = 0;
             foreach (var e in group)
             {
@@ -255,7 +271,7 @@ public sealed class HistoryTimelineView : Grid
                 AbsoluteLayout.SetLayoutBounds(view, new Rect(dateX - 31, railY + 21 + slot * 76, 62, 74)); slot++;
             }
         }
-        var historical = Visible.SelectMany(s => s.Events.Select(e => (Series: s, Event: e)))
+        var historical = (historyEnabled ? Visible : []).SelectMany(s => s.Events.Select(e => (Series: s, Event: e)))
             .Where(item => item.Event.At <= now && PlotX(item.Event.At) >= AxisLeft + 10 && PlotX(item.Event.At) <= AxisLeft + Span - 10)
             .OrderBy(item => item.Event.At).ToArray();
         // Keep each event at its actual timestamp, never an average of nearby events.
@@ -317,7 +333,7 @@ public sealed class HistoryTimelineView : Grid
 
     public string? Hover(double x, double y)
     {
-        if (navigating || x < AxisLeft || x > AxisLeft + Span || x > TodayX || y < PlotTop || y > plotBottom) { ClearHover(); return null; }
+        if (!historyEnabled || navigating || x < AxisLeft || x > AxisLeft + Span || x > TodayX || y < PlotTop || y > plotBottom) { ClearHover(); return null; }
         var contentX = x - AxisLeft + model.ScrollOffset;
         var nearest = Visible.SelectMany(s => PointsWithin(s, contentX - 18, contentX + 18).Select(p => (Series: s, Point: p)))
             .OrderBy(v => Math.Abs(PlotX(v.Point.At) - x) + Math.Abs(PlotY(v.Point.RemainingPercent) - y) * .45).FirstOrDefault();
@@ -354,6 +370,7 @@ public sealed class HistoryTimelineView : Grid
     public void ClearHover() { cursor = null; chart.Invalidate(); }
     public string? MoveCursor(int direction)
     {
+        if (!historyEnabled) return null;
         var values = Visible.SelectMany(s => PointsWithin(s, model.ScrollOffset, model.ScrollOffset + Span).Select(p => (Series: s, Point: p)))
             .OrderBy(v => v.Point.At).ToArray();
         if (values.Length == 0) return null;
@@ -368,30 +385,30 @@ public sealed class HistoryTimelineView : Grid
     {
         public void Draw(ICanvas c, RectF rect)
         {
-            var end = AxisLeft + owner.Span; var today = owner.TodayX; var pastEnd = Math.Clamp(today, AxisLeft, end);
+            var end = owner.AxisLeft + owner.Span; var today = owner.TodayX; var pastEnd = Math.Clamp(today, owner.AxisLeft, end);
             c.Font = Microsoft.Maui.Graphics.Font.Default; c.FontSize = 11; c.FontColor = Muted;
-            if (pastEnd > AxisLeft + 2) {
+            if (owner.historyEnabled && pastEnd > owner.AxisLeft + 2) {
                 c.StrokeSize = 1; c.StrokeColor = Color.FromArgb("#343741");
                 for (var percent = 0; percent <= 100; percent += 25) {
-                    var y = owner.PlotY(100 - percent); c.DrawLine(AxisLeft, y, pastEnd, y);
+                    var y = owner.PlotY(100 - percent); c.DrawLine(owner.AxisLeft, y, pastEnd, y);
                     c.DrawString($"{percent}%", 18, y - 7, 38, 16, HorizontalAlignment.Right, VerticalAlignment.Center);
                 }
                 c.SaveState(); c.Translate(7, (owner.PlotTop + owner.plotBottom) / 2); c.Rotate(-90);
                 c.FontSize = 10; c.DrawString("% Used", -70, -7, 140, 16, HorizontalAlignment.Center, VerticalAlignment.Center); c.RestoreState();
             }
             c.StrokeColor = Color.FromArgb("#8170B7"); c.StrokeSize = 2;
-            c.DrawLine(AxisLeft, owner.railY, end, owner.railY);
+            c.DrawLine(owner.AxisLeft, owner.railY, end, owner.railY);
             var first = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(owner.model.VisibleStart, owner.zone).DateTime);
             for (var date = first; date <= owner.model.LastDate.AddDays(7); date = date.AddDays(1)) {
-                var x = AxisLeft + (float)(owner.model.PositionAt(date) - owner.model.ScrollOffset);
+                var x = owner.AxisLeft + (float)(owner.model.PositionAt(date) - owner.model.ScrollOffset);
                 if (x > end + owner.model.PixelsPerDay) break;
-                if (x >= AxisLeft && x <= pastEnd) {
+                if (owner.historyEnabled && x >= owner.AxisLeft && x <= pastEnd) {
                     c.StrokeColor = Color.FromArgb("#30333C"); c.DrawLine(x, owner.PlotTop, x, owner.plotBottom);
                 }
-                var futureX = AxisLeft + (float)(owner.model.FutureDayPosition(date) - owner.model.ScrollOffset);
-                if (futureX < AxisLeft || futureX > end || date > owner.model.LastDate) continue;
+                var futureX = owner.AxisLeft + (float)(owner.model.FutureDayPosition(date) - owner.model.ScrollOffset);
+                if (futureX < owner.AxisLeft || futureX > end || date > owner.model.LastDate) continue;
                 var hasEvents = owner.future.Any(e => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(e.At, owner.zone).DateTime) == date);
-                // Match the native non-history markers: 16px Today, 10px other days.
+                // Both modes use these same circles: 16px Today, 10px other days.
                 // Paint the hollow interior over the rail before adding its inset 2px stroke.
                 var isToday = date == owner.model.Today;
                 c.FillColor = isToday ? Color.FromArgb("#D1BEFF") : hasEvents ? Accent : Color.FromArgb("#1C1E24");
@@ -401,6 +418,7 @@ public sealed class HistoryTimelineView : Grid
                     c.DrawCircle(futureX, owner.railY, 4);
                 }
             }
+            if (!owner.historyEnabled) return;
             foreach (var marker in owner.historicalMarkers) {
                 var expiry = marker.Kind == HistoryEventKind.ReportedExpiration;
                 c.FillColor = Color.FromArgb(expiry ? "#EAAA51" : "#B99AF8");
@@ -411,7 +429,7 @@ public sealed class HistoryTimelineView : Grid
                     marker.X - 11, marker.Y - 11, 22, 22, HorizontalAlignment.Center, VerticalAlignment.Center);
             }
             c.Font = Microsoft.Maui.Graphics.Font.Default;
-            c.SaveState(); c.ClipRectangle(AxisLeft, owner.PlotTop, owner.Span, owner.plotBottom - owner.PlotTop);
+            c.SaveState(); c.ClipRectangle(owner.AxisLeft, owner.PlotTop, owner.Span, owner.plotBottom - owner.PlotTop);
             foreach (var s in owner.Visible) {
                 var color = Color.FromArgb(owner.ColorOf(s));
                 var points = UsageHistory.Downsample(s.Points, owner.ContentX, owner.model.ScrollOffset, owner.model.ScrollOffset + owner.Span);
@@ -432,7 +450,7 @@ public sealed class HistoryTimelineView : Grid
                 Flush();
             }
             foreach (var e in owner.Visible.SelectMany(s => s.Events)) {
-                var x = owner.PlotX(e.At); if (x < AxisLeft || x > pastEnd) continue;
+                var x = owner.PlotX(e.At); if (x < owner.AxisLeft || x > pastEnd) continue;
                 c.StrokeColor = Color.FromArgb(e.Kind == HistoryEventKind.ReportedExpiration ? "#EAAA51" : "#B99AF8").WithAlpha(.6f);
                 c.StrokeSize = 1; c.StrokeDashPattern = [4, 4]; c.DrawLine(x, owner.PlotTop, x, owner.plotBottom); c.StrokeDashPattern = null;
             }
@@ -442,7 +460,7 @@ public sealed class HistoryTimelineView : Grid
                 c.FillColor = Color.FromArgb(owner.ColorOf(hit.Series)); c.FillCircle(x, y, 4); c.StrokeColor = Colors.White; c.DrawCircle(x, y, 4);
             }
             c.RestoreState();
-            if (today >= AxisLeft - 1 && today <= end + 1) {
+            if (today >= owner.AxisLeft - 1 && today <= end + 1) {
                 c.StrokeColor = Accent; c.StrokeSize = 1.5f; c.StrokeDashPattern = [4, 4]; c.DrawLine(today, owner.PlotTop, today, owner.plotBottom); c.StrokeDashPattern = null;
             }
             var labels = owner.Visible.Select(s => (Series: s, Point: owner.PointsWithin(s, owner.model.ScrollOffset, owner.model.ScrollOffset + owner.Span).LastOrDefault()))
@@ -472,9 +490,11 @@ public sealed class HistoryTimelineView : Grid
             c.StrokeColor = Color.FromArgb("#45464D"); c.StrokeSize = 1; c.DrawRoundedRectangle(1, 1, width, 20, 5);
             c.FillColor = Color.FromArgb("#483A64"); c.FillRoundedRectangle((float)thumb.Left + 1, 1, (float)thumb.Width, 20, 5);
             c.StrokeColor = Accent; c.DrawRoundedRectangle((float)thumb.Left + 1, 1, (float)thumb.Width, 20, 5);
-            var events = owner.future.Select(e => (e.At, e.IsExpiry)).Concat(owner.Visible.SelectMany(s => s.Events.Select(e => (e.At, e.Kind == HistoryEventKind.ReportedExpiration))));
-            foreach (var group in events.GroupBy(e => (Day: DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(e.At, owner.zone).DateTime), Expiry: e.Item2))) {
-                var x = 1 + (float)owner.model.OverviewPositionAt(group.First().At, width);
+            var events = owner.future.Select(e => (e.At, Expiry: e.IsExpiry, Future: true))
+                .Concat((owner.historyEnabled ? owner.Visible : []).SelectMany(s => s.Events.Select(e => (e.At, Expiry: e.Kind == HistoryEventKind.ReportedExpiration, Future: false))));
+            foreach (var group in events.GroupBy(e => (Day: DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(e.At, owner.zone).DateTime), e.Expiry, e.Future))) {
+                var position = group.Key.Future ? owner.model.FutureDayPosition(group.Key.Day) : owner.model.PositionAt(group.First().At);
+                var x = 1 + (float)(position / owner.model.ContentWidth * width);
                 c.FillColor = Color.FromArgb(group.Key.Expiry ? "#EAAA51" : "#B5A0F4"); c.FillCircle(x, group.Key.Expiry ? 14 : 9, 2.5f);
             }
             var today = 1 + (float)owner.model.OverviewPositionAt(owner.now, width);

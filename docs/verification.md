@@ -476,3 +476,8 @@ All 288 tests passed, including new earliest-sample, empty-history, and adaptive
 - History now matches the non-history day markers: 16px Today in light purple and 10px other days. Hollow markers paint an opaque section-colored interior before the 2px inset ring, hiding the rail through the center.
 - Release publish and diff checks passed. Compared both modes in the native Windows app using the non-history rail as reference. Drawing-only change leaves calendar/timestamp positions unchanged; no new unit tests added. Restarted latest build with existing accounts and updated the desktop shortcut.
 
+### 2026-10-31 - One Renderer for Both Horizon Modes
+- Removed the separate native non-history day cells, circles, service events, scrolling and overview drawing. Both modes now use the same persistent HistoryTimelineView renderer and native day headings; the toggle hides selectors, historical markers and graph while fitting the future range to the available width. Circle radii and hollow interiors are the existing History canvas drawing in both modes.
+- Shared viewport still enforces equal calendar-day spacing and readable minimum widths. Future overview dots use the matching day bucket anchor; historical markers retain the actual timestamp scale. Added the single-renderer requirement to AGENTS.md.
+- Release publish succeeded and all 314 tests passed, including 26 timeline/graph-layout regressions. Restarted latest app with existing accounts and updated desktop shortcut. Confirmed the running History view and past graph against the existing design. User input interrupted toggle checks, then Escape stopped Computer Use; final on/off comparison and narrow-width verification remain uncompleted for this refactor.
+
