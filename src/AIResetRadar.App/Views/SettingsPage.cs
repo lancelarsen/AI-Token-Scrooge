@@ -135,7 +135,7 @@ public sealed class SettingsPage : ContentPage
                 if (polling.Handler?.PlatformView is Microsoft.UI.Xaml.Controls.Slider native)
                 {
                     native.TickFrequency = 1;
-                    native.TickPlacement = Microsoft.UI.Xaml.Controls.Primitives.TickPlacement.Inline;
+                    native.TickPlacement = Microsoft.UI.Xaml.Controls.Primitives.TickPlacement.None;
                     native.StepFrequency = 1;
                     native.SnapsTo = Microsoft.UI.Xaml.Controls.Primitives.SliderSnapsTo.Ticks;
                 }
@@ -148,7 +148,19 @@ public sealed class SettingsPage : ContentPage
             SettingsHelp.Attach(pollingLabel, "How Often Scrooge Automatically Checks This Account for New Usage");
             SettingsHelp.Attach(polling, "Choose 1–30 Minutes. Each Tick Is One Minute; Changes Save Automatically.");
             pollingRow.Add(pollingLabel);
-            pollingRow.Add(polling, 1); form.Children.Add(pollingRow);
+            var pollingTrack = new Grid();
+
+            var minuteTicks = new AbsoluteLayout { InputTransparent = true, Margin = new Thickness(14, 0) };
+            for (var minute = 0; minute < 30; minute++)
+            {
+                var tick = new BoxView { Color = Color.FromArgb("#A990ED"), InputTransparent = true };
+                AbsoluteLayout.SetLayoutFlags(tick, Microsoft.Maui.Layouts.AbsoluteLayoutFlags.PositionProportional);
+                AbsoluteLayout.SetLayoutBounds(tick, new Rect(minute / 29d, 0.5, 1, 12));
+                minuteTicks.Children.Add(tick);
+            }
+            pollingTrack.Add(minuteTicks);
+            pollingTrack.Add(polling);
+            pollingRow.Add(pollingTrack, 1); form.Children.Add(pollingRow);
             async Task SavePollingAsync()
             {
                 await saveGate.WaitAsync();
@@ -389,3 +401,5 @@ public sealed class SettingsPage : ContentPage
         Update(); form.Children.Add(new VerticalStackLayout { Spacing = 2, Children = { label, slider } }); return slider;
     }
 }
+
+
