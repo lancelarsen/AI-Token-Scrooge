@@ -22,6 +22,8 @@ public sealed class QuietHoursRange : ContentView, IDrawable
     {
         StartHour = Math.Clamp(startHour, 0, 23); EndHour = Math.Clamp(endHour, 0, 23);
         start = TimeLabel(true); end = TimeLabel(false);
+        SettingsHelp.Attach(start, "Quiet Hours Start — Drag the Circle or Use Arrow Keys in One-Hour Steps");
+        SettingsHelp.Attach(end, "Quiet Hours End — Drag the Circle or Use Arrow Keys in One-Hour Steps");
         track = new GraphicsView { Drawable = this, HeightRequest = 94 };
         SemanticProperties.SetDescription(track, "Drag either circle to change quiet hours. Focus a time label and use arrow keys to adjust it.");
         track.StartInteraction += (_, e) =>
