@@ -7,7 +7,7 @@ public static class ReconnectPolicy
         if (original.Id != replacement.Id || original.Provider != replacement.Provider || original.Subject != replacement.Subject ||
             original.Scope != "unresolved" && !original.ScopeEquals(replacement.Scope))
             throw new InvalidDataException("This is a different account or workspace. Reconnect the original account, or add a separate connection.");
-        return replacement with { Enabled = original.Enabled };
+        return replacement with { Enabled = original.Enabled, PollingMinutes = original.EffectivePollingMinutes };
     }
 }
 

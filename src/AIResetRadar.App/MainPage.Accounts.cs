@@ -75,7 +75,8 @@ public sealed partial class MainPage
         {
             var index = state.Accounts.FindIndex(a => a.Id == edit.Id); if (index < 0) return;
             var latest = state.Accounts[index];
-            var changed = latest with { Nickname = edit.Nickname, Enabled = remove ? false : edit.Enabled };
+            var changed = latest with { Nickname = edit.Nickname, Enabled = remove ? false : edit.Enabled,
+                PollingMinutes = edit.EffectivePollingMinutes };
             // Replacing the immutable record invalidates every read started before this edit.
             state.Accounts[index] = changed; pendingReads.GetValueOrDefault(edit.Id)?.Cancel();
             try
@@ -86,7 +87,10 @@ public sealed partial class MainPage
                 await AppServices.Current.Store.WriteMonitoringStateAsync(accounts, snapshots, pending);
                 retiredCredentials.Clear(); retiredCredentials.AddRange(pending);
                 if (remove) { state.Accounts.RemoveAt(index); state.Snapshots.Remove(edit.Id); }
-                nextRefresh.Remove(edit.Id);
+                if (!remove && latest.EffectivePollingMinutes != changed.EffectivePollingMinutes &&
+                    failures.GetValueOrDefault(edit.Id) == 0 && state.Snapshots.TryGetValue(edit.Id, out var current))
+                    nextRefresh[edit.Id] = RefreshSchedule.AfterSuccess(current, changed, DateTimeOffset.UtcNow);
+                else if (remove || latest.Enabled != changed.Enabled) nextRefresh.Remove(edit.Id);
             }
             catch { state.Accounts[index] = latest with { }; throw; }
         }

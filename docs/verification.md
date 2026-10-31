@@ -435,3 +435,10 @@ All 288 tests passed, including new earliest-sample, empty-history, and adaptive
 - Replaced the native button overlay on 22px history badges with a transparent gesture surface, preventing native button template sizing/state backgrounds from covering circle edges.
 - Release publish succeeded; restarted the latest build with existing accounts and updated the desktop shortcut. Compared with the existing Reset Horizon design and the reported clipped marker: reset circle has a complete lower edge after scrolling, and clicking still opens History Event details.
 - No data, retention, timestamp geometry, or alert behavior changed. Visual fix verified in the running Windows app; no new unit tests added.
+
+### 2026-10-30 - Per-Account Polling Intervals
+- Added Polling Interval (Minutes) to the existing Account settings card, auto-saving on field completion, focus loss, or closing the panel; accepts whole minutes from 1 through 1440. All providers, including existing accounts without the setting, default to 2 minutes.
+- Scheduler uses the saved per-account interval, preserves earlier known reset/expiration boundaries and existing provider retry/error backoff. Reconnect preserves the interval; changes update the account schedule.
+- All 305 tests passed, covering defaults for all providers, custom interval bounds, old JSON compatibility, serialization and reconnection. Updated a headless test fixture missing the existing row refresh hook.
+- Release publish succeeded, restarted with existing accounts and updated shortcut. Native Account settings card matched the existing layout; changed Pro from 2 to 3 and confirmed SQLite persistence and account isolation, then restored the test value to 2.
+

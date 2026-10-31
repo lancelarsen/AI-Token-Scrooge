@@ -6,8 +6,10 @@ public enum AllowanceProvenance { Unknown, Provider, Manual }
 public enum CapacityState { Unknown, Healthy, Low, Critical, Exhausted, Info }
 
 public sealed record ProviderAccount(string Id, string Provider, string Nickname, string Subject, string Scope,
-    bool Enabled = true, decimal? Allowance = null, UsageUnit Unit = UsageUnit.Credits, string? Login = null, string? CredentialId = null)
+    bool Enabled = true, decimal? Allowance = null, UsageUnit Unit = UsageUnit.Credits, string? Login = null, string? CredentialId = null,
+    int PollingMinutes = 2)
 {
+    public int EffectivePollingMinutes => Math.Clamp(PollingMinutes, 1, 1440);
     public bool ScopeEquals(string? other) => string.Equals(Scope, other, Provider == "GitHub Copilot" ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
 }
 

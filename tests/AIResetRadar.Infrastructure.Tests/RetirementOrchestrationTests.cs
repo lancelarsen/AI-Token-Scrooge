@@ -53,6 +53,8 @@ namespace AIResetRadar.App
         readonly Dictionary<string, DateTimeOffset> nextRefresh = [], throttledUntil = [];
         readonly Dictionary<string, int> failures = [];
         readonly TestLabel freshness = new();
+        readonly List<TestRow> rowViews = [];
+        sealed class TestRow { public void UpdateAlertRules(RadarSettings settings) { } }
         sealed class TestLabel { public string? Text { get; set; } }
         public MainPage(LocalStore store, Services.TestCredentialMonitor monitor, ProviderAccount? live, ProviderAccount? retired, bool demo)
         {

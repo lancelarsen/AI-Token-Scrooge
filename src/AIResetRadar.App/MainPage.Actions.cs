@@ -87,7 +87,7 @@ public sealed partial class MainPage
                     }
                     if (!Current()) continue;
                     failures[account.Id] = 0;
-                    nextRefresh[account.Id] = RefreshSchedule.AfterSuccess(snapshot, account.Provider, DateTimeOffset.UtcNow);
+                    nextRefresh[account.Id] = RefreshSchedule.AfterSuccess(snapshot, account, DateTimeOffset.UtcNow);
                     try
                     {
                         state.Snapshots[account.Id] = snapshot;

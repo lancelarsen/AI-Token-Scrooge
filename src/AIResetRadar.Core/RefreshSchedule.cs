@@ -2,9 +2,9 @@ namespace AIResetRadar.Core;
 
 public static class RefreshSchedule
 {
-    public static DateTimeOffset AfterSuccess(QuotaSnapshot snapshot, string provider, DateTimeOffset now)
+    public static DateTimeOffset AfterSuccess(QuotaSnapshot snapshot, ProviderAccount account, DateTimeOffset now)
     {
-        var next = now.AddSeconds(provider == "OpenAI" ? 120 : 300);
+        var next = now.AddMinutes(account.EffectivePollingMinutes);
         var boundaries = snapshot.Windows.Select(w => w.ResetsAt)
             .Concat(snapshot.Reserve?.Credits?.Where(c => c.Status == "available").Select(c => c.ExpiresAt) ?? []);
         foreach (var boundary in boundaries)

@@ -107,7 +107,7 @@ public sealed class DashboardState
     public bool TryEditDemoAccount(ProviderAccount edit)
     {
         if (!IsDemo) return false;
-        var index = Accounts.FindIndex(a => a.Id == edit.Id); if (index >= 0) Accounts[index] = Accounts[index] with { Nickname = edit.Nickname, Enabled = edit.Enabled };
+        var index = Accounts.FindIndex(a => a.Id == edit.Id); if (index >= 0) Accounts[index] = Accounts[index] with { Nickname = edit.Nickname, Enabled = edit.Enabled, PollingMinutes = edit.EffectivePollingMinutes };
         return true;
     }
     public void ApplyDemoScenario(string scenario)
