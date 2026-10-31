@@ -110,8 +110,10 @@ public sealed class SettingsPage : ContentPage
             var name = new Entry { Text = account.Nickname, Placeholder = "Personal, Work" };
             SemanticProperties.SetDescription(name, "Account Name");
             SettingsHelp.Attach(name, "A Local Label to Tell Your Accounts Apart. Saved When You Leave This Field.");
-            form.Children.Add(new Label { Text = "Account Name", TextColor = Color.FromArgb("#BEC1D2") });
-            form.Children.Add(name);
+            var nameRow = new Grid { ColumnDefinitions = [new(190), new(GridLength.Star)], ColumnSpacing = 12 };
+            nameRow.Add(new Label { Text = "Account Name", TextColor = Color.FromArgb("#BEC1D2"), VerticalOptions = LayoutOptions.Center });
+            nameRow.Add(name, 1);
+            form.Children.Add(nameRow);
             async Task RenameAsync()
             {
                 await saveGate.WaitAsync();
