@@ -159,8 +159,8 @@ public sealed class HistoryRangeTests
     public async Task RangeAndPrecedingReadPreserveRetentionAndRemovalCleanup()
     {
         using var files = new HistoryFixture();
-        await files.Store.RecordSnapshotAsync(files.Snapshot(files.Now.AddDays(-30)));
-        await files.Store.RecordSnapshotAsync(files.Snapshot(files.Now.AddDays(-29)));
+        await files.Store.RecordSnapshotAsync(files.Snapshot(files.Now.AddDays(-45)));
+        await files.Store.RecordSnapshotAsync(files.Snapshot(files.Now.AddDays(-44)));
         files.Clock.Now = files.Now.AddDays(2);
         Assert.Empty(await files.Store.HistoryAsync("a", files.Now.AddDays(-1), files.Clock.Now, true));
         await files.Store.RecordSnapshotAsync(files.Snapshot(files.Clock.Now));

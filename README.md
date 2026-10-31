@@ -49,7 +49,7 @@ For reliable Windows notification activation and launch-at-sign-in, extract the 
 
 Default application state: `%LOCALAPPDATA%\AIResetRadar`. SQLite stores non-secret connection metadata and usage/alert data. Protected token files are in `Credentials`; independent Codex profiles are in `Profiles`; Claude Code manages its own credentials in isolated `ClaudeProfiles` directories. Existing Codex/IDE profiles are not modified. Removing a connection deletes/signs out Scrooge's own saved credentials only. Logs must never include tokens or provider response bodies.
 
-Reconnect validates a separate protected credential/profile before adopting it. It keeps the account's paused state and logical identity. Superseded credential references are queued durably for cleanup; a pending cleanup is shown and retried while monitoring. Removing a connection commits that removal before retiring its credentials/history. Snapshot and alert history retain 30 days by default.
+Reconnect validates a separate protected credential/profile before adopting it. It keeps the account's paused state and logical identity. Superseded credential references are queued durably for cleanup; a pending cleanup is shown and retried while monitoring. Removing a connection commits that removal before retiring its credentials/history. Snapshot and alert history retain 45 days by default.
 
 Scrooge does not make inference requests, redeem resets, purchase credits or switch accounts in other applications. The Codex transport has an explicit method allowlist.
 

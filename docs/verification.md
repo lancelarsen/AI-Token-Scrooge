@@ -418,3 +418,8 @@ All 288 tests passed, including new earliest-sample, empty-history, and adaptive
 - Reduced the chart right gutter from 84 to 12 logical pixels. The former gutter reserved room for history endpoint labels even in the future view.
 - Moved endpoint labels inside the plot so they remain within the control without reserving exterior space. Day spacing and calendar geometry are unchanged.
 - Release publish succeeded; restarted with existing accounts and updated the desktop shortcut. Compared the native future/history views with the existing timeline design at desktop and narrow widths.
+
+### 2026-10-30 - 45-Day Local History Retention
+- Increased shared snapshot/alert retention from 30 to 45 days; updated README and cleanup tests, including retaining a 44-day-old observation and removing a 46-day-old observation.
+- All 293 tests passed; Release publish succeeded. Restarted the latest build with existing accounts and updated the desktop shortcut; native dashboard confirmed successful loading.
+- Read-only database audit before restart: 7,931 history rows across four accounts, seven state rows, 8,699,904 bytes (8.3 MiB), mean snapshot JSON 837 bytes. Retention change cannot recover observations already pruned under the old policy.

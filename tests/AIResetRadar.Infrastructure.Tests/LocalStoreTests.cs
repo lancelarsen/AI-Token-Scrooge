@@ -13,7 +13,7 @@ public class LocalStoreTests
         await store.RecordSnapshotAsync(new("a", "sample", "scope", clock.Now, [], null));
         var alert = new AlertEvent("event", "a", "weekly", "Low", "Fixture", clock.Now);
         await store.WriteAsync("alerts", new[] { alert });
-        clock.Now = clock.Now.AddDays(31);
+        clock.Now = clock.Now.AddDays(46);
         Assert.Empty(await store.HistoryAsync("a"));
         Assert.Empty((await store.ReadAsync<AlertEvent[]>("alerts"))!);
         // A stale in-memory ledger must not restore expired events after pruning.
@@ -100,16 +100,17 @@ public class LocalStoreTests
         Directory.Delete(directory, true);
     }
 
-    [Fact] public async Task HistoryRetainsThirtyDaysAndKeepsAccountScopesSeparate()
+    [Fact] public async Task HistoryRetainsFortyFiveDaysAndKeepsAccountScopesSeparate()
     {
         var directory = Path.Combine(Path.GetTempPath(), "AIResetRadar-tests", Guid.NewGuid().ToString("N"));
         var store = new LocalStore(Path.Combine(directory, "radar.db"));
         var now = DateTimeOffset.UtcNow;
-        var old = new QuotaSnapshot("a", "sample", "workspace", now.AddDays(-31), [], null);
+        var old = new QuotaSnapshot("a", "sample", "workspace", now.AddDays(-46), [], null);
         await store.RecordSnapshotAsync(old);
         await store.RecordSnapshotAsync(old with { AccountId = "b", ObservedAt = now });
         await store.RecordSnapshotAsync(old with { ObservedAt = now });
-        Assert.Equal(now, Assert.Single(await store.HistoryAsync("a")).ObservedAt);
+        await store.RecordSnapshotAsync(old with { ObservedAt = now.AddDays(-44) });
+        Assert.Equal(new[] { now, now.AddDays(-44) }.Order(), (await store.HistoryAsync("a")).Select(s => s.ObservedAt).Order());
         Assert.Single(await store.HistoryAsync("b"));
         Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
         Assert.StartsWith(Path.GetFullPath(Path.Combine(Path.GetTempPath(), "AIResetRadar-tests")) + Path.DirectorySeparatorChar, Path.GetFullPath(directory));
