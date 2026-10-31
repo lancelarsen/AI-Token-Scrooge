@@ -6,6 +6,8 @@ public sealed class QuietHoursRange : ContentView, IDrawable
     readonly GraphicsView track;
     readonly Button start;
     readonly Button end;
+    readonly View startHelp;
+    readonly View endHelp;
     readonly AbsoluteLayout range = new();
     readonly Label summary;
     bool movingStart;
@@ -24,6 +26,7 @@ public sealed class QuietHoursRange : ContentView, IDrawable
         start = TimeLabel(true); end = TimeLabel(false);
         SettingsHelp.Attach(start, "Quiet Hours Start — Drag the Circle or Use Arrow Keys in One-Hour Steps");
         SettingsHelp.Attach(end, "Quiet Hours End — Drag the Circle or Use Arrow Keys in One-Hour Steps");
+        startHelp = SettingsHelp.WithInfo(start); endHelp = SettingsHelp.WithInfo(end);
         track = new GraphicsView { Drawable = this, HeightRequest = 94 };
         SemanticProperties.SetDescription(track, "Drag either circle to change quiet hours. Focus a time label and use arrow keys to adjust it.");
         track.StartInteraction += (_, e) =>
@@ -43,7 +46,7 @@ public sealed class QuietHoursRange : ContentView, IDrawable
         range.Children.Add(track);
         AbsoluteLayout.SetLayoutFlags(track, Microsoft.Maui.Layouts.AbsoluteLayoutFlags.All);
         AbsoluteLayout.SetLayoutBounds(track, new Rect(0, 0, 1, 1));
-        range.Children.Add(start); range.Children.Add(end);
+        range.Children.Add(startHelp); range.Children.Add(endHelp);
         range.SizeChanged += (_, _) => PositionLabels();
         Content = new VerticalStackLayout { Spacing = 4, Children = { range, summary } };
         Refresh();
@@ -89,16 +92,16 @@ public sealed class QuietHoursRange : ContentView, IDrawable
         if (range.Width < 80) return;
         var a = TrackInset + Position(StartHour) * (range.Width - TrackInset * 2);
         var b = TrackInset + Position(EndHour, true) * (range.Width - TrackInset * 2);
-        var close = Math.Abs(a - b) < 80;
+        var close = Math.Abs(a - b) < 106;
         range.HeightRequest = track.HeightRequest = close ? 116 : 94;
-        AbsoluteLayout.SetLayoutBounds(start, new Rect(Math.Clamp(a - 40, 0, range.Width - 80), 0, 80, 32));
-        AbsoluteLayout.SetLayoutBounds(end, new Rect(Math.Clamp(b - 40, 0, range.Width - 80), close ? 22 : 0, 80, 32));
+        AbsoluteLayout.SetLayoutBounds(startHelp, new Rect(Math.Clamp(a - 53, 0, range.Width - 106), 0, 106, 32));
+        AbsoluteLayout.SetLayoutBounds(endHelp, new Rect(Math.Clamp(b - 53, 0, range.Width - 106), close ? 22 : 0, 106, 32));
     }
     public void Draw(ICanvas canvas, RectF bounds)
     {
         var left = (float)TrackInset; var right = Math.Max(left, bounds.Width - TrackInset); var span = right - left;
         var a = left + (float)Position(StartHour) * span; var b = left + (float)Position(EndHour, true) * span;
-        var y = Math.Abs(a - b) < 80 ? 66f : 44f;
+        var y = Math.Abs(a - b) < 106 ? 66f : 44f;
         canvas.StrokeLineCap = LineCap.Round; canvas.StrokeSize = 6; canvas.StrokeColor = Color.FromArgb("#41434F");
         canvas.DrawLine(left, y, right, y);
         canvas.StrokeColor = Color.FromArgb("#A990ED");

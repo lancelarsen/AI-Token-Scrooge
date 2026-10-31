@@ -16,7 +16,7 @@ public sealed class ReminderEditor : VerticalStackLayout
         var add = new ActionButton { Text = "Add Reminder", HorizontalOptions = LayoutOptions.Start };
         SettingsHelp.Attach(add, "Add Another Reminder Before This Event");
         add.Clicked += (_, _) => { var item = new TimedReminder(Guid.NewGuid().ToString("N"), 1, "Days", ReminderSeverity.Info); reminders.Add(item); AddRow(item); SortRows(); Changed?.Invoke(this, EventArgs.Empty); };
-        Children.Add(add);
+        Children.Add(SettingsHelp.WithInfo(add));
         foreach (var item in reminders.ToArray()) AddRow(item);
     }
     void AddRow(TimedReminder item)
@@ -31,7 +31,7 @@ public sealed class ReminderEditor : VerticalStackLayout
         SettingsHelp.Attach(amount, "Time Before the Event. Reminders Automatically Sort from Longest to Shortest Lead Time.");
         SettingsHelp.Attach(unit, "Measure This Reminder in Days or Hours Before the Event");
         SettingsHelp.Attach(remove, "Remove This Reminder from the Schedule");
-        row.Add(severity); row.Add(amount, 1); row.Add(unit, 2); row.Add(remove, 3); rows.RowDefinitions.Add(new RowDefinition(GridLength.Auto)); rows.Add(row, 0, rows.Children.Count); rowViews[item.Id] = row;
+        row.Add(SettingsHelp.WithInfo(severity)); row.Add(SettingsHelp.WithInfo(amount), 1); row.Add(SettingsHelp.WithInfo(unit), 2); row.Add(SettingsHelp.WithInfo(remove), 3); rows.RowDefinitions.Add(new RowDefinition(GridLength.Auto)); rows.Add(row, 0, rows.Children.Count); rowViews[item.Id] = row;
         void Save()
         {
             if (!int.TryParse(amount.Text, out var value) || value <= 0) { error.Text = "Enter a Positive Whole Number"; error.IsVisible = true; return; }

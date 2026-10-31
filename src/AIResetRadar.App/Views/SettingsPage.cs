@@ -25,7 +25,7 @@ public sealed class SettingsPage : ContentPage
         timeZone.SelectedItem = zones.FirstOrDefault(z => z.Id == TimeZones.Resolve(original.TimeZoneId).Id);
         SemanticProperties.SetDescription(timeZone, "Time Zone for dates and quiet hours");
         SettingsHelp.Attach(timeZone, SettingsHelp.For("Time Zone")!);
-        form.Children.Add(timeZone);
+        form.Children.Add(SettingsHelp.WithInfo(timeZone));
         WrapCard(displayStart, "Time Zone");
         var notificationStart = form.Children.Count;
         var notifications = Toggle("Popup Notifications", original.Notifications);
@@ -44,7 +44,7 @@ public sealed class SettingsPage : ContentPage
         var volumeRow = new Grid { ColumnDefinitions = [new(GridLength.Auto), new(GridLength.Star)], ColumnSpacing = 12 };
         SettingsHelp.Attach(volumeLabel, "Playback Volume for Scrooge Sounds");
         SettingsHelp.Attach(volume, "Adjust Sound Volume from 0% to 100%");
-        volumeRow.Add(volumeLabel, 0); volumeRow.Add(volume, 1);
+        volumeRow.Add(SettingsHelp.WithInfo(volumeLabel), 0); volumeRow.Add(SettingsHelp.WithInfo(volume), 1);
         form.Children.Add(volumeRow);
         var soundGroup = $"SoundStyle-{Guid.NewGuid():N}";
         var duckSounds = new RadioButton { Content = "Duck Sounds", GroupName = soundGroup, IsChecked = original.SoundTheme != "Classic", TextColor = Color.FromArgb("#F2F1F5") };
@@ -59,7 +59,7 @@ public sealed class SettingsPage : ContentPage
             };
         SettingsHelp.Attach(duckSounds, "Use Quacks for Alerts and Notification Actions");
         SettingsHelp.Attach(classicChimes, "Use Conventional Chimes for Alerts and Notification Actions");
-        form.Children.Add(new VerticalStackLayout { Spacing = 0, Children = { duckSounds, classicChimes } });
+        form.Children.Add(new VerticalStackLayout { Spacing = 0, Children = { SettingsHelp.WithInfo(duckSounds), SettingsHelp.WithInfo(classicChimes) } });
         var previewStatus = new Label { FontSize = 12, TextColor = Color.FromArgb("#EAAA51") };
         var previews = new Grid { ColumnDefinitions = [new(GridLength.Star), new(GridLength.Star)], RowDefinitions = [new(GridLength.Auto), new(GridLength.Auto)], ColumnSpacing = 8, RowSpacing = 8 };
         var previewIndex = 0;
@@ -68,7 +68,7 @@ public sealed class SettingsPage : ContentPage
             var preview = new ActionButton { Text = "Preview " + cue.Item1 };
             SettingsHelp.Attach(preview, "Play This Sound at the Selected Volume");
             preview.Clicked += (_, _) => previewStatus.Text = AlertSounds.Play(original with { SoundTheme = classicChimes.IsChecked ? "Classic" : "Ducks", SoundVolume = volume.Value }, cue.Item2, preview: true) ?? "";
-            previews.Add(preview, previewIndex % 2, previewIndex / 2); previewIndex++;
+            previews.Add(SettingsHelp.WithInfo(preview), previewIndex % 2, previewIndex / 2); previewIndex++;
         }
         form.Children.Add(previews);
         form.Children.Add(previewStatus);
@@ -112,7 +112,7 @@ public sealed class SettingsPage : ContentPage
             SettingsHelp.Attach(name, "A Local Label to Tell Your Accounts Apart. Saved When You Leave This Field.");
             var nameRow = new Grid { ColumnDefinitions = [new(190), new(GridLength.Star)], ColumnSpacing = 12 };
             nameRow.Add(new Label { Text = "Account Name", TextColor = Color.FromArgb("#BEC1D2"), VerticalOptions = LayoutOptions.Center });
-            nameRow.Add(name, 1);
+            nameRow.Add(SettingsHelp.WithInfo(name), 1);
             form.Children.Add(nameRow);
             async Task RenameAsync()
             {
@@ -147,7 +147,7 @@ public sealed class SettingsPage : ContentPage
             var pollingRow = new Grid { ColumnDefinitions = [new(GridLength.Auto), new(GridLength.Star)], ColumnSpacing = 12 };
             SettingsHelp.Attach(pollingLabel, "How Often Scrooge Automatically Checks This Account for New Usage");
             SettingsHelp.Attach(polling, "Choose 1–30 Minutes. Each Tick Is One Minute; Changes Save Automatically.");
-            pollingRow.Add(pollingLabel);
+            pollingRow.Add(SettingsHelp.WithInfo(pollingLabel));
             var pollingTrack = new Grid();
 
             var minuteTicks = new AbsoluteLayout { InputTransparent = true, Margin = new Thickness(14, 0) };
@@ -227,14 +227,14 @@ public sealed class SettingsPage : ContentPage
             var signIn = new ActionButton { Text = "Sign In Again", IsEnabled = !demo };
             SettingsHelp.Attach(signIn, "Reconnect This Account While Keeping Its Saved Settings");
             signIn.Clicked += async (_, _) => await AccountAction(() => reconnect(Latest()));
-            form.Children.Add(signIn);
+            form.Children.Add(SettingsHelp.WithInfo(signIn));
             var remove = new ActionButton { Text = "Remove Account", IsEnabled = !demo };
             SettingsHelp.Attach(remove, "Remove the Saved Connection from Scrooge. Your Provider Account Is Unaffected.");
             remove.Clicked += async (_, _) => await AccountAction(async () => {
                 if (await ThemedDialogs.ShowAsync(this, "Remove Account?", "This removes the saved connection from Scrooge. Your provider account is unaffected.", "Remove", "Cancel"))
                 { await update(Latest(), true); await AppPanels.CloseAsync(this); }
             });
-            form.Children.Add(remove);
+            form.Children.Add(SettingsHelp.WithInfo(remove));
             WrapCard(connectionStart, "Connection");
         }
         async Task AutoSaveAsync()
@@ -341,7 +341,7 @@ public sealed class SettingsPage : ContentPage
         var row = new Grid { ColumnDefinitions = [new(GridLength.Star), new(GridLength.Auto)], ColumnSpacing = 16, MinimumHeightRequest = 36 };
         var label = new Label { Text = title, VerticalOptions = LayoutOptions.Center };
         if (SettingsHelp.For(title) is { } help) { SettingsHelp.Attach(label, help); SettingsHelp.Attach(toggle, help); }
-        row.Add(label); row.Add(toggle, 1); form.Children.Add(row); return toggle;
+        row.Add(SettingsHelp.WithInfo(label)); row.Add(toggle, 1); form.Children.Add(row); return toggle;
     }
     async Task AccountAction(Func<Task> action) { try { await action(); } catch { await AccountError(); } }
     Task AccountError() => AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, "Account update unavailable", "Scrooge could not save this change. Check local folder access and retry.", "Close");
@@ -386,7 +386,7 @@ public sealed class SettingsPage : ContentPage
         heading.Add(new Label { Text = title, FontSize = size, FontFamily = "Segoe UI Semibold",
             TextColor = Color.FromArgb(size == 26 ? "#F2F1F5" : "#C3ADF8"), VerticalOptions = LayoutOptions.Center }, 1);
         if (SettingsHelp.For(title) is { } help) SettingsHelp.Attach(heading, help);
-        return heading;
+        return SettingsHelp.WithInfo(heading);
     }
     Slider PercentControl(string title, decimal value, string color)
     {
@@ -398,8 +398,6 @@ public sealed class SettingsPage : ContentPage
         slider.ValueChanged += (_, _) => { var rounded = Math.Round(slider.Value); if (Math.Abs(slider.Value - rounded) > 0.001) slider.Value = rounded; Update(); };
         SettingsHelp.Attach(label, "Trigger This Alert When Remaining Capacity Reaches the Selected Percentage");
         SettingsHelp.Attach(slider, "Percentage Remaining, Not Used. Critical Must Be Below Warning; Info Must Be at or Above Warning.");
-        Update(); form.Children.Add(new VerticalStackLayout { Spacing = 2, Children = { label, slider } }); return slider;
+        Update(); form.Children.Add(new VerticalStackLayout { Spacing = 2, Children = { SettingsHelp.WithInfo(label), slider } }); return slider;
     }
 }
-
-

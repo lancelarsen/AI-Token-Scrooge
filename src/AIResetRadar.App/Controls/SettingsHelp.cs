@@ -3,7 +3,29 @@ namespace AIResetRadar.App.Controls;
 // Shared help copy for global and account settings; uses the app's immediate themed hover.
 internal static class SettingsHelp
 {
-    public static void Attach(View view, string text) => Platforms.Windows.ImmediateToolTip.Attach(view, text);
+    static readonly System.Runtime.CompilerServices.ConditionalWeakTable<View, HelpText> Help = new();
+    sealed record HelpText(string Text);
+
+    public static void Attach(View view, string text)
+    {
+        Help.Remove(view);
+        Help.Add(view, new(text));
+        Platforms.Windows.ImmediateToolTip.Attach(view, text);
+    }
+
+    public static View WithInfo(View view)
+    {
+        if (!Help.TryGetValue(view, out var help)) return view;
+        var icon = new Label { Text = "\uE946", FontFamily = "Segoe Fluent Icons", FontSize = 16,
+            TextColor = Color.FromArgb("#B5A0F4"), VerticalOptions = LayoutOptions.Center,
+            WidthRequest = 20, HorizontalTextAlignment = TextAlignment.Center };
+        SemanticProperties.SetDescription(icon, help.Text);
+        Platforms.Windows.ImmediateToolTip.Attach(icon, help.Text);
+        var row = new Grid { ColumnDefinitions = [new(GridLength.Auto), new(GridLength.Star)], ColumnSpacing = 6,
+            HorizontalOptions = view.HorizontalOptions, VerticalOptions = view.VerticalOptions };
+        row.Add(icon); row.Add(view, 1);
+        return row;
+    }
 
     public static string? For(string title) => title switch
     {
