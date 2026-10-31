@@ -25,6 +25,7 @@ public sealed class HistoryTimelineView : Grid
     readonly Label status = new() { FontSize = 13, TextColor = Muted, HorizontalTextAlignment = TextAlignment.Center,
         VerticalOptions = LayoutOptions.Center, InputTransparent = true };
     readonly Dictionary<string, View> eventViews = [];
+    readonly List<(float X, float Y, HistoryEventKind Kind, int Count)> historicalMarkers = [];
     readonly Dictionary<string, string> colors = [];
     readonly Dictionary<DateTimeOffset, double> sampleCoordinates = [];
     HistorySeries[]? projectedSeries;
@@ -198,6 +199,7 @@ public sealed class HistoryTimelineView : Grid
     {
         if (chart.Width <= 0) return;
         HashSet<string> active = [];
+        historicalMarkers.Clear();
         var groups = future.GroupBy(e => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(e.At, zone).DateTime));
         foreach (var group in groups)
         {
@@ -228,12 +230,14 @@ public sealed class HistoryTimelineView : Grid
             var lane = laneEnds.FindIndex(right => x - width / 2f >= right + 2);
             if (lane < 0) { lane = laneEnds.Count; laneEnds.Add(0); }
             laneEnds[lane] = x + width / 2f;
+            for (var i = 0; i < kinds.Length; i++)
+                historicalMarkers.Add((x - width / 2f + 11 + i * 24, 76 + lane * 24, kinds[i], kinds.Length == 1 ? values.Length : 1));
             var eventType = group.Key.Kind == HistoryEventKind.ReportedExpiration ? "Reset Expiration" : "Quota Refresh";
             var details = string.Join("\n\n", values.Select(v => $"{v.Series.Account.Provider} / {v.Series.Account.Nickname} · {v.Series.PlanLabel}\n{eventType}: {TimeZones.Format(v.Event.At, zone)}\n{v.Event.Detail}"));
             var key = "history:" + details;
             active.Add(key);
             if (!eventViews.TryGetValue(key, out var view)) {
-                view = EventMarker(kinds, values.Length, details);
+                view = EventMarker(details);
                 eventViews[key] = view; eventsLayer.Add(view);
             }
             AbsoluteLayout.SetLayoutBounds(view, new Rect(x - width / 2f, 65 + lane * 24, width, 22));
@@ -241,32 +245,17 @@ public sealed class HistoryTimelineView : Grid
         foreach (var key in eventViews.Keys.Where(key => !active.Contains(key)).ToArray()) { eventsLayer.Remove(eventViews[key]); eventViews.Remove(key); }
     }
 
-    View EventMarker(HistoryEventKind[] kinds, int count, string details)
+    View EventMarker(string details)
     {
-        var target = new Grid();
-        var badges = new HorizontalStackLayout { Spacing = 2, HorizontalOptions = LayoutOptions.Center };
-        foreach (var kind in kinds)
-        {
-            var expiry = kind == HistoryEventKind.ReportedExpiration;
-            var numeric = kinds.Length == 1 && count > 1;
-            badges.Add(new Border { WidthRequest = 22, HeightRequest = 22,
-                BackgroundColor = Color.FromArgb(expiry ? "#EAAA51" : "#B99AF8"), StrokeThickness = 0,
-                StrokeShape = new RoundRectangle { CornerRadius = 11 },
-                Content = new Label { Text = numeric ? count.ToString() : expiry ? "\uE823" : "\uE72C",
-                    FontFamily = numeric ? "Segoe UI Semibold" : "Segoe Fluent Icons", FontSize = 14,
-                    TextColor = Color.FromArgb("#232429"), HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center } });
-        }
-        target.Add(badges);
-        // This is a hit target over the circular badges, not a themed rectangular button.
-        // A native Button has a minimum template height and state backgrounds which can
-        // cover the bottom of these 22px badges. Use a transparent gesture surface instead.
+        // The chart draws the whole circle. This surface only handles interaction, so
+        // native Border/Label measurement cannot crop the marker's lower edge.
         var hit = new ContentView { BackgroundColor = Colors.Transparent, Padding = 0,
             HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Fill };
         SemanticProperties.SetDescription(hit, details); Platforms.Windows.ImmediateToolTip.Attach(hit, details);
         var tap = new TapGestureRecognizer();
         tap.Tapped += async (_, _) => await Services.ThemedDialogs.ShowAsync(Application.Current!.Windows[0].Page!, "History Event", details, "Close");
         hit.GestureRecognizers.Add(tap);
-        target.Add(hit); return target;
+        return hit;
     }
 
     View FutureEvent(HorizonEvent e)
@@ -370,6 +359,16 @@ public sealed class HistoryTimelineView : Grid
                 if (hasEvents || date == owner.model.Today) { c.FillColor = Accent; c.FillCircle(futureX, 76, date == owner.model.Today ? 6 : 4); }
                 else c.DrawCircle(futureX, 76, 4);
             }
+            foreach (var marker in owner.historicalMarkers) {
+                var expiry = marker.Kind == HistoryEventKind.ReportedExpiration;
+                c.FillColor = Color.FromArgb(expiry ? "#EAAA51" : "#B99AF8");
+                c.FillCircle(marker.X, marker.Y, 11);
+                c.Font = new Microsoft.Maui.Graphics.Font(marker.Count > 1 ? "Segoe UI Semibold" : "Segoe Fluent Icons");
+                c.FontSize = 14; c.FontColor = Color.FromArgb("#232429");
+                c.DrawString(marker.Count > 1 ? marker.Count.ToString() : expiry ? "\uE823" : "\uE72C",
+                    marker.X - 11, marker.Y - 11, 22, 22, HorizontalAlignment.Center, VerticalAlignment.Center);
+            }
+            c.Font = Microsoft.Maui.Graphics.Font.Default;
             c.SaveState(); c.ClipRectangle(AxisLeft, PlotTop, owner.Span, owner.plotBottom - PlotTop);
             foreach (var s in owner.Visible) {
                 var color = Color.FromArgb(owner.ColorOf(s));

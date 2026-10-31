@@ -448,3 +448,9 @@ All 288 tests passed, including new earliest-sample, empty-history, and adaptive
 - All 306 tests passed; Release publish succeeded. Restarted the app with existing accounts and updated its desktop shortcut.
 - Compared the native Account card with the existing settings controls. Dragged from 2 to 4 minutes and verified the saved account value in SQLite; restored to 2 and confirmed all four accounts remain at 2 minutes. Checked restored and maximized desktop window layouts.
 
+
+### 2026-10-30 - Draw History Circles on the Canvas
+- Follow-up to the earlier incomplete clipping fix: historical circles still used native Border/Label layout, which could crop the lower edge. Render the circle and glyph directly on the timeline GraphicsView; the overlay now only supplies hover/tap interaction.
+- Kept marker centers, exact timestamp positions, collision lanes, colors and group counts. Release publish succeeded; restarted the latest build with existing accounts and updated the desktop shortcut.
+- Compared the running historical reset circle with the user's flat-bottom screenshot: complete circular lower edge is visible at multiple scrolled positions. Clicking opens the same History Event details. This drawing-only correction was checked in the native app; no unit tests added.
+
