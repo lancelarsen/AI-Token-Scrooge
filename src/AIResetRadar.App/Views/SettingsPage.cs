@@ -111,9 +111,31 @@ public sealed class SettingsPage : ContentPage
             SemanticProperties.SetDescription(name, "Account Name");
             SettingsHelp.Attach(name, "A Local Label to Tell Your Accounts Apart. Saved When You Leave This Field.");
             var nameRow = new Grid { ColumnDefinitions = [new(190), new(GridLength.Star)], ColumnSpacing = 12 };
-            nameRow.Add(new Label { Text = "Account Name", TextColor = Color.FromArgb("#BEC1D2"), VerticalOptions = LayoutOptions.Center });
+            nameRow.Add(new Label { Text = "Account Name", VerticalOptions = LayoutOptions.Center });
             nameRow.Add(SettingsHelp.WithInfo(name), 1);
             form.Children.Add(nameRow);
+            var colorRow = new Grid { ColumnDefinitions = [new(190), new(GridLength.Star)], ColumnSpacing = 12 };
+            var colorLabel = new Label { Text = "Line Color", VerticalOptions = LayoutOptions.Center };
+            SettingsHelp.Attach(colorLabel, "Color Used for This Account's History Line and Selector Badges");
+            colorRow.Add(SettingsHelp.WithInfo(colorLabel));
+            var swatches = new HorizontalStackLayout { Spacing = 8 };
+            var buttons = new List<Button>();
+            var selectedColor = AIResetRadar.App.Presentation.HistoryChartLayout.AccountColor(account, PlanLabels.Display(account.Provider, snapshot?.PlanType));
+            void MarkColor() { foreach (var b in buttons) { b.Text = (string)b.CommandParameter == selectedColor ? "\u2713" : ""; b.BorderWidth = (string)b.CommandParameter == selectedColor ? 2 : 0; } }
+            foreach (var hex in new[] { "#B99AF8", "#CDEB82", "#58A6FF", "#D587A5", "#55C9BD", "#F2C94C", "#F05B69" })
+            {
+                var choice = new Button { WidthRequest = 32, HeightRequest = 32, Padding = 0, CornerRadius = 9,
+                    BackgroundColor = Color.FromArgb(hex), TextColor = Color.FromArgb("#141519"), BorderColor = Colors.White, CommandParameter = hex };
+                SemanticProperties.SetDescription(choice, $"Line Color {hex}");
+                choice.Clicked += async (_, _) => {
+                    await saveGate.WaitAsync();
+                    try { await update(Latest() with { LineColor = hex }, false); selectedColor = hex; MarkColor(); status.Text = ""; }
+                    catch { status.Text = "Line Color Could Not Be Saved"; }
+                    finally { saveGate.Release(); }
+                };
+                buttons.Add(choice); swatches.Children.Add(choice);
+            }
+            MarkColor(); colorRow.Add(swatches, 1); form.Children.Add(colorRow);
             async Task RenameAsync()
             {
                 await saveGate.WaitAsync();

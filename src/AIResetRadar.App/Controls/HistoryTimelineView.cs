@@ -16,7 +16,7 @@ public sealed class HistoryTimelineView : Grid
     float PlotTop => railY + 32;
     static readonly DateOnly CoordinateAnchor = new(2000, 1, 1);
     float plotBottom = 256;
-    readonly VerticalStackLayout selectors = new() { Spacing = 9, Padding = new Thickness(3, 8, 10, 0) };
+    readonly VerticalStackLayout selectors = new() { Spacing = 6, Padding = new Thickness(3, 8, 10, 0) };
     readonly ScrollView selectorScroll;
     readonly Grid selectorRail;
     readonly Grid chartHost = new() { HeightRequest = 294, IsClippedToBounds = true, BackgroundColor = Colors.Transparent };
@@ -104,7 +104,7 @@ public sealed class HistoryTimelineView : Grid
         zone = timeZone; now = currentTime; loading = isLoading; loadError = error;
         // Keep each account's color stable through refresh, selection, and dashboard reordering.
         foreach (var item in series)
-            if (!colors.ContainsKey(item.Account.Id)) colors[item.Account.Id] = HistoryChartLayout.ColorForAccount(item.Account.Id);
+            colors[item.Account.Id] = HistoryChartLayout.AccountColor(item.Account, item.PlanLabel);
         BuildSelectors(); Reflow();
     }
 
@@ -197,33 +197,38 @@ public sealed class HistoryTimelineView : Grid
 
     void BuildSelectors()
     {
-        var signature = string.Join("|", series.Select(s => $"{s.Account.Id}:{s.Account.Nickname}:{s.PlanLabel}:{preferences.Includes(s.Account.Id)}:{s.Status}:{CoverageDetails(s)}"));
+        var signature = string.Join("|", series.Select(s => $"{s.Account.Id}:{s.Account.Nickname}:{s.PlanLabel}:{ColorOf(s)}:{preferences.Includes(s.Account.Id)}:{s.Status}:{CoverageDetails(s)}"));
         if (selectorSignature == signature) return;
         selectorSignature = signature; selectors.Children.Clear();
         foreach (var item in series)
         {
             var enabled = preferences.Includes(item.Account.Id);
-            var accent = enabled ? Accent : Color.FromArgb("#666A78");
-            var icon = new Grid { WidthRequest = 42, HeightRequest = 44 };
-            icon.Add(new Border { WidthRequest = 38, HeightRequest = 38, Stroke = accent, StrokeThickness = 1.5,
-                StrokeShape = new RoundRectangle { CornerRadius = 11 }, BackgroundColor = Color.FromArgb(enabled ? "#352A50" : "#232429"),
-                Content = new Image { Source = Logo(item.Account.Provider), WidthRequest = 25, HeightRequest = 25, Opacity = enabled ? 1 : .45 } });
-            icon.Add(new Border { WidthRequest = 15, HeightRequest = 15, HorizontalOptions = LayoutOptions.End, VerticalOptions = LayoutOptions.End,
-                StrokeShape = new RoundRectangle { CornerRadius = 4 }, Stroke = accent,
-                BackgroundColor = enabled ? Accent : Color.FromArgb("#232429"), Content = new Label { Text = enabled ? "\uE73E" : "",
-                    FontFamily = "Segoe Fluent Icons", FontSize = 10, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center } });
-            var info = new VerticalStackLayout { Spacing = 3, VerticalOptions = LayoutOptions.Center, Children = {
-                new Label { Text = item.Account.Nickname, FontSize = 11, TextColor = enabled ? Colors.White : Muted, LineBreakMode = LineBreakMode.TailTruncation },
-                new Border { Padding = new Thickness(5, 1), HorizontalOptions = LayoutOptions.Start, Stroke = accent,
-                    StrokeShape = new RoundRectangle { CornerRadius = 5 }, BackgroundColor = Color.FromArgb("#272331"),
-                    Content = new Label { Text = item.PlanLabel == "Plan unavailable" ? item.Period : item.PlanLabel, FontSize = 10, TextColor = accent } }
-            } };
-            var content = new Grid { ColumnDefinitions = [new(new GridLength(44)), new(GridLength.Star)], ColumnSpacing = 5, Padding = new Thickness(2, 4) };
-            content.Add(icon); content.Add(info, 1);
-            var swatch = new BoxView { HeightRequest = 2, Color = Color.FromArgb(ColorOf(item)), Opacity = enabled ? 1 : .22, Margin = new Thickness(4, 0, 4, 0) };
-            var target = new Grid { MinimumHeightRequest = 60, RowDefinitions = [new(GridLength.Star), new(new GridLength(2))] };
-            target.Add(content); target.Add(swatch, 0, 1);
-            var action = new Button { BackgroundColor = Colors.Transparent, Text = "", BorderWidth = 0, HeightRequest = 60 };
+            var accent = Color.FromArgb(ColorOf(item));
+            var target = new Grid { HeightRequest = 66, WidthRequest = 82, HorizontalOptions = LayoutOptions.Center };
+            var content = new Grid { Margin = new Thickness(4, 10, 4, 10), Opacity = enabled ? 1 : .5 };
+            content.Add(new Border { Stroke = accent, StrokeThickness = 2,
+                StrokeShape = new RoundRectangle { CornerRadius = 13 }, BackgroundColor = Color.FromArgb("#272331"),
+                Content = new Image { Source = Logo(item.Account.Provider), WidthRequest = 30, HeightRequest = 30 } });
+            target.Add(content);
+            Border Badge(string text, double size) => new() {
+                Stroke = accent, StrokeThickness = 1.5, Padding = new Thickness(5, 2),
+                StrokeShape = new RoundRectangle { CornerRadius = 7 }, BackgroundColor = Color.FromArgb("#232429"),
+                Opacity = enabled ? 1 : .5,
+                Content = new Label { Text = text, FontSize = size, TextColor = Colors.White,
+                    HorizontalTextAlignment = TextAlignment.Center, LineBreakMode = LineBreakMode.TailTruncation }
+            };
+            var nickname = Badge(item.Account.Nickname, 11);
+            nickname.HorizontalOptions = LayoutOptions.Center; nickname.VerticalOptions = LayoutOptions.Start; nickname.MaximumWidthRequest = 90;
+            target.Add(nickname);
+            var plan = Badge(item.PlanLabel == "Plan unavailable" ? item.Period : item.PlanLabel, 10);
+            plan.HorizontalOptions = LayoutOptions.Start; plan.VerticalOptions = LayoutOptions.End;
+            target.Add(plan);
+            target.Add(new Border { WidthRequest = 19, HeightRequest = 19, HorizontalOptions = LayoutOptions.End, VerticalOptions = LayoutOptions.End,
+                StrokeShape = new RoundRectangle { CornerRadius = 5 }, Stroke = accent, StrokeThickness = 1.5,
+                BackgroundColor = enabled ? accent : Color.FromArgb("#232429"),
+                Content = new Label { Text = enabled ? "\uE73E" : "", FontFamily = "Segoe Fluent Icons", FontSize = 12,
+                    TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center } });
+            var action = new Button { BackgroundColor = Colors.Transparent, Text = "", BorderWidth = 0, HeightRequest = 66 };
             SemanticProperties.SetDescription(action, $"{(enabled ? "Hide" : "Show")} {item.Account.Provider} / {item.Account.Nickname} · {item.PlanLabel} · {item.Period} History");
             Platforms.Windows.ImmediateToolTip.Attach(action, $"{item.Account.Provider} / {item.Account.Nickname} · {item.PlanLabel}\n{item.Period} History{CoverageDetails(item)}{(item.Status is null ? "" : "\n" + item.Status)}");
             action.Clicked += async (_, _) => {

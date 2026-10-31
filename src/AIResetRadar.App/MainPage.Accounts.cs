@@ -76,7 +76,7 @@ public sealed partial class MainPage
             var index = state.Accounts.FindIndex(a => a.Id == edit.Id); if (index < 0) return;
             var latest = state.Accounts[index];
             var changed = latest with { Nickname = edit.Nickname, Enabled = remove ? false : edit.Enabled,
-                PollingMinutes = edit.EffectivePollingMinutes };
+                PollingMinutes = edit.EffectivePollingMinutes, LineColor = edit.LineColor };
             // Replacing the immutable record invalidates every read started before this edit.
             state.Accounts[index] = changed; pendingReads.GetValueOrDefault(edit.Id)?.Cancel();
             try

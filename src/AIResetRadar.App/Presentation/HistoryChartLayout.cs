@@ -3,6 +3,17 @@ namespace AIResetRadar.App.Presentation;
 /// <summary>Stable chart appearance independent of refresh order and process lifetime.</summary>
 public static class HistoryChartLayout
 {
+    public static string AccountColor(AIResetRadar.Core.ProviderAccount account, string plan)
+    {
+        if (account.LineColor is { Length: 7 } color && color[0] == '#' && color.Skip(1).All(Uri.IsHexDigit)) return color;
+        return account.Provider switch {
+            "Claude" => "#58A6FF",
+            "GitHub Copilot" => "#CDEB82",
+            "OpenAI" => plan.Contains("Plus", StringComparison.OrdinalIgnoreCase) ? "#D587A5" : "#B99AF8",
+            _ => ColorForAccount(account.Id)
+        };
+    }
+
     public static string ColorForAccount(string accountId)
     {
         // String.GetHashCode is randomized per process; a stable hash keeps account colors
