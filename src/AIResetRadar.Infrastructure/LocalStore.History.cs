@@ -1,4 +1,3 @@
-using System.Text.Json;
 using AIResetRadar.Core;
 using Microsoft.Data.Sqlite;
 
@@ -6,15 +5,9 @@ namespace AIResetRadar.Infrastructure;
 
 public sealed partial class LocalStore
 {
-    /// <summary>
-    /// Reads the complete inclusive interval in observation order. When requested, the
-    /// nearest usable observation strictly before the interval is prepended for continuity.
-    /// Unknown quota values and non-healthy source states remain intact for the caller.
-    /// Unusable in-range rows become stale, identity-free gaps without quota values.
-    /// </summary>
-    public async Task<IReadOnlyList<QuotaSnapshot>> HistoryAsync(string accountId,
-        DateTimeOffset fromInclusive, DateTimeOffset toInclusive, bool includePreceding = false,
-        CancellationToken ct = default)
+    /// <summary>Returns new/extended runs after a revision, or the initial bounded range.</summary>
+    public async Task<HistoryPage> HistoryPageAsync(string accountId, DateTimeOffset fromInclusive,
+        DateTimeOffset toInclusive, long? afterRevision = null, bool includePreceding = true, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(accountId);
         if (toInclusive < fromInclusive) throw new ArgumentException("The history interval ends before it starts.", nameof(toInclusive));
@@ -22,68 +15,74 @@ public sealed partial class LocalStore
         try
         {
             await using var connection = await OpenAsync(ct);
-            List<QuotaSnapshot> values = [];
-            if (includePreceding)
-            {
-                await using var previous = connection.CreateCommand();
-                // Include the boundary millisecond, then compare the original timestamp:
-                // snapshots retain finer precision than the SQLite millisecond key.
-                previous.CommandText = "SELECT observed_at,value FROM history WHERE account_id=$account AND observed_at <= $from ORDER BY observed_at DESC";
-                previous.Parameters.AddWithValue("$account", accountId);
-                previous.Parameters.AddWithValue("$from", fromInclusive.ToUnixTimeMilliseconds());
-                await using var reader = await previous.ExecuteReaderAsync(ct);
-                while (await reader.ReadAsync(ct))
-                {
-                    ct.ThrowIfCancellationRequested();
-                    if (ReadHistorySnapshot(reader, accountId) is { } snapshot && snapshot.ObservedAt < fromInclusive)
-                    { values.Add(snapshot); break; }
-                }
-            }
-            await using var command = connection.CreateCommand();
-            command.CommandText = "SELECT observed_at,value FROM history WHERE account_id=$account AND observed_at >= $from AND observed_at <= $to ORDER BY observed_at";
+            using var transaction = connection.BeginTransaction(deferred: true);
+            await using var command = connection.CreateCommand(); command.Transaction = transaction;
+            command.CommandText = "SELECT revision FROM history_clock";
+            var revision = Convert.ToInt64(await command.ExecuteScalarAsync(ct));
+            var definitions = await DefinitionsAsync(connection, accountId, ct, transaction, afterRevision);
             command.Parameters.AddWithValue("$account", accountId);
             command.Parameters.AddWithValue("$from", fromInclusive.ToUnixTimeMilliseconds());
             command.Parameters.AddWithValue("$to", toInclusive.ToUnixTimeMilliseconds());
-            await using var rangeReader = await command.ExecuteReaderAsync(ct);
-            while (await rangeReader.ReadAsync(ct))
+            // last_at=0 only occurs on malformed/legacy rows inserted by older importers.
+            var last = "CASE WHEN last_at=0 THEN observed_at ELSE last_at END";
+            command.CommandText = $"SELECT observed_at,value FROM history WHERE account_id=$account AND observed_at <= $to AND {last} >= $from";
+            if (afterRevision is { } cursor)
             {
-                ct.ThrowIfCancellationRequested();
-                var snapshot = ReadHistorySnapshot(rangeReader, accountId) ?? new QuotaSnapshot(
-                    accountId, "", "", DateTimeOffset.FromUnixTimeMilliseconds(rangeReader.GetInt64(0)),
-                    [], null, SourceHealth.Stale, "History Unavailable");
-                if (snapshot.ObservedAt >= fromInclusive && snapshot.ObservedAt <= toInclusive)
-                    values.Add(snapshot);
+                command.CommandText += " AND revision > $revision";
+                command.Parameters.AddWithValue("$revision", cursor);
             }
-            return values;
+            command.CommandText += " ORDER BY observed_at";
+            List<HistoryInterval> intervals = [];
+            await using (var reader = await command.ExecuteReaderAsync(ct))
+                while (await reader.ReadAsync(ct))
+                {
+                    var key = reader.GetInt64(0);
+                    var interval = Unpack(key, reader.GetString(1), accountId, definitions);
+                    if (interval is null)
+                    {
+                        var gap = new QuotaSnapshot(accountId, "", "", DateTimeOffset.FromUnixTimeMilliseconds(key), [], null,
+                            SourceHealth.Stale, "History Unavailable");
+                        interval = new(key, gap, gap, 1);
+                    }
+                    intervals.Add(interval);
+                }
+            if (includePreceding && afterRevision is null)
+            {
+                command.Parameters.Clear(); command.Parameters.AddWithValue("$account", accountId);
+                command.Parameters.AddWithValue("$from", fromInclusive.ToUnixTimeMilliseconds());
+                command.CommandText = $"SELECT observed_at,value FROM history WHERE account_id=$account AND {last} <= $from ORDER BY {last} DESC";
+                await using var reader = await command.ExecuteReaderAsync(ct);
+                while (await reader.ReadAsync(ct))
+                    if (Unpack(reader.GetInt64(0), reader.GetString(1), accountId, definitions) is { } interval && interval.Last.ObservedAt < fromInclusive)
+                    { if (!intervals.Any(i => i.Key == interval.Key)) intervals.Insert(0, interval); break; }
+            }
+            return new(revision, intervals);
         }
         finally { gate.Release(); }
     }
 
-    static QuotaSnapshot? ReadHistorySnapshot(SqliteDataReader reader, string accountId)
+    /// <summary>Measured endpoints of runs, inclusive and chronological, plus an optional preceding anchor.</summary>
+    public async Task<IReadOnlyList<QuotaSnapshot>> HistoryAsync(string accountId, DateTimeOffset fromInclusive,
+        DateTimeOffset toInclusive, bool includePreceding = false, CancellationToken ct = default)
     {
-        try
-        {
-            var snapshot = JsonSerializer.Deserialize<QuotaSnapshot>(reader.GetString(1));
-            return snapshot is not null && snapshot.AccountId == accountId &&
-                snapshot.ObservedAt.ToUnixTimeMilliseconds() == reader.GetInt64(0) &&
-                !string.IsNullOrWhiteSpace(snapshot.Subject) && !string.IsNullOrWhiteSpace(snapshot.Scope) &&
-                snapshot.Windows is not null && snapshot.Windows.All(window => window is not null && !string.IsNullOrWhiteSpace(window.Id)) &&
-                (snapshot.Reserve?.Credits is not { } credits || credits.All(credit => credit is not null &&
-                    !string.IsNullOrWhiteSpace(credit.Id) && !string.IsNullOrWhiteSpace(credit.Status)))
-                ? snapshot : null;
-        }
-        catch (JsonException) { return null; }
+        var page = await HistoryPageAsync(accountId, fromInclusive, toInclusive, includePreceding: includePreceding, ct: ct);
+        var endpoints = page.Intervals.SelectMany(i => i.Endpoints()).OrderBy(s => s.ObservedAt).ToArray();
+        var result = endpoints.Where(s => s.ObservedAt >= fromInclusive && s.ObservedAt <= toInclusive).ToList();
+        if (includePreceding && endpoints.LastOrDefault(s => s.ObservedAt < fromInclusive && !string.IsNullOrEmpty(s.Subject)) is { } previous)
+            result.Insert(0, previous);
+        return result;
     }
 
-    async Task WriteSnapshotAsync(SqliteConnection connection, SqliteTransaction transaction,
-        QuotaSnapshot snapshot, CancellationToken ct)
+    async Task WriteSnapshotAsync(SqliteConnection connection, SqliteTransaction transaction, QuotaSnapshot snapshot, CancellationToken ct, int pollingMinutes = 2)
     {
+        await WritePackedSnapshotAsync(connection, transaction, snapshot, ct, pollingMinutes);
         await using var command = connection.CreateCommand(); command.Transaction = transaction;
-        command.CommandText = "INSERT OR REPLACE INTO history(account_id,observed_at,value) VALUES($account,$observed,$value); DELETE FROM history WHERE observed_at < $cutoff;";
-        command.Parameters.AddWithValue("$account", snapshot.AccountId);
-        command.Parameters.AddWithValue("$observed", snapshot.ObservedAt.ToUnixTimeMilliseconds());
-        command.Parameters.AddWithValue("$value", JsonSerializer.Serialize(snapshot));
+        command.CommandText = "DELETE FROM history WHERE last_at < $cutoff AND (last_at <> 0 OR observed_at < $cutoff)";
         command.Parameters.AddWithValue("$cutoff", HistoryRetention.Cutoff(clock.GetUtcNow()).ToUnixTimeMilliseconds());
-        await command.ExecuteNonQueryAsync(ct);
+        if (await command.ExecuteNonQueryAsync(ct) > 0)
+        {
+            command.Parameters.Clear(); command.CommandText = PruneDefinitionsSql;
+            await command.ExecuteNonQueryAsync(ct);
+        }
     }
 }

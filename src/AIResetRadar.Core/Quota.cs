@@ -44,6 +44,10 @@ public sealed record QuotaSnapshot(string AccountId, string Subject, string Scop
     IReadOnlyList<QuotaWindow> Windows, ResetReserve? Reserve, SourceHealth Health = SourceHealth.Healthy,
     string? Message = null, DateTimeOffset? ProviderDataAt = null, bool? UsageAllowed = null, string? PlanType = null)
 {
+    [System.Text.Json.Serialization.JsonIgnore]
+    public DateTimeOffset? HistoryContinuousFrom { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    public long HistoryMaximumGapTicks { get; init; }
     public bool BelongsTo(ProviderAccount account) => AccountId == account.Id && Subject == account.Subject && (account.Scope == "unresolved" || account.ScopeEquals(Scope));
 }
 

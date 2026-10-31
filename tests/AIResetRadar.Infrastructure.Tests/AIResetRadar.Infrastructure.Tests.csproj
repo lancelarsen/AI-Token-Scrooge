@@ -16,6 +16,7 @@
   <Compile Include="../../src/AIResetRadar.App/Presentation/AccountDragLayout.cs" Link="App/AccountDragLayout.cs" />
   <Compile Include="../../src/AIResetRadar.App/Presentation/HorizonViewport.cs" Link="App/HorizonViewport.cs" />
   <Compile Include="../../src/AIResetRadar.App/Presentation/UsageHistory.cs" Link="App/UsageHistory.cs" />
+  <Compile Include="../../src/AIResetRadar.App/Presentation/UsageHistoryCache.cs" Link="App/UsageHistoryCache.cs" />
   <Compile Include="../../src/AIResetRadar.App/Presentation/HistoryDemo.cs" Link="App/HistoryDemo.cs" />
   <Compile Include="../../src/AIResetRadar.App/Presentation/HistoryChartLayout.cs" Link="App/HistoryChartLayout.cs" />
  </ItemGroup>

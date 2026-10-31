@@ -33,19 +33,20 @@ public sealed partial class LocalStore
                 foreach (var alert in alerts) if (AddAlert(events, alert)) inserted.Add(events[^1]);
                 if (inserted.Count > 0) await WriteAlertsAsync(connection, transaction, events, ct);
             }
-            if (historySnapshot is not null) await WriteSnapshotAsync(connection, transaction, historySnapshot, ct);
+            if (historySnapshot is not null) await WriteSnapshotAsync(connection, transaction, historySnapshot, ct,
+                accounts.First(a => historySnapshot.BelongsTo(a)).EffectivePollingMinutes);
             ct.ThrowIfCancellationRequested();
             transaction.Commit(); return inserted;
         }
         finally { gate.Release(); }
     }
-    public async Task RecordSnapshotAsync(AIResetRadar.Core.QuotaSnapshot snapshot, CancellationToken ct = default)
+    public async Task RecordSnapshotAsync(AIResetRadar.Core.QuotaSnapshot snapshot, CancellationToken ct = default, int pollingMinutes = 2)
     {
         await gate.WaitAsync(ct);
         try
         {
             await using var connection = await OpenAsync(ct); using var transaction = connection.BeginTransaction();
-            await WriteSnapshotAsync(connection, transaction, snapshot, ct);
+            await WriteSnapshotAsync(connection, transaction, snapshot, ct, pollingMinutes);
             ct.ThrowIfCancellationRequested();
             transaction.Commit();
         }
@@ -53,22 +54,19 @@ public sealed partial class LocalStore
     }
     public async Task<IReadOnlyList<AIResetRadar.Core.QuotaSnapshot>> HistoryAsync(string accountId, CancellationToken ct = default)
     {
-        await gate.WaitAsync(ct);
-        try
-        {
-            await using var connection = await OpenAsync(ct); await using var command = connection.CreateCommand();
-            command.CommandText = "SELECT value FROM history WHERE account_id=$account ORDER BY observed_at DESC LIMIT 10000"; command.Parameters.AddWithValue("$account", accountId);
-            await using var reader = await command.ExecuteReaderAsync(ct);
-            List<AIResetRadar.Core.QuotaSnapshot> values = [];
-            while (await reader.ReadAsync(ct)) if (JsonSerializer.Deserialize<AIResetRadar.Core.QuotaSnapshot>(reader.GetString(0)) is { } snapshot) values.Add(snapshot);
-            return values;
-        }
-        finally { gate.Release(); }
+        var values = await HistoryAsync(accountId, HistoryRetention.Cutoff(clock.GetUtcNow()), DateTimeOffset.MaxValue, ct: ct);
+        return values.Reverse().Take(10000).ToArray();
     }
     public async Task DeleteHistoryAsync(string accountId)
     {
         await gate.WaitAsync();
-        try { await using var connection = await OpenAsync(default); await using var command = connection.CreateCommand(); command.CommandText = "DELETE FROM history WHERE account_id=$account"; command.Parameters.AddWithValue("$account", accountId); await command.ExecuteNonQueryAsync(); }
+        try
+        {
+            await using var connection = await OpenAsync(default); using var transaction = connection.BeginTransaction();
+            await using var command = connection.CreateCommand(); command.Transaction = transaction;
+            command.CommandText = "DELETE FROM history WHERE account_id=$account; DELETE FROM history_definitions WHERE account_id=$account";
+            command.Parameters.AddWithValue("$account", accountId); await command.ExecuteNonQueryAsync(); transaction.Commit();
+        }
         finally { gate.Release(); }
     }
     public LocalStore(string path, TimeProvider? clock = null)
@@ -112,9 +110,11 @@ public sealed partial class LocalStore
             await connection.OpenAsync(ct);
             await using var command = connection.CreateCommand();
             command.CommandText = "PRAGMA user_version";
-            if (Convert.ToInt64(await command.ExecuteScalarAsync(ct)) > 2) throw new InvalidDataException("This database was created by a newer Scrooge version. Update Scrooge before opening it.");
-            command.CommandText = "CREATE TABLE IF NOT EXISTS state(key TEXT PRIMARY KEY,value TEXT NOT NULL); CREATE TABLE IF NOT EXISTS history(account_id TEXT NOT NULL,observed_at INTEGER NOT NULL,value TEXT NOT NULL,PRIMARY KEY(account_id,observed_at)); CREATE INDEX IF NOT EXISTS history_observed ON history(observed_at); PRAGMA user_version=2;";
+            var version = Convert.ToInt64(await command.ExecuteScalarAsync(ct));
+            if (version > 3) throw new InvalidDataException("This database was created by a newer Scrooge version. Update Scrooge before opening it.");
+            command.CommandText = "CREATE TABLE IF NOT EXISTS state(key TEXT PRIMARY KEY,value TEXT NOT NULL); CREATE TABLE IF NOT EXISTS history(account_id TEXT NOT NULL,observed_at INTEGER NOT NULL,value TEXT NOT NULL,PRIMARY KEY(account_id,observed_at)); CREATE INDEX IF NOT EXISTS history_observed ON history(observed_at);";
             await command.ExecuteNonQueryAsync(ct);
+            if (version < 3) await UpgradeHistoryAsync(connection, ct);
             await PruneAsync(connection, ct); return connection;
         }
         catch { await connection.DisposeAsync(); throw; }
@@ -124,8 +124,13 @@ public sealed partial class LocalStore
         using var transaction = connection.BeginTransaction();
         await using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = "DELETE FROM history WHERE observed_at < $cutoff";
-        command.Parameters.AddWithValue("$cutoff", HistoryRetention.Cutoff(clock.GetUtcNow()).ToUnixTimeMilliseconds()); await command.ExecuteNonQueryAsync(ct);
+        command.CommandText = "DELETE FROM history WHERE last_at < $cutoff AND (last_at <> 0 OR observed_at < $cutoff)";
+        command.Parameters.AddWithValue("$cutoff", HistoryRetention.Cutoff(clock.GetUtcNow()).ToUnixTimeMilliseconds());
+        if (await command.ExecuteNonQueryAsync(ct) > 0)
+        {
+            command.CommandText = PruneDefinitionsSql;
+            await command.ExecuteNonQueryAsync(ct);
+        }
         command.Parameters.Clear(); command.CommandText = "SELECT value FROM state WHERE key='alerts'";
         if (await command.ExecuteScalarAsync(ct) is string json)
         {

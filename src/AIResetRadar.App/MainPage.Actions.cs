@@ -91,7 +91,7 @@ public sealed partial class MainPage
                     try
                     {
                         state.Snapshots[account.Id] = snapshot;
-                        await AppServices.Current.Store.RecordSnapshotAsync(snapshot);
+                        await AppServices.Current.Store.RecordSnapshotAsync(snapshot, pollingMinutes: account.EffectivePollingMinutes);
                         if (!Current()) continue;
                         await EvaluateAlertsAsync(account, previous, snapshot);
                     }

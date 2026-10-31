@@ -54,10 +54,11 @@ public static class UsageHistory
         var ordered = snapshots.Where(s => s.AccountId == account.Id && s.ObservedAt <= through)
             .OrderBy(s => s.ObservedAt).GroupBy(s => s.ObservedAt).Select(g => g.Last()).ToArray();
         var prior = ordered.LastOrDefault(s => s.ObservedAt < from);
-        var interval = pollingInterval ?? TimeSpan.FromMinutes(account.Provider == "OpenAI" ? 2 : 5);
+        var interval = pollingInterval ?? TimeSpan.FromMinutes(account.EffectivePollingMinutes);
         var cadenceTicks = Math.Clamp(interval.Ticks, 0, TimeSpan.MaxValue.Ticks / 3);
         var maxGap = TimeSpan.FromTicks(Math.Max(TimeSpan.FromMinutes(15).Ticks, cadenceTicks * 3));
         var relevant = ordered.Where(s => s.ObservedAt >= from || ReferenceEquals(s, prior)).ToArray();
+        var continuousAnchors = relevant.Where(s => s.HistoryContinuousFrom.HasValue).Select(s => s.HistoryContinuousFrom!.Value).ToHashSet();
         var current = ordered.LastOrDefault(s => s.BelongsTo(account));
         var plan = PlanLabels.Display(account.Provider, current?.PlanType);
         List<HistoryPoint> points = [];
@@ -117,14 +118,15 @@ public static class UsageHistory
                 continue;
             }
             // An old anchor is useful only when a nearby real sample can connect to it.
-            if (snapshot.ObservedAt < from && from - snapshot.ObservedAt > maxGap) continue;
+            if (snapshot.ObservedAt < from && from - snapshot.ObservedAt > maxGap && !continuousAnchors.Contains(snapshot.ObservedAt)) continue;
             var starts = previousPoint is null || previousWindow is null || previousSnapshot is null ||
                 window.Id != previousWindow.Id ||
                 window.Unit != previousWindow.Unit || window.Limit != previousWindow.Limit ||
                 window.AllowanceSource != previousWindow.AllowanceSource || snapshot.PlanType != previousSnapshot.PlanType ||
                 !string.Equals(snapshot.Scope, previousSnapshot.Scope,
                     account.Provider == "GitHub Copilot" ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
-            var estimated = !starts && (missedObservation || snapshot.ObservedAt - previousPoint!.At > maxGap);
+            var estimated = !starts && (missedObservation || snapshot.ObservedAt - previousPoint!.At > maxGap &&
+                (snapshot.HistoryContinuousFrom != previousPoint.At || snapshot.HistoryMaximumGapTicks > maxGap.Ticks));
             var replenished = !starts && !estimated && remaining > previousPoint!.RemainingPercent;
             var point = new HistoryPoint(snapshot.ObservedAt, remaining, window.Id, starts,
                 starts ? null : previousPoint!.At, replenished ? previousPoint!.RemainingPercent : null, estimated);

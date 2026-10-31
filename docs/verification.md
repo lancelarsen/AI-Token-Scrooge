@@ -454,3 +454,11 @@ All 288 tests passed, including new earliest-sample, empty-history, and adaptive
 - Kept marker centers, exact timestamp positions, collision lanes, colors and group counts. Release publish succeeded; restarted the latest build with existing accounts and updated the desktop shortcut.
 - Compared the running historical reset circle with the user's flat-bottom screenshot: complete circular lower edge is visible at multiple scrolled positions. Clicking opens the same History Event details. This drawing-only correction was checked in the native app; no unit tests added.
 
+
+### 2026-10-31 - Compact History and Incremental Graph Cache
+- Schema v3 replaces repeated full snapshots with shared metadata plus numeric run payloads, first/last measured and provider timestamps, observation counts, cadence and maximum gap. Changes in any quota window, allowance, plan/identity/health, credits, reset times, cadence or elapsed reset boundaries preserve a separate run.
+- Automatic SQLite backup before transactional streaming migration; rollback regression passes. Reclaims free database pages after conversion where possible. Newer schema is protected from older binaries. See docs/history-storage.md.
+- Graph loads the initial bounded range, then uses an account/revision index to request only new or extended runs. Immutable cache replaces extended endpoints and checks cancellation/signatures before adoption. Existing pixel downsampling, extrema, replenishments, gap edges, exact timestamps and equal-day geometry remain in place.
+- All 314 tests passed. Fresh local database copy: 8,053 raw observations retained in 3,434 runs; 8,048 graph-eligible values and both historical events matched the original; database bytes 8,830,976 to 1,396,736; payload plus metadata 6,731,354 to 503,999; integrity ok. Migration and comparison took about 3.2 seconds on this machine.
+- Release publish succeeded; live profile upgraded to v3 with its backup present, integrity ok, and continued recording. Native history curve, reset marker, scrolling and manual refresh were checked against the existing Reset Horizon reference. SQL query plan confirmed indexed account/revision delta reads. Restarted final build and updated desktop shortcut.
+

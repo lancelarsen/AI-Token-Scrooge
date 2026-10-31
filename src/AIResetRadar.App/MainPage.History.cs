@@ -10,6 +10,7 @@ public sealed partial class MainPage
     HorizonView? horizon;
     HistoryPreferences historyPreferences = new();
     HistorySeries[] usageHistory = [];
+    Dictionary<string, UsageHistoryCache> historyCache = [];
     CancellationTokenSource? historyRead;
     readonly SemaphoreSlim historySave = new(1, 1);
     string? historyReadSignature;
@@ -59,6 +60,8 @@ public sealed partial class MainPage
     {
         try
         {
+            var cached = historyCache;
+            var updatedCache = new Dictionary<string, UsageHistoryCache>();
             var data = await Task.Run(async () => {
                 if (demo) return HistoryDemo.Build(accounts, snapshots, now, zone);
                 var range = new HorizonViewport(now, null, zone, 700);
@@ -66,12 +69,20 @@ public sealed partial class MainPage
                 foreach (var account in accounts)
                 {
                     ct.ThrowIfCancellationRequested();
-                    var observations = await AppServices.Current.Store.HistoryAsync(account.Id, range.StartAt, now, includePreceding: true, ct: ct);
-                    result.Add(UsageHistory.Build(account, observations, range.StartAt, now));
+                    var prior = cached.GetValueOrDefault(account.Id);
+                    if (prior is not null && !prior.Covers(account, range.StartAt)) prior = null;
+                    // The database revision also notices an extended unchanged interval.
+                    // All cached state is replaced only after this load wins the signature check.
+                    var page = await AppServices.Current.Store.HistoryPageAsync(account.Id, range.StartAt, now,
+                        afterRevision: prior?.Revision, ct: ct);
+                    var next = (prior ?? new UsageHistoryCache(account, range.StartAt, 0, [])).Append(account, range.StartAt, page);
+                    updatedCache.Add(account.Id, next);
+                    result.Add(next.Build(now));
                 }
                 return result.ToArray();
             }, ct);
             if (ct.IsCancellationRequested || historyReadSignature != signature) return;
+            historyCache = updatedCache;
             usageHistory = data; historyLoading = false; historyError = null;
             horizon?.Update(state.Events(DateTimeOffset.Now), OrderedUsageHistory(), historyPreferences, DisplayZone, DateTimeOffset.Now);
         }
