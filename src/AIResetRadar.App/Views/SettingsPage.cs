@@ -120,6 +120,16 @@ public sealed class SettingsPage : ContentPage
             var polling = new Slider { Minimum = 1, Maximum = 30, Value = account.EffectivePollingMinutes,
                 MinimumTrackColor = Color.FromArgb("#A990ED"), MaximumTrackColor = Color.FromArgb("#41434F"),
                 ThumbColor = Color.FromArgb("#C3ADF8") };
+            polling.HandlerChanged += (_, _) =>
+            {
+                if (polling.Handler?.PlatformView is Microsoft.UI.Xaml.Controls.Slider native)
+                {
+                    native.TickFrequency = 1;
+                    native.TickPlacement = Microsoft.UI.Xaml.Controls.Primitives.TickPlacement.Inline;
+                    native.StepFrequency = 1;
+                    native.SnapsTo = Microsoft.UI.Xaml.Controls.Primitives.SliderSnapsTo.Ticks;
+                }
+            };
             var pollingLabel = new Label { WidthRequest = 190, VerticalOptions = LayoutOptions.Center };
             void UpdatePollingLabel() => pollingLabel.Text = $"Polling Interval: {polling.Value:0} Min";
             UpdatePollingLabel();
