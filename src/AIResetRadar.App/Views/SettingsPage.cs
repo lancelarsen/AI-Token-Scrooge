@@ -117,19 +117,22 @@ public sealed class SettingsPage : ContentPage
             }
             name.Unfocused += async (_, _) => await RenameAsync();
             name.Completed += async (_, _) => await RenameAsync();
-            var polling = new Entry { Text = account.EffectivePollingMinutes.ToString(), Keyboard = Keyboard.Numeric,
-                WidthRequest = 100, HorizontalTextAlignment = TextAlignment.End };
-            SemanticProperties.SetDescription(polling, "Polling Interval in Minutes, 1 to 1440");
-            var pollingRow = new Grid { ColumnDefinitions = [new(GridLength.Star), new(GridLength.Auto)], ColumnSpacing = 12 };
-            pollingRow.Add(new Label { Text = "Polling Interval (Minutes)", VerticalOptions = LayoutOptions.Center });
+            var polling = new Slider { Minimum = 1, Maximum = 30, Value = account.EffectivePollingMinutes,
+                MinimumTrackColor = Color.FromArgb("#A990ED"), MaximumTrackColor = Color.FromArgb("#41434F"),
+                ThumbColor = Color.FromArgb("#C3ADF8") };
+            var pollingLabel = new Label { WidthRequest = 190, VerticalOptions = LayoutOptions.Center };
+            void UpdatePollingLabel() => pollingLabel.Text = $"Polling Interval: {polling.Value:0} Min";
+            UpdatePollingLabel();
+            SemanticProperties.SetDescription(polling, "Polling Interval in Minutes, 1 to 30");
+            var pollingRow = new Grid { ColumnDefinitions = [new(GridLength.Auto), new(GridLength.Star)], ColumnSpacing = 12 };
+            pollingRow.Add(pollingLabel);
             pollingRow.Add(polling, 1); form.Children.Add(pollingRow);
             async Task SavePollingAsync()
             {
                 await saveGate.WaitAsync();
                 try
                 {
-                    if (!int.TryParse(polling.Text, out var minutes) || minutes is < 1 or > 1440)
-                    { status.Text = "Enter a Polling Interval From 1 to 1440 Minutes"; return; }
+                    var minutes = (int)Math.Round(polling.Value);
                     if (minutes != Latest().EffectivePollingMinutes)
                         await update(Latest() with { PollingMinutes = minutes }, false);
                     status.Text = "";
@@ -137,8 +140,13 @@ public sealed class SettingsPage : ContentPage
                 catch { status.Text = "Polling Interval Could Not Be Saved - Try Again"; }
                 finally { saveGate.Release(); }
             }
-            polling.Unfocused += async (_, _) => await SavePollingAsync();
-            polling.Completed += async (_, _) => await SavePollingAsync();
+            polling.ValueChanged += async (_, _) =>
+            {
+                var rounded = Math.Round(polling.Value);
+                if (Math.Abs(polling.Value - rounded) > 0.001) { polling.Value = rounded; return; }
+                UpdatePollingLabel();
+                await SavePollingAsync();
+            };
             flushAccountName = async () => { await RenameAsync(); await SavePollingAsync(); };
             var enabled = Toggle("Monitor This Account", account.Enabled);
             var syncing = false;

@@ -24,9 +24,10 @@ public class RefreshScheduleTests
     [Theory]
     [InlineData(1, 1)]
     [InlineData(15, 15)]
-    [InlineData(1440, 1440)]
+    [InlineData(30, 30)]
+    [InlineData(1440, 30)]
     [InlineData(0, 1)]
-    [InlineData(int.MaxValue, 1440)]
+    [InlineData(int.MaxValue, 30)]
     public void CustomIntervalIsBoundedAndUsed(int configured, int expected) =>
         Assert.Equal(Now.AddMinutes(expected), RefreshSchedule.AfterSuccess(Snapshot(Now.AddDays(2)), Account(minutes: configured), Now));
 

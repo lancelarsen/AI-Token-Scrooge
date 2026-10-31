@@ -9,7 +9,7 @@ public sealed record ProviderAccount(string Id, string Provider, string Nickname
     bool Enabled = true, decimal? Allowance = null, UsageUnit Unit = UsageUnit.Credits, string? Login = null, string? CredentialId = null,
     int PollingMinutes = 2)
 {
-    public int EffectivePollingMinutes => Math.Clamp(PollingMinutes, 1, 1440);
+    public int EffectivePollingMinutes => Math.Clamp(PollingMinutes, 1, 30);
     public bool ScopeEquals(string? other) => string.Equals(Scope, other, Provider == "GitHub Copilot" ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
 }
 

@@ -442,3 +442,9 @@ All 288 tests passed, including new earliest-sample, empty-history, and adaptive
 - All 305 tests passed, covering defaults for all providers, custom interval bounds, old JSON compatibility, serialization and reconnection. Updated a headless test fixture missing the existing row refresh hook.
 - Release publish succeeded, restarted with existing accounts and updated shortcut. Native Account settings card matched the existing layout; changed Pro from 2 to 3 and confirmed SQLite persistence and account isolation, then restored the test value to 2.
 
+
+### 2026-10-30 - Polling Interval Slider
+- Replaced the numeric polling entry with the existing purple slider design and an inline selected-minute label. Range is 1-30 minutes, snapping to whole minutes and auto-saving on changes; default remains 2 minutes. Effective scheduler values are bounded to the same range, including older saved settings.
+- All 306 tests passed; Release publish succeeded. Restarted the app with existing accounts and updated its desktop shortcut.
+- Compared the native Account card with the existing settings controls. Dragged from 2 to 4 minutes and verified the saved account value in SQLite; restored to 2 and confirmed all four accounts remain at 2 minutes. Checked restored and maximized desktop window layouts.
+

@@ -45,7 +45,7 @@ In global **Settings**, quiet hours use two draggable endpoints plus From/Until 
 
 ## Data and credentials
 
-Each account's settings include an auto-saved **Polling Interval (Minutes)**, from 1 to 1,440 minutes, defaulting to 2 minutes for every provider. Known quota reset/credit expiration boundaries can trigger an earlier refresh; provider retry waits and error backoff take priority. Reconnecting preserves the selected interval.
+Each account's settings include an auto-saved **Polling Interval** slider, from 1 to 30 minutes in whole-minute steps, defaulting to 2 minutes for every provider. Known quota reset/credit expiration boundaries can trigger an earlier refresh; provider retry waits and error backoff take priority. Reconnecting preserves the selected interval.
 
 For reliable Windows notification activation and launch-at-sign-in, extract the preview into a stable folder before running it. Startup registration points to that executable path; moving or deleting it can break startup. After moving the app, launch it from the new location and re-save the launch-at-sign-in setting if enabled. Run normally, not as administrator: Windows App SDK notifications are unsupported in elevated apps. See [Microsoft's notification guidance](https://learn.microsoft.com/en-us/windows/apps/develop/notifications/app-notifications/app-notifications-quickstart).
 
