@@ -462,3 +462,9 @@ All 288 tests passed, including new earliest-sample, empty-history, and adaptive
 - All 314 tests passed. Fresh local database copy: 8,053 raw observations retained in 3,434 runs; 8,048 graph-eligible values and both historical events matched the original; database bytes 8,830,976 to 1,396,736; payload plus metadata 6,731,354 to 503,999; integrity ok. Migration and comparison took about 3.2 seconds on this machine.
 - Release publish succeeded; live profile upgraded to v3 with its backup present, integrity ok, and continued recording. Native history curve, reset marker, scrolling and manual refresh were checked against the existing Reset Horizon reference. SQL query plan confirmed indexed account/revision delta reads. Restarted final build and updated desktop shortcut.
 
+
+### 2026-10-31 - Full-Width History-Off Timeline Rail
+- Extended the rail through the full width of every day cell, including the outer halves before Today and after the last day. Uses one uninterrupted line per cell rather than two spaced half-lines.
+- Day column widths, marker centers and service icon alignment are unchanged. Release publish succeeded; restarted latest build with existing accounts and updated desktop shortcut.
+- Compared History-off against the user's History-on reference in the native app at desktop and 800px compact window widths. Rail reaches both edges and consecutive days remain evenly spaced. Restored normal window size. Drawing-only change verified visually; no new unit tests added.
+

@@ -142,14 +142,14 @@ public sealed class HorizonView : Border
             column.Children.Add(new Label { Text = day.IsToday ? "Today" : day.Date.ToString("ddd"), FontSize = 14,
                 FontFamily = "Segoe UI Semibold", TextColor = color, HorizontalTextAlignment = TextAlignment.Center });
             column.Children.Add(new Label { Text = day.Date.ToString("MMM d"), FontSize = 12, TextColor = Color.FromArgb("#BEC1D2"), HorizontalTextAlignment = TextAlignment.Center });
-            var line = new Grid { HeightRequest = 22, ColumnDefinitions = [new(GridLength.Star), new(GridLength.Star)] };
-            if (i > 0) line.Add(new BoxView { Color = Color.FromArgb("#8170B7"), HeightRequest = 2, VerticalOptions = LayoutOptions.Center });
-            if (i < days.Length - 1) line.Add(new BoxView { Color = Color.FromArgb("#8170B7"), HeightRequest = 2, VerticalOptions = LayoutOptions.Center }, 1);
+            // Fill every day cell, including its outer halves, to match the history rail.
+            var line = new Grid { HeightRequest = 22 };
+            line.Add(new BoxView { Color = Color.FromArgb("#8170B7"), HeightRequest = 2, VerticalOptions = LayoutOptions.Center });
             var marker = new Border { WidthRequest = day.IsToday ? 16 : 10, HeightRequest = day.IsToday ? 16 : 10,
                 BackgroundColor = day.IsToday || day.Events.Length > 0 ? color : Color.FromArgb("#1C1E24"),
                 Stroke = color, StrokeThickness = 2, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center,
                 StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 8 } };
-            line.Add(marker); Grid.SetColumnSpan(marker, 2);
+            line.Add(marker);
             SemanticProperties.SetDescription(marker, $"{(day.IsToday ? "Today, " : "")}{day.Date:dddd, MMMM d}. {day.Events.Length} scheduled events.");
             column.Children.Add(line);
             foreach (var e in day.Events)
