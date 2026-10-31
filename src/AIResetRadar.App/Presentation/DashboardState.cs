@@ -6,8 +6,10 @@ public sealed record QuotaRow(ProviderAccount Account, QuotaSnapshot Snapshot, Q
     public string AccountLabel => $"{Account.Nickname} · {PlanLabels.Display(Account.Provider, Snapshot.PlanType)}";
     public string WindowTitle => UiTitle.CapitalizeWords(Window.Name);
     public bool IsWarning => Window.Capacity(Low, Critical) is CapacityState.Low or CapacityState.Critical or CapacityState.Exhausted;
-    public string UsedText => Window.Used is { } used ? Window.Unit == UsageUnit.Percent ? $"{used:0.#}% used" : $"{used:N0} used" : "Usage unavailable";
-    public string LeftText => Window.Unit == UsageUnit.Percent ? Window.RemainingPercent is { } percent ? $"{percent:0.#}% left" : "Left unavailable" :
+    bool DisplayPercent => Window.Unit == UsageUnit.Percent || Account.Provider == "GitHub Copilot";
+    public string UsedText => DisplayPercent ? Window.UsedPercent is { } percent ? $"{percent:0.#}% used" : "Usage unavailable" :
+        Window.Used is { } used ? $"{used:N0} used" : "Usage unavailable";
+    public string LeftText => DisplayPercent ? Window.RemainingPercent is { } percent ? $"{percent:0.#}% left" : "Left unavailable" :
         Window.Remaining is { } left ? left < 0 ? $"{-left:N0} over" : $"{left:N0} left" : "Limit unavailable";
     public string CardNote => Snapshot.Health == SourceHealth.Healthy && Snapshot.UsageAllowed != false &&
         (Account.Provider == "Claude" || Snapshot.Message is "Allowance reported by GitHub; billing usage may lag.") ? "" : SourceNote;
