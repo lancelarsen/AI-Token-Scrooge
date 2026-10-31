@@ -46,6 +46,7 @@ public sealed partial class MainPage
             }
             preferences = settings; state.Settings = settings;
             if (renderDashboard) Render();
+            else foreach (var row in rowViews) row.UpdateAlertRules(settings);
             UpdateTray();
         }
         finally { preferenceChanges.Release(); }

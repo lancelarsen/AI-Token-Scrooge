@@ -7,6 +7,30 @@ public class AlertTests
     static QuotaSnapshot Snapshot(decimal used, DateTimeOffset? reset = null, SourceHealth health = SourceHealth.Healthy, bool? allowed = null) =>
         new("a", "sample", "workspace", Now, [new("weekly", "Codex weekly", UsageUnit.Percent, used, 100, reset ?? Now.AddDays(20))], null, health, UsageAllowed: allowed);
 
+    [Fact] public void RowMuteSuppressesRefreshAndRestoredAlertsAndPendingDelivery()
+    {
+        var current = Snapshot(10, Now.AddHours(1), allowed: true);
+        var settings = new RadarSettings().WithCapacityAlerts("a", "weekly", false);
+        var pending = AlertEvaluator.Evaluate(Account, Snapshot(100), current, new(), Now);
+        Assert.Contains(pending, a => a.IsRefreshReminder);
+        Assert.Contains(pending, a => a.Key.EndsWith("/restored"));
+        Assert.Empty(AlertEvaluator.Evaluate(Account, Snapshot(100), current, settings, Now));
+        Assert.All(pending, a => Assert.False(AlertEvaluator.IsEnabled(a, settings, current)));
+    }
+
+    [Fact] public void AccountResetExpirationIsMutedOnlyWhenAllRowsAreMuted()
+    {
+        var current = Snapshot(10) with { Reserve = new(1, [new("credit", "available", Now.AddHours(1))]) };
+        var settings = new RadarSettings().WithCapacityAlerts("a", "weekly", false);
+        var pending = Assert.Single(AlertEvaluator.Evaluate(Account, null, current, new(), Now));
+        Assert.Empty(AlertEvaluator.Evaluate(Account, null, current, settings, Now));
+        Assert.False(AlertEvaluator.IsEnabled(pending, settings, current));
+        var second = current.Windows[0] with { Id = "short" };
+        var mixed = current with { Windows = [current.Windows[0], second] };
+        Assert.Single(AlertEvaluator.Evaluate(Account, null, mixed, settings, Now));
+        Assert.Single(AlertEvaluator.Evaluate(Account with { Id = "b" }, null, current with { AccountId = "b" }, settings, Now));
+    }
+
     [Fact] public void MultiThresholdJumpEmitsOnlyMostSevereEvent()
     {
         var alert = Assert.Single(AlertEvaluator.Evaluate(Account, Snapshot(10), Snapshot(98), new(), Now));
@@ -32,13 +56,12 @@ public class AlertTests
         Assert.Contains("critical", Assert.Single(AlertEvaluator.Evaluate(Account, null, Snapshot(98), settings, Now)).Key);
         Assert.Equal(40, settings.RuleFor("a", "weekly").LowThreshold);
     }
-    [Fact] public void BarSwitchKeepsRestorationAndEarnedResetReminders()
+    [Fact] public void BarSwitchMutesRestorationAndEarnedResetReminders()
     {
         var settings = new RadarSettings().WithCapacityAlerts("a", "weekly", false);
         var restored = Snapshot(0, allowed: true) with { Reserve = new(1, [new("c", "available", Now.AddMinutes(30))]) };
         var alerts = AlertEvaluator.Evaluate(Account, Snapshot(100), restored, settings, Now);
-        Assert.Contains(alerts, a => a.Key.EndsWith("/restored"));
-        Assert.Contains(alerts, a => a.WindowId is null);
+        Assert.Empty(alerts);
     }
     [Fact] public void BarChoicesRoundTripAndOlderSettingsDefaultToOn()
     {

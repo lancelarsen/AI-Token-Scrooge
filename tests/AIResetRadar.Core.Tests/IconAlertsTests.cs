@@ -32,4 +32,12 @@ public class IconAlertsTests
         var data = Snapshots(55); data["a"] = data["a"] with { Reserve = new(1, [new("c", "available", Now.AddMinutes(30))]) };
         Assert.Equal(ReminderSeverity.Critical, IconAlerts.Evaluate([Account], data, new(), Now)!.Severity);
     }
+    [Fact] public void MutedRowDoesNotRaiseRefreshOrExpirationIconAlerts()
+    {
+        var data = Snapshots(0);
+        data["a"] = data["a"] with { Windows = [data["a"].Windows[0] with { ResetsAt = Now.AddHours(1) }],
+            Reserve = new(1, [new("c", "available", Now.AddHours(1))]) };
+        Assert.NotNull(IconAlerts.Evaluate([Account], data, new(), Now));
+        Assert.Null(IconAlerts.Evaluate([Account], data, new RadarSettings().WithCapacityAlerts("a", "w", false), Now));
+    }
 }

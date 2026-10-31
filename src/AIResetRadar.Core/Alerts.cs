@@ -5,8 +5,11 @@ public sealed record AlertEvent(string Key, string AccountId, string? WindowId, 
 
 public static class AlertEvaluator
 {
-    public static bool IsEnabled(AlertEvent alert, RadarSettings settings)
+    public static bool IsEnabled(AlertEvent alert, RadarSettings settings, QuotaSnapshot? snapshot = null)
     {
+        if (alert.WindowId is { } mutedWindow && !settings.CapacityAlertsEnabled(alert.AccountId, mutedWindow)) return false;
+        if (alert.ReminderId is not null && !alert.IsRefreshReminder && snapshot is not null &&
+            snapshot.Windows.Count > 0 && !snapshot.Windows.Any(w => settings.CapacityAlertsEnabled(alert.AccountId, w.Id))) return false;
         if (alert.ReminderId is { } id)
             return (alert.IsRefreshReminder || settings.RuleFor(alert.AccountId).Expiry) &&
                 (alert.IsRefreshReminder ? settings.EffectiveRefreshReminders : settings.EffectiveResetReminders).Any(r => r.Id == id && r.IsValid);
@@ -27,6 +30,7 @@ public static class AlertEvaluator
         List<AlertEvent> alerts = [];
         foreach (var window in current.Windows)
         {
+            if (!settings.CapacityAlertsEnabled(account.Id, window.Id)) continue;
             var priorWindow = previous?.Windows.FirstOrDefault(w => w.Id == window.Id);
             if (window.ResetsAt is { } refresh && TimedReminder.Due(settings.EffectiveRefreshReminders, refresh, now) is { } reminder &&
                 !IsMovingEstimate(priorWindow?.ResetsAt, refresh, previous?.ObservedAt, reminder, settings, now))
@@ -55,7 +59,7 @@ public static class AlertEvaluator
             if (TimedReminder.Due(settings.EffectiveResetReminders, expiry, now) is { } reminder)
                 alerts.Add(Reminder(account, null, credit.Id, expiry, reminder, false, settings, now, "Earned Reset"));
         }
-        return alerts;
+        return alerts.Where(alert => IsEnabled(alert, settings, current)).ToArray();
     }
     // Some providers recompute a rolling reset estimate on each read. Do not repeat the
     // same milestone solely because that future timestamp moved by a few minutes.

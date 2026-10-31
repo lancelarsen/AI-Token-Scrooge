@@ -22,7 +22,7 @@ public sealed class QuotaRowView : Border
         if (countdown is not null) countdown.Text = CountdownLabel(resetsAt, now);
         if (resetIcon is not null)
         {
-            var severity = resetsAt is { } at ? TimedReminder.Due(alertSettings.EffectiveRefreshReminders, at, now)?.Severity : null;
+            var severity = alertSettings.CapacityAlertsEnabled(row.Account.Id, row.Window.Id) && resetsAt is { } at ? TimedReminder.Due(alertSettings.EffectiveRefreshReminders, at, now)?.Severity : null;
             resetIcon.TextColor = Color.FromArgb(severity switch { ReminderSeverity.Critical => "#F05B69", ReminderSeverity.Warning => "#F2C94C", ReminderSeverity.Info => "#58A6FF", _ => "#B5A0F4" });
         }
     }
@@ -56,7 +56,7 @@ public sealed class QuotaRowView : Border
             $"{row.Account.Provider} / {row.AccountLabel} · {row.WindowTitle}", saveThresholds, thresholdInteraction, row.Window.Fill);
         bar.AddAlertEditor(details, thresholds);
         var capacityToggle = new CapacityAlertToggle(capacityAlertsEnabled,
-            $"Capacity Alerts · {row.Account.Provider} / {row.AccountLabel} · {row.WindowTitle}", async enabled => {
+            $"Row Alerts · {row.Account.Provider} / {row.AccountLabel} · {row.WindowTitle}", async enabled => {
                 if (!await saveCapacityAlerts(enabled)) return false;
                 thresholds.SetAlertsEnabled(enabled); return true;
             });

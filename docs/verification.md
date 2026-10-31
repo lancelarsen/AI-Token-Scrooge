@@ -423,3 +423,10 @@ All 288 tests passed, including new earliest-sample, empty-history, and adaptive
 - Increased shared snapshot/alert retention from 30 to 45 days; updated README and cleanup tests, including retaining a 44-day-old observation and removing a 46-day-old observation.
 - All 293 tests passed; Release publish succeeded. Restarted the latest build with existing accounts and updated the desktop shortcut; native dashboard confirmed successful loading.
 - Read-only database audit before restart: 7,931 history rows across four accounts, seven state rows, 8,699,904 bytes (8.3 MiB), mean snapshot JSON 837 bytes. Retention change cannot recover observations already pruned under the old policy.
+
+### 2026-10-30 - Row Alarm Switch Mutes Timed Alerts
+- Row alarm-off now suppresses usage, quota-refresh and capacity-restored alerts, including delivery rechecks after saving an alert intent and tray/taskbar icon severity.
+- Account-wide earned reset expiration reminders are suppressed when every reported usage row is muted; when some rows remain on, account-wide credits remain eligible because providers do not identify a row for those credits.
+- Muted row reset clocks retain the normal purple color. Switching alarms updates clock styling immediately without recreating dashboard rows. Tooltip now says Row Alerts.
+- All 296 tests passed, including pending-delivery, account isolation, mixed enabled rows, and icon suppression regressions. Release publish succeeded and the latest app was restarted with existing accounts; desktop shortcut updated.
+- Native dashboard verification used the existing service rows as reference. Confirmed persisted muted Claude/Plus rows show purple clocks; toggled Copilot off and observed its red clock immediately turn purple, then restored Copilot to its original on setting. Live timed popup delivery was covered by evaluator tests rather than waiting for a real milestone.
