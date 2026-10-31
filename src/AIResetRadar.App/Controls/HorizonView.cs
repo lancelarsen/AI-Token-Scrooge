@@ -139,9 +139,7 @@ public sealed class HorizonView : Border
             grid.ColumnDefinitions.Add(new(new GridLength(cellWidth)));
             var color = Color.FromArgb(day.IsToday ? "#D1BEFF" : "#B5A0F4");
             var column = new VerticalStackLayout { Spacing = 7 };
-            column.Children.Add(new Label { Text = day.IsToday ? "Today" : day.Date.ToString("ddd"), FontSize = 14,
-                FontFamily = "Segoe UI Semibold", TextColor = color, HorizontalTextAlignment = TextAlignment.Center });
-            column.Children.Add(new Label { Text = day.Date.ToString("MMM d"), FontSize = 12, TextColor = Color.FromArgb("#BEC1D2"), HorizontalTextAlignment = TextAlignment.Center });
+            column.Children.Add(new TimelineDayHeading(day.Date, day.IsToday));
             // Fill every day cell, including its outer halves, to match the history rail.
             var line = new Grid { HeightRequest = 22 };
             line.Add(new BoxView { Color = Color.FromArgb("#8170B7"), HeightRequest = 2, VerticalOptions = LayoutOptions.Center });

@@ -468,3 +468,7 @@ All 288 tests passed, including new earliest-sample, empty-history, and adaptive
 - Day column widths, marker centers and service icon alignment are unchanged. Release publish succeeded; restarted latest build with existing accounts and updated desktop shortcut.
 - Compared History-off against the user's History-on reference in the native app at desktop and 800px compact window widths. Rail reaches both edges and consecutive days remain evenly spaced. Restored normal window size. Drawing-only change verified visually; no new unit tests added.
 
+### 2026-10-31 - Matching Timeline Typography and Top Alignment
+- Both horizon modes now reuse native day/date headings: 14px Segoe UI Semibold weekdays and 12px Segoe UI dates, with the existing non-history spacing. History headings start at the top of the section; its rail and event markers follow the measured heading height. Plan badges also use the existing semibold face.
+- All 22 HorizonViewport geometry tests passed and Release publish succeeded. Compared History on/off in the running Windows app at desktop and 800px compact widths: weekday, date and rail heights match. Used the non-history timeline as the reference, restored History on and restarted the latest normal desktop build; shortcut targets that build.
+

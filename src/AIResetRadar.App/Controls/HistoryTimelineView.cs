@@ -9,7 +9,9 @@ public sealed class HistoryTimelineView : Grid
 {
     static readonly Color Accent = Color.FromArgb("#B5A0F4");
     static readonly Color Muted = Color.FromArgb("#BEC1D2");
-    const float PlotTop = 108, AxisLeft = 40, PlotRight = 12;
+    const float AxisLeft = 40, PlotRight = 12;
+    float railY = 60;
+    float PlotTop => railY + 32;
     static readonly DateOnly CoordinateAnchor = new(2000, 1, 1);
     float plotBottom = 256;
     readonly VerticalStackLayout selectors = new() { Spacing = 9, Padding = new Thickness(3, 8, 10, 0) };
@@ -19,6 +21,8 @@ public sealed class HistoryTimelineView : Grid
     readonly Button chartInput = new() { Text = "", BackgroundColor = Colors.Transparent, BorderWidth = 0, Padding = 0,
         HeightRequest = -1, HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Fill };
     readonly AbsoluteLayout eventsLayer = new() { InputTransparent = true, CascadeInputTransparent = false };
+    readonly AbsoluteLayout headingsLayer = new() { InputTransparent = true };
+    readonly Dictionary<DateOnly, TimelineDayHeading> dayHeadings = [];
     readonly GraphicsView navigator = new() { HeightRequest = 22 };
     readonly Button navigatorInput = new() { Text = "", BackgroundColor = Colors.Transparent, BorderWidth = 0, Padding = 0,
         HeightRequest = -1, HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Fill };
@@ -56,7 +60,7 @@ public sealed class HistoryTimelineView : Grid
         selectorScroll = new ScrollView { Content = selectors, HeightRequest = 294, VerticalScrollBarVisibility = ScrollBarVisibility.Never };
         var rail = new Grid { ColumnDefinitions = [new(GridLength.Star), new(new GridLength(1))] };
         rail.Add(selectorScroll); rail.Add(new BoxView { Color = Color.FromArgb("#383B46"), Margin = new Thickness(0, 6) }, 1);
-        this.Add(rail); chartHost.Add(chart); chartHost.Add(chartInput); chartHost.Add(eventsLayer); chartHost.Add(status); this.Add(chartHost, 1);
+        this.Add(rail); chartHost.Add(chart); chartHost.Add(chartInput); chartHost.Add(headingsLayer); chartHost.Add(eventsLayer); chartHost.Add(status); this.Add(chartHost, 1);
         var navigatorHost = new Grid { HeightRequest = 22 };
         navigatorHost.Add(navigator); navigatorHost.Add(navigatorInput);
         this.Add(navigatorHost, 0, 1); Grid.SetColumnSpan((BindableObject)navigatorHost, 2);
@@ -140,7 +144,42 @@ public sealed class HistoryTimelineView : Grid
 
     void Redraw()
     {
-        LayoutEvents(); UpdateStatus(); chart.Invalidate(); navigator.Invalidate();
+        LayoutDayHeadings(); LayoutEvents(); UpdateStatus(); chart.Invalidate(); navigator.Invalidate();
+    }
+
+    void LayoutDayHeadings()
+    {
+        if (chart.Width <= 0) return;
+        HashSet<DateOnly> active = [];
+        var first = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(model.VisibleStart, zone).DateTime);
+        for (var date = first; date <= model.LastDate; date = date.AddDays(1))
+        {
+            var x = AxisLeft + model.FutureDayPosition(date) - model.ScrollOffset;
+            if (x > AxisLeft + Span) break;
+            if (x < AxisLeft) continue;
+            active.Add(date);
+            if (!dayHeadings.TryGetValue(date, out var heading))
+            {
+                heading = new TimelineDayHeading(date, date == model.Today);
+                heading.SizeChanged += (_, _) => AlignDayRail();
+                dayHeadings.Add(date, heading); headingsLayer.Add(heading);
+            }
+            heading.UpdateToday(date == model.Today);
+            AbsoluteLayout.SetLayoutBounds(heading, new Rect(x - model.PixelsPerDay / 2, 0, model.PixelsPerDay, AbsoluteLayout.AutoSize));
+        }
+        foreach (var date in dayHeadings.Keys.Where(date => !active.Contains(date)).ToArray())
+        { headingsLayer.Remove(dayHeadings[date]); dayHeadings.Remove(date); }
+    }
+
+    void AlignDayRail()
+    {
+        var headingHeight = dayHeadings.Values.Select(h => h.Height).DefaultIfEmpty().Max();
+        if (headingHeight <= 0) return;
+        // Same 7px stack gap and 11px rail half-height as the non-history day cell.
+        var next = (float)headingHeight + 18;
+        if (Math.Abs(railY - next) < .25f) return;
+        railY = next;
+        Dispatcher.Dispatch(Redraw);
     }
 
     void BuildSelectors()
@@ -213,7 +252,7 @@ public sealed class HistoryTimelineView : Grid
                 if (!eventViews.TryGetValue(key, out var view)) {
                     view = FutureEvent(e); eventViews[key] = view; eventsLayer.Add(view);
                 }
-                AbsoluteLayout.SetLayoutBounds(view, new Rect(dateX - 31, 97 + slot * 76, 62, 74)); slot++;
+                AbsoluteLayout.SetLayoutBounds(view, new Rect(dateX - 31, railY + 21 + slot * 76, 62, 74)); slot++;
             }
         }
         var historical = Visible.SelectMany(s => s.Events.Select(e => (Series: s, Event: e)))
@@ -231,7 +270,7 @@ public sealed class HistoryTimelineView : Grid
             if (lane < 0) { lane = laneEnds.Count; laneEnds.Add(0); }
             laneEnds[lane] = x + width / 2f;
             for (var i = 0; i < kinds.Length; i++)
-                historicalMarkers.Add((x - width / 2f + 11 + i * 24, 76 + lane * 24, kinds[i], kinds.Length == 1 ? values.Length : 1));
+                historicalMarkers.Add((x - width / 2f + 11 + i * 24, railY + lane * 24, kinds[i], kinds.Length == 1 ? values.Length : 1));
             var eventType = group.Key.Kind == HistoryEventKind.ReportedExpiration ? "Reset Expiration" : "Quota Refresh";
             var details = string.Join("\n\n", values.Select(v => $"{v.Series.Account.Provider} / {v.Series.Account.Nickname} · {v.Series.PlanLabel}\n{eventType}: {TimeZones.Format(v.Event.At, zone)}\n{v.Event.Detail}"));
             var key = "history:" + details;
@@ -240,7 +279,7 @@ public sealed class HistoryTimelineView : Grid
                 view = EventMarker(details);
                 eventViews[key] = view; eventsLayer.Add(view);
             }
-            AbsoluteLayout.SetLayoutBounds(view, new Rect(x - width / 2f, 65 + lane * 24, width, 22));
+            AbsoluteLayout.SetLayoutBounds(view, new Rect(x - width / 2f, railY - 11 + lane * 24, width, 22));
         }
         foreach (var key in eventViews.Keys.Where(key => !active.Contains(key)).ToArray()) { eventsLayer.Remove(eventViews[key]); eventViews.Remove(key); }
     }
@@ -267,7 +306,7 @@ public sealed class HistoryTimelineView : Grid
             Content = new Image { Source = Logo(e.Provider ?? "OpenAI"), WidthRequest = 27, HeightRequest = 27 } });
         if (e.PlanBadge is { } badge) icon.Add(new Border { Padding = new Thickness(5, 1), HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.End,
             BackgroundColor = Color.FromArgb("#1C1E24"), Stroke = accent, StrokeShape = new RoundRectangle { CornerRadius = 6 },
-            Content = new Label { Text = badge == "Plan unavailable" ? "?" : badge, FontSize = 10, TextColor = accent } });
+            Content = new Label { Text = badge == "Plan unavailable" ? "?" : badge, FontSize = 10, FontFamily = "Segoe UI Semibold", TextColor = accent } });
         var target = new Grid(); target.Add(new VerticalStackLayout { Spacing = 3, Children = { icon,
             new Label { Text = TimeZones.Format(e.At, zone, "h:mm tt"), FontSize = 10, TextColor = accent, HorizontalTextAlignment = TextAlignment.Center } } });
         var action = new Button { Text = "", BackgroundColor = Colors.Transparent, BorderWidth = 0, HeightRequest = -1 };
@@ -337,27 +376,24 @@ public sealed class HistoryTimelineView : Grid
                     var y = owner.PlotY(100 - percent); c.DrawLine(AxisLeft, y, pastEnd, y);
                     c.DrawString($"{percent}%", 18, y - 7, 38, 16, HorizontalAlignment.Right, VerticalAlignment.Center);
                 }
-                c.SaveState(); c.Translate(7, (PlotTop + owner.plotBottom) / 2); c.Rotate(-90);
+                c.SaveState(); c.Translate(7, (owner.PlotTop + owner.plotBottom) / 2); c.Rotate(-90);
                 c.FontSize = 10; c.DrawString("% Used", -70, -7, 140, 16, HorizontalAlignment.Center, VerticalAlignment.Center); c.RestoreState();
             }
             c.StrokeColor = Color.FromArgb("#8170B7"); c.StrokeSize = 2;
-            c.DrawLine(AxisLeft, 76, end, 76);
+            c.DrawLine(AxisLeft, owner.railY, end, owner.railY);
             var first = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(owner.model.VisibleStart, owner.zone).DateTime);
             for (var date = first; date <= owner.model.LastDate.AddDays(7); date = date.AddDays(1)) {
                 var x = AxisLeft + (float)(owner.model.PositionAt(date) - owner.model.ScrollOffset);
                 if (x > end + owner.model.PixelsPerDay) break;
                 if (x >= AxisLeft && x <= pastEnd) {
-                    c.StrokeColor = Color.FromArgb("#30333C"); c.DrawLine(x, PlotTop, x, owner.plotBottom);
+                    c.StrokeColor = Color.FromArgb("#30333C"); c.DrawLine(x, owner.PlotTop, x, owner.plotBottom);
                 }
                 var futureX = AxisLeft + (float)(owner.model.FutureDayPosition(date) - owner.model.ScrollOffset);
                 if (futureX < AxisLeft || futureX > end || date > owner.model.LastDate) continue;
-                c.FontColor = Accent; c.FontSize = 13;
-                c.DrawString(date == owner.model.Today ? "Today" : date.ToString("ddd"), futureX - 32, 12, 64, 20, HorizontalAlignment.Center, VerticalAlignment.Center);
-                c.FontColor = Muted; c.FontSize = 11; c.DrawString(date.ToString("MMM d"), futureX - 35, 38, 70, 20, HorizontalAlignment.Center, VerticalAlignment.Center);
                 c.StrokeColor = Accent; c.FillColor = Color.FromArgb("#1C1E24"); c.StrokeSize = 2;
                 var hasEvents = owner.future.Any(e => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(e.At, owner.zone).DateTime) == date);
-                if (hasEvents || date == owner.model.Today) { c.FillColor = Accent; c.FillCircle(futureX, 76, date == owner.model.Today ? 6 : 4); }
-                else c.DrawCircle(futureX, 76, 4);
+                if (hasEvents || date == owner.model.Today) { c.FillColor = Accent; c.FillCircle(futureX, owner.railY, date == owner.model.Today ? 6 : 4); }
+                else c.DrawCircle(futureX, owner.railY, 4);
             }
             foreach (var marker in owner.historicalMarkers) {
                 var expiry = marker.Kind == HistoryEventKind.ReportedExpiration;
@@ -369,7 +405,7 @@ public sealed class HistoryTimelineView : Grid
                     marker.X - 11, marker.Y - 11, 22, 22, HorizontalAlignment.Center, VerticalAlignment.Center);
             }
             c.Font = Microsoft.Maui.Graphics.Font.Default;
-            c.SaveState(); c.ClipRectangle(AxisLeft, PlotTop, owner.Span, owner.plotBottom - PlotTop);
+            c.SaveState(); c.ClipRectangle(AxisLeft, owner.PlotTop, owner.Span, owner.plotBottom - owner.PlotTop);
             foreach (var s in owner.Visible) {
                 var color = Color.FromArgb(owner.ColorOf(s));
                 var points = UsageHistory.Downsample(s.Points, owner.ContentX, owner.model.ScrollOffset, owner.model.ScrollOffset + owner.Span);
@@ -392,20 +428,20 @@ public sealed class HistoryTimelineView : Grid
             foreach (var e in owner.Visible.SelectMany(s => s.Events)) {
                 var x = owner.PlotX(e.At); if (x < AxisLeft || x > pastEnd) continue;
                 c.StrokeColor = Color.FromArgb(e.Kind == HistoryEventKind.ReportedExpiration ? "#EAAA51" : "#B99AF8").WithAlpha(.6f);
-                c.StrokeSize = 1; c.StrokeDashPattern = [4, 4]; c.DrawLine(x, PlotTop, x, owner.plotBottom); c.StrokeDashPattern = null;
+                c.StrokeSize = 1; c.StrokeDashPattern = [4, 4]; c.DrawLine(x, owner.PlotTop, x, owner.plotBottom); c.StrokeDashPattern = null;
             }
             if (owner.cursor is { } hit) {
                 var x = owner.PlotX(hit.Point.At); var y = owner.PlotY(hit.Point.RemainingPercent);
-                c.StrokeColor = Muted.WithAlpha(.6f); c.StrokeSize = 1; c.StrokeDashPattern = [3, 3]; c.DrawLine(x, PlotTop, x, owner.plotBottom); c.StrokeDashPattern = null;
+                c.StrokeColor = Muted.WithAlpha(.6f); c.StrokeSize = 1; c.StrokeDashPattern = [3, 3]; c.DrawLine(x, owner.PlotTop, x, owner.plotBottom); c.StrokeDashPattern = null;
                 c.FillColor = Color.FromArgb(owner.ColorOf(hit.Series)); c.FillCircle(x, y, 4); c.StrokeColor = Colors.White; c.DrawCircle(x, y, 4);
             }
             c.RestoreState();
             if (today >= AxisLeft - 1 && today <= end + 1) {
-                c.StrokeColor = Accent; c.StrokeSize = 1.5f; c.StrokeDashPattern = [4, 4]; c.DrawLine(today, PlotTop, today, owner.plotBottom); c.StrokeDashPattern = null;
+                c.StrokeColor = Accent; c.StrokeSize = 1.5f; c.StrokeDashPattern = [4, 4]; c.DrawLine(today, owner.PlotTop, today, owner.plotBottom); c.StrokeDashPattern = null;
             }
             var labels = owner.Visible.Select(s => (Series: s, Point: owner.PointsWithin(s, owner.model.ScrollOffset, owner.model.ScrollOffset + owner.Span).LastOrDefault()))
                 .Where(v => v.Point is not null).OrderBy(v => v.Point!.RemainingPercent).ToArray();
-            var labelPositions = HistoryChartLayout.PlaceLabels(labels.Select(v => owner.PlotY(v.Point!.RemainingPercent) - 10).ToArray(), PlotTop, owner.plotBottom - 21);
+            var labelPositions = HistoryChartLayout.PlaceLabels(labels.Select(v => owner.PlotY(v.Point!.RemainingPercent) - 10).ToArray(), owner.PlotTop, owner.plotBottom - 21);
             for (var i = 0; i < labels.Length; i++) {
                 var item = labels[i]; var p = item.Point!; var x = owner.PlotX(p.At); var y = owner.PlotY(p.RemainingPercent);
                 var labelY = labelPositions[i];
