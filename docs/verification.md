@@ -472,3 +472,7 @@ All 288 tests passed, including new earliest-sample, empty-history, and adaptive
 - Both horizon modes now reuse native day/date headings: 14px Segoe UI Semibold weekdays and 12px Segoe UI dates, with the existing non-history spacing. History headings start at the top of the section; its rail and event markers follow the measured heading height. Plan badges also use the existing semibold face.
 - All 22 HorizonViewport geometry tests passed and Release publish succeeded. Compared History on/off in the running Windows app at desktop and 800px compact widths: weekday, date and rail heights match. Used the non-history timeline as the reference, restored History on and restarted the latest normal desktop build; shortcut targets that build.
 
+### 2026-10-31 - Matching Timeline Day Circles
+- History now matches the non-history day markers: 16px Today in light purple and 10px other days. Hollow markers paint an opaque section-colored interior before the 2px inset ring, hiding the rail through the center.
+- Release publish and diff checks passed. Compared both modes in the native Windows app using the non-history rail as reference. Drawing-only change leaves calendar/timestamp positions unchanged; no new unit tests added. Restarted latest build with existing accounts and updated the desktop shortcut.
+

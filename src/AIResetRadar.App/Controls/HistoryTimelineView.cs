@@ -390,10 +390,16 @@ public sealed class HistoryTimelineView : Grid
                 }
                 var futureX = AxisLeft + (float)(owner.model.FutureDayPosition(date) - owner.model.ScrollOffset);
                 if (futureX < AxisLeft || futureX > end || date > owner.model.LastDate) continue;
-                c.StrokeColor = Accent; c.FillColor = Color.FromArgb("#1C1E24"); c.StrokeSize = 2;
                 var hasEvents = owner.future.Any(e => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(e.At, owner.zone).DateTime) == date);
-                if (hasEvents || date == owner.model.Today) { c.FillColor = Accent; c.FillCircle(futureX, owner.railY, date == owner.model.Today ? 6 : 4); }
-                else c.DrawCircle(futureX, owner.railY, 4);
+                // Match the native non-history markers: 16px Today, 10px other days.
+                // Paint the hollow interior over the rail before adding its inset 2px stroke.
+                var isToday = date == owner.model.Today;
+                c.FillColor = isToday ? Color.FromArgb("#D1BEFF") : hasEvents ? Accent : Color.FromArgb("#1C1E24");
+                c.FillCircle(futureX, owner.railY, isToday ? 8 : 5);
+                if (!hasEvents && !isToday) {
+                    c.StrokeColor = Accent; c.StrokeSize = 2;
+                    c.DrawCircle(futureX, owner.railY, 4);
+                }
             }
             foreach (var marker in owner.historicalMarkers) {
                 var expiry = marker.Kind == HistoryEventKind.ReportedExpiration;
