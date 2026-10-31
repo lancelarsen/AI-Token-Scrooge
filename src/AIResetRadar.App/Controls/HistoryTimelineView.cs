@@ -16,7 +16,7 @@ public sealed class HistoryTimelineView : Grid
     float PlotTop => railY + 32;
     static readonly DateOnly CoordinateAnchor = new(2000, 1, 1);
     float plotBottom = 256;
-    readonly VerticalStackLayout selectors = new() { Spacing = 6, Padding = new Thickness(3, 8, 10, 0) };
+    readonly VerticalStackLayout selectors = new() { Spacing = HistoryChartLayout.SelectorSpacing, Padding = new Thickness(3, 8, 10, 0) };
     readonly ScrollView selectorScroll;
     readonly Grid selectorRail;
     readonly Grid chartHost = new() { HeightRequest = 294, IsClippedToBounds = true, BackgroundColor = Colors.Transparent };
@@ -135,8 +135,8 @@ public sealed class HistoryTimelineView : Grid
         }
         var futureRows = future.GroupBy(e => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(e.At, zone).DateTime))
             .Select(g => g.Count()).DefaultIfEmpty().Max();
-        var height = historyEnabled ? HistoryChartLayout.Height(series.Length, futureRows) : railY + 21 + Math.Max(1, futureRows) * 76;
-        plotBottom = height - 38;
+        var height = historyEnabled ? HistoryChartLayout.Height(series.Length, futureRows, railY) : railY + 21 + Math.Max(1, futureRows) * 76;
+        plotBottom = height - 8;
         if (chart.HeightRequest != height)
             chart.HeightRequest = chartHost.HeightRequest = selectorScroll.HeightRequest = height;
         Redraw();
@@ -204,7 +204,7 @@ public sealed class HistoryTimelineView : Grid
         {
             var enabled = preferences.Includes(item.Account.Id);
             var accent = Color.FromArgb(ColorOf(item));
-            var target = new Grid { HeightRequest = 66, WidthRequest = 82, HorizontalOptions = LayoutOptions.Center };
+            var target = new Grid { HeightRequest = HistoryChartLayout.SelectorHeight, WidthRequest = 82, HorizontalOptions = LayoutOptions.Center };
             var content = new Grid { Margin = new Thickness(4, 10, 4, 10), Opacity = enabled ? 1 : .5 };
             content.Add(new Border { Stroke = accent, StrokeThickness = 2,
                 StrokeShape = new RoundRectangle { CornerRadius = 13 }, BackgroundColor = Color.FromArgb("#272331"),
@@ -229,7 +229,7 @@ public sealed class HistoryTimelineView : Grid
                     Stroke = Colors.White, StrokeThickness = 2.5, StrokeLineCap = PenLineCap.Round,
                     WidthRequest = 12, HeightRequest = 12, HorizontalOptions = LayoutOptions.Center,
                     VerticalOptions = LayoutOptions.Center, IsVisible = enabled } });
-            var action = new Button { BackgroundColor = Colors.Transparent, Text = "", BorderWidth = 0, HeightRequest = 66 };
+            var action = new Button { BackgroundColor = Colors.Transparent, Text = "", BorderWidth = 0, HeightRequest = HistoryChartLayout.SelectorHeight };
             SemanticProperties.SetDescription(action, $"{(enabled ? "Hide" : "Show")} {item.Account.Provider} / {item.Account.Nickname} · {item.PlanLabel} · {item.Period} History");
             Platforms.Windows.ImmediateToolTip.Attach(action, $"{item.Account.Provider} / {item.Account.Nickname} · {item.PlanLabel}\n{item.Period} History{CoverageDetails(item)}{(item.Status is null ? "" : "\n" + item.Status)}");
             action.Clicked += async (_, _) => {

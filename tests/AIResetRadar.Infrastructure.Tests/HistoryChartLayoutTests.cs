@@ -30,8 +30,11 @@ public class HistoryChartLayoutTests
     [Fact]
     public void ChartGrowsForEveryFutureEventRowAndManyEndpointLabels()
     {
-        Assert.Equal(294, HistoryChartLayout.Height(4, 2));
-        Assert.True(HistoryChartLayout.Height(4, 4) >= 97 + 4 * 76);
+        Assert.Equal(298, HistoryChartLayout.Height(4, 2));
+        Assert.Equal(HistoryChartLayout.Height(3, 0), HistoryChartLayout.Height(1, 0));
+        Assert.Equal(226, HistoryChartLayout.Height(3, 0));
+        Assert.Equal(72, HistoryChartLayout.Height(5, 0) - HistoryChartLayout.Height(4, 0));
+        Assert.True(HistoryChartLayout.Height(4, 4) >= 81 + 4 * 76);
         Assert.True(HistoryChartLayout.Height(20, 2) >= 20 * 25 + 70);
         Assert.Empty(HistoryChartLayout.PlaceLabels([], 30, 236));
     }

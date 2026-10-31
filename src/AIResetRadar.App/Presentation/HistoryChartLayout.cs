@@ -35,8 +35,11 @@ public static class HistoryChartLayout
         return $"#{(int)Math.Round((r + offset) * 255):X2}{(int)Math.Round((g + offset) * 255):X2}{(int)Math.Round((b + offset) * 255):X2}";
     }
 
-    public static float Height(int accounts, int futureRows) =>
-        Math.Max(294, Math.Max(107 + Math.Max(0, futureRows) * 76, 70 + Math.Max(0, accounts) * 25));
+    public const int SelectorHeight = 66;
+    public const int SelectorSpacing = 6;
+    public static float Height(int accounts, int futureRows, float railY = 60) =>
+        Math.Max(16 + Math.Max(3, accounts) * SelectorHeight + (Math.Max(3, accounts) - 1) * SelectorSpacing,
+            railY + 21 + Math.Max(0, futureRows) * 76);
 
     /// <summary>Places ordered labels inside the graph while preserving their vertical order.</summary>
     public static float[] PlaceLabels(IReadOnlyList<float> desired, float top, float bottom, float spacing = 25)
