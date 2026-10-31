@@ -430,3 +430,8 @@ All 288 tests passed, including new earliest-sample, empty-history, and adaptive
 - Muted row reset clocks retain the normal purple color. Switching alarms updates clock styling immediately without recreating dashboard rows. Tooltip now says Row Alerts.
 - All 296 tests passed, including pending-delivery, account isolation, mixed enabled rows, and icon suppression regressions. Release publish succeeded and the latest app was restarted with existing accounts; desktop shortcut updated.
 - Native dashboard verification used the existing service rows as reference. Confirmed persisted muted Claude/Plus rows show purple clocks; toggled Copilot off and observed its red clock immediately turn purple, then restored Copilot to its original on setting. Live timed popup delivery was covered by evaluator tests rather than waiting for a real milestone.
+
+### 2026-10-30 - Unclipped History Event Circles
+- Replaced the native button overlay on 22px history badges with a transparent gesture surface, preventing native button template sizing/state backgrounds from covering circle edges.
+- Release publish succeeded; restarted the latest build with existing accounts and updated the desktop shortcut. Compared with the existing Reset Horizon design and the reported clipped marker: reset circle has a complete lower edge after scrolling, and clicking still opens History Event details.
+- No data, retention, timestamp geometry, or alert behavior changed. Visual fix verified in the running Windows app; no new unit tests added.

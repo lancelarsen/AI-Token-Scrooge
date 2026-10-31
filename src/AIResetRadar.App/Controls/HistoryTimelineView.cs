@@ -258,11 +258,14 @@ public sealed class HistoryTimelineView : Grid
         }
         target.Add(badges);
         // This is a hit target over the circular badges, not a themed rectangular button.
-        var hit = new Button { Text = "", BackgroundColor = Colors.Transparent, Padding = 0,
-            BorderWidth = 0, HeightRequest = 22, MinimumHeightRequest = 0, MinimumWidthRequest = 0,
-            CornerRadius = 11, HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Center };
+        // A native Button has a minimum template height and state backgrounds which can
+        // cover the bottom of these 22px badges. Use a transparent gesture surface instead.
+        var hit = new ContentView { BackgroundColor = Colors.Transparent, Padding = 0,
+            HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Fill };
         SemanticProperties.SetDescription(hit, details); Platforms.Windows.ImmediateToolTip.Attach(hit, details);
-        hit.Clicked += async (_, _) => await Services.ThemedDialogs.ShowAsync(Application.Current!.Windows[0].Page!, "History Event", details, "Close");
+        var tap = new TapGestureRecognizer();
+        tap.Tapped += async (_, _) => await Services.ThemedDialogs.ShowAsync(Application.Current!.Windows[0].Page!, "History Event", details, "Close");
+        hit.GestureRecognizers.Add(tap);
         target.Add(hit); return target;
     }
 
