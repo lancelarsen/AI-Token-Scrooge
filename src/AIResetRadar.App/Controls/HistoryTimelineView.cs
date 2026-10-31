@@ -225,8 +225,10 @@ public sealed class HistoryTimelineView : Grid
             target.Add(new Border { WidthRequest = 19, HeightRequest = 19, HorizontalOptions = LayoutOptions.End, VerticalOptions = LayoutOptions.End,
                 StrokeShape = new RoundRectangle { CornerRadius = 5 }, Stroke = accent, StrokeThickness = 1.5,
                 BackgroundColor = enabled ? accent : Color.FromArgb("#232429"),
-                Content = new Label { Text = enabled ? "\uE73E" : "", FontFamily = "Segoe Fluent Icons", FontSize = 12,
-                    TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center } });
+                Content = new Polyline { Points = new PointCollection { new(1, 6), new(4.5, 9.5), new(11, 2.5) },
+                    Stroke = Colors.White, StrokeThickness = 2.5, StrokeLineCap = PenLineCap.Round,
+                    WidthRequest = 12, HeightRequest = 12, HorizontalOptions = LayoutOptions.Center,
+                    VerticalOptions = LayoutOptions.Center, IsVisible = enabled } });
             var action = new Button { BackgroundColor = Colors.Transparent, Text = "", BorderWidth = 0, HeightRequest = 66 };
             SemanticProperties.SetDescription(action, $"{(enabled ? "Hide" : "Show")} {item.Account.Provider} / {item.Account.Nickname} · {item.PlanLabel} · {item.Period} History");
             Platforms.Windows.ImmediateToolTip.Attach(action, $"{item.Account.Provider} / {item.Account.Nickname} · {item.PlanLabel}\n{item.Period} History{CoverageDetails(item)}{(item.Status is null ? "" : "\n" + item.Status)}");
