@@ -211,10 +211,9 @@ public sealed class HistoryTimelineView : Grid
                 Content = new Image { Source = Logo(item.Account.Provider), WidthRequest = 30, HeightRequest = 30 } });
             target.Add(content);
             Border Badge(string text, double size) => new() {
-                Stroke = accent, StrokeThickness = 1.5, Padding = new Thickness(5, 2),
+                Stroke = enabled ? accent : accent.WithAlpha(.5f), StrokeThickness = 1.5, Padding = new Thickness(5, 2),
                 StrokeShape = new RoundRectangle { CornerRadius = 7 }, BackgroundColor = Color.FromArgb("#232429"),
-                Opacity = enabled ? 1 : .5,
-                Content = new Label { Text = text, FontSize = size, TextColor = Colors.White,
+                Content = new Label { Text = text, FontSize = size, TextColor = enabled ? Colors.White : Color.FromArgb("#919195"),
                     HorizontalTextAlignment = TextAlignment.Center, LineBreakMode = LineBreakMode.TailTruncation }
             };
             var nickname = Badge(item.Account.Nickname, 11);
