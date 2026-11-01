@@ -18,13 +18,17 @@ If you use several AI accounts, checking each provider's usage page gets old fas
 
 ## What Scrooge does
 
-- Plan your next session with Reset Horizon. See when your AI limits refill and which earned resets are about to expire, with your usage history on the same timeline.
-- Know how much you have left before you start. Clear usage bars and countdowns show what's available across Codex, Copilot, and Claude, including separate session and weekly limits when reported.
-- Get a heads-up before you run out, and an alert when capacity is back. Set reminders for upcoming refreshes and expiring resets so you can put your available usage to work.
-- Make alerts work on your schedule. Choose sounds, set quiet hours, snooze reminders, or mute individual limits.
-- Keep working while Scrooge keeps watch. It can start with Windows and monitor from the system tray, with the dashboard one click away.
+Ever let an earned Codex reset expire before you could use it? Or realized you could have run that longer agent task before your allowance refreshed? Me too. That's why I built AI Token Scrooge.
 
-Scrooge only monitors usage. It doesn't send AI prompts, redeem earned resets, purchase credits, or change the account you're using in another app.
+You're paying for that AI capacity. Scrooge helps you see what's left and when it's coming back, so you can put it to work.
+
+- See what's coming with Reset Horizon. Your usage history, upcoming refreshes, and earned Codex reset expirations share one timeline. Spot a refresh coming up and decide whether it's time to tackle that bigger task.
+- Find the account with room to work. See usage bars and reset countdowns for Codex, Copilot, and Claude together, with automatic checks at your chosen polling intervals.
+- Use those earned resets before they expire. Get a reminder while there's still time to claim them in Codex. Scrooge keeps track; you decide when to use them.
+- Know when you're running low and when you're ready to go again. Get alerts as capacity runs down or becomes available, with sounds, quiet hours, snoozing, and mute controls that fit your day.
+- Let Scrooge keep watch while you work. Start it with Windows and leave it in the system tray. Your dashboard is one click away.
+
+Checking usage does not consume AI tokens. Scrooge monitors and reminds you; it doesn't send AI prompts, claim resets, purchase credits, or switch accounts in your other apps.
 
 ## Supported providers
 
