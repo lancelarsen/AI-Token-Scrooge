@@ -9,6 +9,17 @@ namespace AIResetRadar.Infrastructure.Tests;
 public sealed class HistoryRangeTests
 {
     [Fact]
+    public async Task CustomRetentionControlsStoredHistory()
+    {
+        using var files = new HistoryFixture();
+        await files.Store.WriteAsync("settings", new RadarSettings(HistoryRetentionDays: 180));
+        await files.Store.RecordSnapshotAsync(files.Snapshot(files.Now.AddDays(-120)));
+        Assert.Single(await files.Store.HistoryAsync("a"));
+        await files.Store.WriteAsync("settings", new RadarSettings(HistoryRetentionDays: 30));
+        Assert.Empty(await files.Store.HistoryAsync("a"));
+    }
+
+    [Fact]
     public async Task RangeIsInclusiveChronologicalAndIsolatedAcrossReopen()
     {
         using var files = new HistoryFixture(); var store = files.Store;
@@ -159,8 +170,8 @@ public sealed class HistoryRangeTests
     public async Task RangeAndPrecedingReadPreserveRetentionAndRemovalCleanup()
     {
         using var files = new HistoryFixture();
-        await files.Store.RecordSnapshotAsync(files.Snapshot(files.Now.AddDays(-45)));
-        await files.Store.RecordSnapshotAsync(files.Snapshot(files.Now.AddDays(-44)));
+        await files.Store.RecordSnapshotAsync(files.Snapshot(files.Now.AddDays(-HistoryRetention.Days)));
+        await files.Store.RecordSnapshotAsync(files.Snapshot(files.Now.AddDays(1-HistoryRetention.Days)));
         files.Clock.Now = files.Now.AddDays(2);
         Assert.Empty(await files.Store.HistoryAsync("a", files.Now.AddDays(-1), files.Clock.Now, true));
         await files.Store.RecordSnapshotAsync(files.Snapshot(files.Clock.Now));

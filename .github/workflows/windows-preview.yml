@@ -1,0 +1,31 @@
+name: Windows Preview
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: windows-preview
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Install MAUI Windows
+        run: dotnet workload install maui-windows
+      - name: Test and Package
+        shell: pwsh
+        run: ./scripts/Build-Windows.ps1 -Package
+      - name: Publish Preview Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "preview-${{ github.run_number }}-${{ github.run_attempt }}"
+          gh release create $tag artifacts/releases/* --target ${{ github.sha }} --prerelease --title "Windows Preview ${{ github.run_number }}" --notes "Portable Windows x64 preview built from commit ${{ github.sha }}. Extract the entire ZIP and run AIResetRadar.App.exe. This preview is unsigned."
+          if ($LASTEXITCODE -ne 0) { throw "Release upload failed" }

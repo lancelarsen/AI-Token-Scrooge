@@ -69,7 +69,7 @@ public sealed partial class MainPage
     }
     async Task OpenHistoryAsync()
     {
-        alertHistory.RemoveAll(e => e.CreatedAt < HistoryRetention.Cutoff(DateTimeOffset.UtcNow));
+        alertHistory.RemoveAll(e => e.CreatedAt < HistoryRetention.Cutoff(DateTimeOffset.UtcNow, preferences.HistoryRetentionDays));
         var page = new ContentPage { Title = "Alert history", BackgroundColor = Color.FromArgb("#141519") };
         var content = new VerticalStackLayout { Padding = 28, Spacing = 16 };
         content.Children.Add(new Label { Text = "Alert history", FontSize = 26, FontFamily = "Segoe UI Semibold" });

@@ -9,6 +9,7 @@ public sealed partial class LocalStore
     readonly string connectionString;
     readonly SemaphoreSlim gate = new(1, 1);
     readonly TimeProvider clock;
+    int retentionDays = HistoryRetention.Days;
     public async Task<IReadOnlyList<AlertEvent>> WriteMonitoringStateAsync(IReadOnlyList<ProviderAccount> accounts, IReadOnlyList<QuotaSnapshot> snapshots, IReadOnlyList<ProviderAccount>? retired = null, IReadOnlyList<AlertEvent>? alerts = null, CancellationToken ct = default, QuotaSnapshot? historySnapshot = null)
     {
         if (historySnapshot is not null && (!snapshots.Contains(historySnapshot) ||
@@ -54,7 +55,7 @@ public sealed partial class LocalStore
     }
     public async Task<IReadOnlyList<AIResetRadar.Core.QuotaSnapshot>> HistoryAsync(string accountId, CancellationToken ct = default)
     {
-        var values = await HistoryAsync(accountId, HistoryRetention.Cutoff(clock.GetUtcNow()), DateTimeOffset.MaxValue, ct: ct);
+        var values = await HistoryAsync(accountId, DateTimeOffset.MinValue, DateTimeOffset.MaxValue, ct: ct);
         return values.Reverse().Take(10000).ToArray();
     }
     public async Task DeleteHistoryAsync(string accountId)
@@ -96,7 +97,7 @@ public sealed partial class LocalStore
             await using var connection = await OpenAsync(ct);
             await using var command = connection.CreateCommand();
             command.CommandText = "INSERT INTO state(key,value) VALUES($key,$value) ON CONFLICT(key) DO UPDATE SET value=excluded.value";
-            var json = key == "alerts" && value is IEnumerable<AlertEvent> alerts ? JsonSerializer.Serialize(HistoryRetention.PruneAlerts(alerts, clock.GetUtcNow())) : JsonSerializer.Serialize(value);
+            var json = key == "alerts" && value is IEnumerable<AlertEvent> alerts ? JsonSerializer.Serialize(HistoryRetention.PruneAlerts(alerts, clock.GetUtcNow(), retentionDays)) : JsonSerializer.Serialize(value);
             command.Parameters.AddWithValue("$key", key); command.Parameters.AddWithValue("$value", json);
             await command.ExecuteNonQueryAsync(ct);
         }
@@ -115,6 +116,10 @@ public sealed partial class LocalStore
             command.CommandText = "CREATE TABLE IF NOT EXISTS state(key TEXT PRIMARY KEY,value TEXT NOT NULL); CREATE TABLE IF NOT EXISTS history(account_id TEXT NOT NULL,observed_at INTEGER NOT NULL,value TEXT NOT NULL,PRIMARY KEY(account_id,observed_at)); CREATE INDEX IF NOT EXISTS history_observed ON history(observed_at);";
             await command.ExecuteNonQueryAsync(ct);
             if (version < 3) await UpgradeHistoryAsync(connection, ct);
+            command.CommandText = "SELECT value FROM state WHERE key='settings'";
+            retentionDays = await command.ExecuteScalarAsync(ct) is string settingsJson
+                ? Math.Clamp(JsonSerializer.Deserialize<RadarSettings>(settingsJson)?.HistoryRetentionDays ?? HistoryRetention.Days, 1, 365)
+                : HistoryRetention.Days;
             await PruneAsync(connection, ct); return connection;
         }
         catch { await connection.DisposeAsync(); throw; }
@@ -125,7 +130,7 @@ public sealed partial class LocalStore
         await using var command = connection.CreateCommand();
         command.Transaction = transaction;
         command.CommandText = "DELETE FROM history WHERE last_at < $cutoff AND (last_at <> 0 OR observed_at < $cutoff)";
-        command.Parameters.AddWithValue("$cutoff", HistoryRetention.Cutoff(clock.GetUtcNow()).ToUnixTimeMilliseconds());
+        command.Parameters.AddWithValue("$cutoff", HistoryRetention.Cutoff(clock.GetUtcNow(), retentionDays).ToUnixTimeMilliseconds());
         if (await command.ExecuteNonQueryAsync(ct) > 0)
         {
             command.CommandText = PruneDefinitionsSql;
@@ -135,7 +140,7 @@ public sealed partial class LocalStore
         if (await command.ExecuteScalarAsync(ct) is string json)
         {
             var alerts = JsonSerializer.Deserialize<AlertEvent[]>(json) ?? [];
-            var retained = HistoryRetention.PruneAlerts(alerts, clock.GetUtcNow());
+            var retained = HistoryRetention.PruneAlerts(alerts, clock.GetUtcNow(), retentionDays);
             if (retained.Length != alerts.Length)
             {
                 command.CommandText = "UPDATE state SET value=$value WHERE key='alerts'"; command.Parameters.AddWithValue("$value", JsonSerializer.Serialize(retained));

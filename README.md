@@ -8,19 +8,17 @@
 
 **Never Waste a Token! Never Miss a Reset!**
 
-AI Token Scrooge keeps your OpenAI Codex, GitHub Copilot, and Claude usage in one Windows app. See how much you have left, when each limit resets, and whether you have earned resets that are about to expire.
+Ever let an earned Codex reset expire before you could use it? Or realized you could have run that longer agent task before your allowance refreshed? Me too. That's why I built AI Token Scrooge.
 
-If you use several AI accounts, checking each provider's usage page gets old fast. Scrooge puts those accounts side by side and can alert you before you run out or miss a reset. Close the window and it can keep monitoring from the system tray while you work.
+You're paying for that AI capacity. Scrooge helps you see what's left and when it's coming back, so you can put it to work.
 
-[Features](#what-scrooge-does) · [Providers](#supported-providers) · [Getting Started](#getting-started) · [Build from Source](#build-and-run-from-source) · [Preview Status](#preview-status)
+Built for Windows with .NET 10 MAUI and the Windows App SDK, Scrooge brings your AI usage into a native desktop app with Windows notifications and system tray monitoring.
+
+[Features](#what-scrooge-does) · [Providers](#supported-providers) · [Getting Started](#getting-started) · [Build from Source](#build-and-run-from-source) · [Future Tasks](#future-tasks)
 
 ![AI Token Scrooge dashboard with usage history and upcoming quota events](docs/images/dashboard.png)
 
 ## What Scrooge Does
-
-Ever let an earned Codex reset expire before you could use it? Or realized you could have run that longer agent task before your allowance refreshed? Me too. That's why I built AI Token Scrooge.
-
-You're paying for that AI capacity. Scrooge helps you see what's left and when it's coming back, so you can put it to work.
 
 - See what's coming with Reset Horizon. Your usage history, upcoming refreshes, and earned Codex reset expirations share one timeline. Spot a refresh coming up and decide whether it's time to tackle that bigger task.
 - Find the account with room to work. See usage bars and reset countdowns for Codex, Copilot, and Claude together, with automatic checks at your chosen polling intervals.
@@ -40,8 +38,6 @@ Checking usage does not consume AI tokens. Scrooge monitors and reminds you; it 
 | GitHub Copilot | <ul><li>Monthly AI-Credit and Premium-Request Usage</li><li>Allowance, When Available</li><li>Remaining Percentage</li><li>Monthly Refresh</li></ul> | Sign in through GitHub's website using a short authorization code. Scrooge reads Copilot AI-credit and premium-request usage through GitHub's official billing API and uses an internal GitHub endpoint to detect your plan's allowance when available. No installed GitHub CLI is required. Checking usage does not consume AI tokens. |
 | Claude | <ul><li>Session Usage Windows (Pro/Max)</li><li>Weekly Usage Windows (Pro/Max)</li></ul> | Requires the installed Claude CLI (Claude Code) version 2.1.310 or later. Scrooge uses it to open browser sign-in and read usage, with a separate profile for each account. Checking usage does not consume AI tokens. |
 
-Scrooge displays the limits a provider supplies. If an allowance is unknown, it says so. A plan name alone cannot tell us its quota or price. See [provider evidence](docs/provider-capabilities.md) and [verification notes](docs/verification.md) for the scope of live checks.
-
 ## Reading the Dashboard
 
 ![Multiple OpenAI, GitHub Copilot, and Claude accounts with separate usage windows](docs/images/accounts.png)
@@ -57,11 +53,11 @@ An account can have more than one limit. Your session allowance might refill ton
 | Countdown and Date | The next reported refresh time for that quota window |
 | Account Gear | Rename, adjust polling, choose a history-line color, pause monitoring, manage alerts, reconnect, or remove the connection |
 
-Click a usage bar for details. Sort by Most Remaining, Least Remaining, or Next Reset to find the account you need. For a fixed order, choose Custom Order and drag the account handles. Status messages tell you when a reading is stale, a connection needs attention, or usage is unknown.
+Click a usage bar for details. Sort by Most Remaining, Least Remaining, or Next Reset to find the account you need. For a fixed order, choose Custom Order and drag the account handles.
 
 ### Reset Horizon and Usage History
 
-Purple events mark quota refreshes, when an allowance is expected to refill. Amber events mark earned-reset expirations, when an unused reset credit will expire. An expiring credit does not refill your quota.
+Purple events mark quota refreshes, when an allowance is expected to refill. Amber events mark earned-reset expirations, when an unused reset credit will expire.
 
 - Provider icons and plan badges identify each event. Hover or click for details.
 
@@ -71,15 +67,13 @@ Purple events mark quota refreshes, when an allowance is expected to refill. Amb
 
 - The navigator at the bottom moves through the date range, including historical usage when enabled.
 
-- Give each account a different line color to make its history easier to follow. In the current development preview, the + swatch opens a color chooser. Added colors stay in the palette for reuse.
+- Give each account a different line color to make its history easier to follow.
 
-Scrooge keeps history and alerts for 45 days by default. It compacts repeated identical readings and retains changes and reset events. Read the [history storage guide](docs/history-storage.md) for details.
+- Scrooge keeps history and alerts for 90 days by default. Customize the retention period in Settings.
 
 ## Notifications and Settings
 
 ![Settings for time zone, popup notifications, icon alerts, sounds, and volume](docs/images/settings.png)
-
-Changes in Settings save automatically. Set your defaults there, then adjust individual accounts and quota rows where needed.
 
 | Control | What It Does |
 | --- | --- |
@@ -94,9 +88,7 @@ Changes in Settings save automatically. Set your defaults there, then adjust ind
 | Alert History / Snooze | Review recorded alerts and postpone eligible notifications |
 | Time Zone | Control displayed dates, reset times, and quiet-hour interpretation |
 
-Choose how often to check each account with the Polling Interval slider: 1 to 30 minutes, starting at 2 minutes by default. A shorter interval catches changes sooner but makes more requests. Scrooge may check earlier at a known reset time; provider retry delays still take priority. Turn off Monitor This Account to pause its checks and alerts without losing the connection.
-
-Windows notification settings and Do Not Disturb can affect popup delivery. Run the app normally, not as administrator. Use Send Test Notification to check your environment.
+Choose how often to check each account with the Polling Interval slider: 1 to 30 minutes, starting at 2 minutes by default. A shorter interval catches changes sooner.
 
 ## Getting Started
 
@@ -110,74 +102,45 @@ Windows notification settings and Do Not Disturb can affect popup delivery. Run 
 
 5. Leave Scrooge running in the tray if you want background monitoring. Use Exit Scrooge in the tray menu to stop it.
 
-The first launch has no connected accounts. OpenAI requires a local Codex installation; Claude requires the installed Claude CLI (Claude Code), version 2.1.310 or later. GitHub browser sign-in requires the project's app registration to be configured. See [GitHub Sign-In Setup](docs/github-sign-in.md). The GitHub authorization screen currently uses the registered name AI Reset Radar.
-
-To try the interface before connecting an account, launch with `--demo`. Demo data is labeled, and changes stay in memory. Send Test Notification still displays a real Windows test notification.
-
-## Preview Status
-
-This is a working Windows preview. The portable build is unsigned, and there is no finished signed installer yet.
-
-We still need broader live-provider testing, including renewal and removal across independent accounts. Windows notification activation, tray and startup recovery, DPI and accessibility, installation for a new Windows user, and longer resource tests also need more work. The [performance notes](docs/native-performance.md) track a native CPU regression. Demo screenshots don't verify a live integration.
-
-See [release acceptance](docs/release-acceptance.md), [verification](docs/verification.md), and the [implementation checklist](tasks/todo.md) for detailed evidence and outstanding work. Report reproducible problems through [GitHub Issues](https://github.com/lancelarsen/AI-Token-Scrooge/issues), including your app build, provider, steps, and a redacted screenshot. Never include tokens or credentials.
+- Add your first account when you launch Scrooge, then connect any additional accounts you want to monitor.
+- For OpenAI Codex, install the Codex CLI and sign in with your ChatGPT account through the browser.
+- For Claude, install Claude Code version 2.1.310 or later. Scrooge uses that CLI to open browser sign-in and read usage.
+- For GitHub Copilot, approve the short authorization code on GitHub's website. No GitHub CLI is needed. The authorization screen currently shows AI Reset Radar, the app's registered name.
+- If you build your own copy, configure the GitHub app registration using [GitHub Sign-In Setup](docs/github-sign-in.md).
 
 ## Build and Run from Source
 
-Build on Windows with the exact .NET 10 SDK pinned in `global.json` and the `maui-windows` workload. The self-contained publish output is intended to run without a separate .NET runtime installation.
+Build on Windows. If you just want to use Scrooge, download the portable package from Releases instead.
 
-```powershell
+1. Install Git and the .NET SDK version listed in `global.json` (currently 10.0.403).
+2. Open PowerShell and download the source:
 
-dotnet build src/AIResetRadar.App/AIResetRadar.App.csproj
+   ```powershell
+   git clone https://github.com/lancelarsen/AI-Token-Scrooge.git
+   cd AI-Token-Scrooge
+   ```
 
-dotnet test AIResetRadar.slnx
+3. Install the Windows MAUI tools:
 
-dotnet publish src/AIResetRadar.App/AIResetRadar.App.csproj -c Release -r win-x64 --self-contained true -p:WindowsAppSDKSelfContained=true -o artifacts/publish/win-x64
+   ```powershell
+   dotnet workload install maui-windows
+   ```
 
-```
+4. Build a portable copy:
 
-Run the published `artifacts/publish/win-x64/AIResetRadar.App.exe`. For a design preview, use `--demo`; `--compact` starts an 800Ã. 700 logical-pixel window. The main window also fits within the current monitor's working area. Test data can be isolated with `--data-dir <absolute-folder>`.
+   ```powershell
+   dotnet publish src/AIResetRadar.App/AIResetRadar.App.csproj -c Release -r win-x64 --self-contained true -p:WindowsAppSDKSelfContained=true -o artifacts/publish/win-x64
+   ```
 
-Preview-only error cases use `--demo --scenario unknown`, `offline`, `auth`, `permission`, `exhausted`, `due`, `partial` or `reserve-only`. Demo account/settings changes, alert history and snooze changes stay in memory. The explicit notification test still asks Windows to display a test popup.
+5. Open `artifacts/publish/win-x64` and run `AIResetRadar.App.exe`. Keep the entire folder together when moving the app.
 
-`./scripts/Build-Windows.ps1 -Package` tests, publishes and creates an unsigned preview ZIP with a SHA-256 manifest under `artifacts/releases/`. Use `-PublishDirectory artifacts/publish/validation-win-x64` to keep a running older review copy untouched. Extract the complete ZIP before launching the executable. The ZIP is a portable review package; clean-user acceptance and installer/signing remain open. The build requires the exact SDK in `global.json`; see `docs/toolchain.md` for the supported runtime pin.
+## Future Tasks
 
-The app initially opens without accounts. Add Account offers OpenAI Codex, GitHub Copilot, or Claude. OpenAI sign-in happens in your own browser. GitHub's default Sign In with GitHub shows a short code and opens GitHub for approval. The developer must configure the one-time app registration described in `docs/github-sign-in.md`; normal users do not create tokens. Credentials are protected with Windows DPAPI and renewed when needed. Use an Access Token Instead retains advanced personal/organization connections through a masked field. Personal billing requires Plan read permission; organization-funded usage needs authorized organization billing access. Removing a connection deletes its local credentials; GitHub App authorization can also be revoked in GitHub settings. GitHub usage may lag, and a usage report alone does not establish your allowance. General ChatGPT model quotas and OpenAI API billing are separate products and are not included.
+- [ ] Provide a signed Windows installer
+- [ ] Complete broader live-provider testing, including reconnecting and removing accounts
+- [ ] Verify notification clicks, tray behavior, and startup recovery across Windows environments
+- [ ] Expand display scaling and accessibility checks
+- [ ] Verify installation for a new Windows user
+- [ ] Complete longer-running resource tests and address the native CPU regression tracked in [Performance Notes](docs/native-performance.md)
 
-Clicking the tray icon restores the main app. Its menu opens Scrooge, refreshes usage or exits. Closing the main window keeps the monitor running when close-to-tray is enabled. Exit Scrooge ends monitoring. Startup at Windows sign-in is enabled by default and can be disabled in Settings. Windows may place tray icons in its overflow menu. Native popup appearance and delivery depend on Windows settings and Do Not Disturb; alert history remains available in Scrooge.
-
-Each account has a gear button for its name, polling interval, monitoring, reconnect and other alert rules. Reported Available Resets and expiration details appear inline. This is informational; Scrooge does not spend reset credits. Usage alert thresholds are adjusted directly on the dashboard bars; global Settings supplies defaults.
-
-Settings opens over the dashboard and saves changes automatically. Quiet hours use two draggable endpoints in whole-hour steps and can cross midnight. Monitoring continues while notifications are quiet. Sounds can be previewed, switched between Duck Sounds and Classic Chimes, and adjusted with the volume control. Reset-expiration and quota-refresh reminders have separate editable schedules. A successful snooze clears the matching in-app banner.
-
-## Local Data and Credentials
-
-Usage history uses compact intervals for repeated readings, shared metadata, and incremental graph loading. Changes and reset events remain available, and drawing still preserves peaks at screen resolution. See [history storage](docs/history-storage.md) for format, migration backup and verification details.
-
-Each account's settings include an auto-saved Polling Interval slider, from 1 to 30 minutes in whole-minute steps, defaulting to 2 minutes for every provider. Known quota reset/credit expiration boundaries can trigger an earlier refresh; provider retry waits and error backoff take priority. Reconnecting preserves the selected interval.
-
-For reliable Windows notification activation and launch-at-sign-in, extract the preview into a stable folder before running it. Startup registration points to that executable path; moving or deleting it can break startup. After moving the app, launch it from the new location and toggle the launch-at-sign-in setting off and on if enabled. Run normally, not as administrator: Windows App SDK notifications are unsupported in elevated apps. See [Microsoft's notification guidance](https://learn.microsoft.com/en-us/windows/apps/develop/notifications/app-notifications/app-notifications-quickstart).
-
-Default application state: `%LOCALAPPDATA%\AIResetRadar`. SQLite stores non-secret connection metadata and usage/alert data. Protected token files are in `Credentials`; independent Codex profiles are in `Profiles`; The installed Claude CLI (Claude Code) manages its credentials in separate `ClaudeProfiles` directories for Scrooge. Existing Codex/IDE profiles are not modified. Removing a connection deletes/signs out Scrooge's own saved credentials only. Logs must never include tokens or provider response bodies.
-
-Reconnect validates a separate protected credential/profile before adopting it. It keeps the account's paused state and logical identity. Superseded credential references are queued durably for cleanup; a pending cleanup is shown and retried while monitoring. Removing a connection commits that removal before retiring its credentials/history. Snapshot and alert history retain 45 days by default.
-
-Scrooge does not make inference requests, redeem resets, purchase credits or switch accounts in other applications. The Codex transport has an explicit method allowlist.
-
-## Project Documentation
-
-- `design/selection.md`: Final Visual Selection and Required Details
-
-- `tasks/plan.md`: Complete Requirements and Verification Gates
-
-- `tasks/todo.md`: Implementation Checklist
-
-- `docs/toolchain.md`: Verified Environment
-
-- `docs/verification.md`: Current Evidence and Remaining Checks
-
-## Assets
-
-The selected Token Baron logo (concept 01) was prepared with the built-in ImageGen tool as a transparent production asset at `src/AIResetRadar.App/Resources/Images/token_baron.png`. Its Windows ICO contains sizes from 16 to 256 pixels and is used for the executable, window/taskbar, and normal monitoring tray icon. The original radar asset is retained as historical design material. OpenAI's source icon was reused from the user's CreatorMicroModelKeys project. GitHub's icon comes from its official `github.githubassets.com/favicons/favicon-dark.svg` asset. The provider icons identify their services. AI Token Scrooge is an independent application.
-
-Refresh/settings toolbar assets use the official Lucide library. Its license is included in `src/AIResetRadar.App/Resources/LUCIDE-LICENSE.txt` and the published output.
+Found a problem? Open a [GitHub Issue](https://github.com/lancelarsen/AI-Token-Scrooge/issues) with your app version, provider, steps to reproduce, and a screenshot with private information removed.

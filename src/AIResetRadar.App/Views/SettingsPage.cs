@@ -27,6 +27,14 @@ public sealed class SettingsPage : ContentPage
         SettingsHelp.Attach(timeZone, SettingsHelp.For("Time Zone")!);
         form.Children.Add(SettingsHelp.WithInfo(timeZone));
         WrapCard(displayStart, "Time Zone");
+        var retentionStart = form.Children.Count;
+        var retentionOptions = new[] { 7, 30, 60, 90, 180, 365 }.Append(Math.Clamp(original.HistoryRetentionDays, 1, 365)).Distinct().Order().ToArray();
+        var retention = new Picker { ItemsSource = retentionOptions.Select(days => $"{days} Days").ToArray(),
+            SelectedIndex = Array.IndexOf(retentionOptions, Math.Clamp(original.HistoryRetentionDays, 1, 365)),
+            TextColor = Color.FromArgb("#F2F1F5"), BackgroundColor = Color.FromArgb("#232429") };
+        SemanticProperties.SetDescription(retention, "History and Alert Retention");
+        form.Children.Add(retention);
+        WrapCard(retentionStart, "History and Alerts", "Choose how long to keep recorded usage and alerts. Shortening this period removes older records; increasing it cannot restore deleted records.");
         var notificationStart = form.Children.Count;
         var notifications = Toggle("Popup Notifications", original.Notifications);
         var iconAlerts = Toggle("Alert on Icon", original.AlertOnIcon);
@@ -269,7 +277,7 @@ public sealed class SettingsPage : ContentPage
             if (quiet.IsToggled && start == end) { status.Text = "Choose different start and end times for quiet hours."; return; }
             if ((decimal)info.Value < lowValue) { status.Text = "Info Must Be At or Above Warning"; return; }
             if (criticalValue >= lowValue) { status.Text = "Critical capacity must be lower than low capacity."; return; }
-            var settings = original with { ResetExpiryReminders = resetReminders.Value, QuotaRefreshReminders = refreshReminders.Value, Notifications = notifications.IsToggled, AlertOnIcon = iconAlerts.IsToggled, Sound = sound.IsToggled, Privacy = false,
+            var settings = original with { HistoryRetentionDays = retentionOptions[retention.SelectedIndex], ResetExpiryReminders = resetReminders.Value, QuotaRefreshReminders = refreshReminders.Value, Notifications = notifications.IsToggled, AlertOnIcon = iconAlerts.IsToggled, Sound = sound.IsToggled, Privacy = false,
                 QuietHours = quiet.IsToggled, QuietStartHour = start, QuietEndHour = end, InfoThreshold = (decimal)info.Value, LowThreshold = lowValue, CriticalThreshold = criticalValue,
                 LaunchAtSignIn = startup.IsToggled, CloseToTray = close.IsToggled,
                 Rules = original.Rules?.Where(r => accounts.Any(a => a.Id == r.AccountId)).ToArray(),
@@ -288,6 +296,7 @@ public sealed class SettingsPage : ContentPage
         volume.Unfocused += async (_, _) => await AutoSaveAsync();
         duckSounds.CheckedChanged += async (_, e) => { if (e.Value) await AutoSaveAsync(); };
         classicChimes.CheckedChanged += async (_, e) => { if (e.Value) await AutoSaveAsync(); };
+        retention.SelectedIndexChanged += async (_, _) => await AutoSaveAsync();
         timeZone.SelectedIndexChanged += async (_, _) => await AutoSaveAsync();
         foreach (var toggle in new[] { notifications, iconAlerts, sound, quiet, close, startup })
             toggle.Toggled += async (_, _) => await AutoSaveAsync();

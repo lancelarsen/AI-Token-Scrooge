@@ -9,7 +9,7 @@ public sealed partial class LocalStore
 
     bool AddAlert(List<AlertEvent> events, AlertEvent alert)
     {
-        if (alert.CreatedAt < HistoryRetention.Cutoff(clock.GetUtcNow()) || events.Any(e => e.Key == alert.Key)) return false;
+        if (alert.CreatedAt < HistoryRetention.Cutoff(clock.GetUtcNow(), retentionDays) || events.Any(e => e.Key == alert.Key)) return false;
         events.Add(alert with { Delivered = false }); return true;
     }
 

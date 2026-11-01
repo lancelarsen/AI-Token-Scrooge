@@ -57,7 +57,7 @@ public sealed partial class MainPage
         if (force) refresh.IsEnabled = false;
         try
         {
-            alertHistory.RemoveAll(e => e.CreatedAt < HistoryRetention.Cutoff(DateTimeOffset.UtcNow));
+            alertHistory.RemoveAll(e => e.CreatedAt < HistoryRetention.Cutoff(DateTimeOffset.UtcNow, preferences.HistoryRetentionDays));
             if (state.IsDemo) { Render(); return; }
             foreach (var account in state.Accounts.Where(a => a.Enabled).ToArray())
             {

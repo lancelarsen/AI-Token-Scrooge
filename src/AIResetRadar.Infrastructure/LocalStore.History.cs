@@ -78,7 +78,7 @@ public sealed partial class LocalStore
         await WritePackedSnapshotAsync(connection, transaction, snapshot, ct, pollingMinutes);
         await using var command = connection.CreateCommand(); command.Transaction = transaction;
         command.CommandText = "DELETE FROM history WHERE last_at < $cutoff AND (last_at <> 0 OR observed_at < $cutoff)";
-        command.Parameters.AddWithValue("$cutoff", HistoryRetention.Cutoff(clock.GetUtcNow()).ToUnixTimeMilliseconds());
+        command.Parameters.AddWithValue("$cutoff", HistoryRetention.Cutoff(clock.GetUtcNow(), retentionDays).ToUnixTimeMilliseconds());
         if (await command.ExecuteNonQueryAsync(ct) > 0)
         {
             command.Parameters.Clear(); command.CommandText = PruneDefinitionsSql;

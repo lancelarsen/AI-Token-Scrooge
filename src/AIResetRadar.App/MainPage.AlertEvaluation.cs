@@ -26,7 +26,7 @@ public sealed partial class MainPage
             try { await MarkAlertDeliveredAsync(alert, sent); }
             catch { deliveryStatusFailed = true; }
         }
-        alertHistory.RemoveAll(e => e.CreatedAt < HistoryRetention.Cutoff(now));
+        alertHistory.RemoveAll(e => e.CreatedAt < HistoryRetention.Cutoff(now, preferences.HistoryRetentionDays));
         if (deliveryStatusFailed) throw new IOException("Windows delivery status could not be saved for one or more alerts.");
     }
 }
