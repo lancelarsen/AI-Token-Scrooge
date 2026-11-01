@@ -14,7 +14,7 @@ You're paying for that AI capacity. Scrooge helps you see what's left and when i
 
 Built for Windows with .NET 10 MAUI and the Windows App SDK, Scrooge brings your AI usage into a native desktop app with Windows notifications and system tray monitoring.
 
-[Features](#what-scrooge-does) · [Providers](#supported-providers) · [Getting Started](#getting-started) · [Build from Source](#build-and-run-from-source) · [Future Tasks](#future-tasks)
+[Features](#what-scrooge-does) Â· [Providers](#supported-providers) Â· [Getting Started](#getting-started) Â· [Build from Source](#build-and-run-from-source) Â· [Future Tasks](#future-tasks)
 
 ![AI Token Scrooge dashboard with usage history and upcoming quota events](docs/images/dashboard.png)
 
@@ -92,7 +92,7 @@ Choose how often to check each account with the Polling Interval slider: 1 to 30
 
 ## Getting Started
 
-1. Use a Windows preview package if one is available in [Releases](https://github.com/lancelarsen/AI-Token-Scrooge/releases), or build from source below.
+1. Download the Windows preview ZIP from [Releases](https://github.com/lancelarsen/AI-Token-Scrooge/releases), or follow the build instructions below.
 
 2. Extract the entire portable package to a stable folder and run `AIResetRadar.App.exe`.
 
