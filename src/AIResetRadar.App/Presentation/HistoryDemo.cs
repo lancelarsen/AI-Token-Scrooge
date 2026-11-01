@@ -26,6 +26,23 @@ public static class HistoryDemo
             var restoredRemaining = Math.Min(99, Math.Max(endRemaining, index % 2 == 0 ? 91 : 96));
             var records = new List<QuotaSnapshot>();
             var steps = (int)Math.Ceiling((now - start).TotalMinutes / 5);
+            // Synthetic work sessions: idle nights, uneven bursts, and small reported increments.
+            // Shape is informed by aggregate local observations, never copied account readings.
+            var activity = new double[steps + 1];
+            for (var i = 1; i <= steps; i++)
+            {
+                var local = TimeZoneInfo.ConvertTime(start.AddMinutes(i * 5), zone);
+                var slot = local.Hour * 12 + local.Minute / 5;
+                var seed = unchecked((uint)(local.DayOfYear * 7919 + slot * 104729 + index * 15485863));
+                seed ^= seed >> 16; seed *= 0x7feb352d; seed ^= seed >> 15;
+                var session = (slot + index * 17 + local.DayOfYear * 7) % 91;
+                var active = local.Hour >= 8 + index % 3 && local.Hour < 23 - index % 2 && session < 33;
+                var weight = active && seed % 7 < 3 ? 1 + (seed / 7 % 9) / 3d : 0;
+                activity[i] = activity[i - 1] + weight;
+            }
+            double At(DateTimeOffset time) => activity[Math.Clamp((int)Math.Ceiling((time - start).TotalMinutes / 5), 0, steps)];
+            double Progress(DateTimeOffset time, DateTimeOffset from, DateTimeOffset to) =>
+                At(to) <= At(from) ? Fraction(time, from, to) : (At(time) - At(from)) / (At(to) - At(from));
             for (var step = 0; step <= steps; step++)
             {
                 var at = step == steps ? now : start.AddMinutes(step * 5);
@@ -35,11 +52,11 @@ public static class HistoryDemo
                 if (refreshAt is { } refresh)
                 {
                     remaining = at < refresh
-                        ? Lerp(startRemaining, 24 + index * 3, Fraction(at, start, refresh))
-                        : Lerp(restoredRemaining, endRemaining, Fraction(at, refresh, now));
+                        ? Lerp(startRemaining, 24 + index * 3, Progress(at, start, refresh))
+                        : Lerp(restoredRemaining, endRemaining, Progress(at, refresh, now));
                 }
-                else remaining = Lerp(startRemaining, endRemaining, Fraction(at, start, now));
-                remaining = decimal.Round(Math.Clamp(remaining, 0, 100), 2);
+                else remaining = Lerp(startRemaining, endRemaining, Progress(at, start, now));
+                remaining = at == now ? endRemaining : decimal.Round(Math.Clamp(remaining, 0, 100), account.Provider == "GitHub Copilot" ? 1 : 0);
                 var used = window.Unit == UsageUnit.Percent ? 100 - remaining : window.Limit * (100 - remaining) / 100;
                 var period = window with { Used = used, ResetsAt = refreshAt is { } r && at < r ? r : window.ResetsAt };
                 var credits = expiryAt is { } expiry && at <= expiry

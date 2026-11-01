@@ -95,10 +95,10 @@ public sealed class DashboardState
             new(2, [new("demo-r1", "available", now.AddDays(4)), new("demo-r2", "available", now.AddDays(9))]), SourceHealth.Demo, PlanType: historyDemo ? "plus" : null);
         Snapshots[work.Id] = new(work.Id, work.Subject, work.Scope, now,
             [new("codex/primary", "Codex · 5-hour", UsageUnit.Percent, 19, 100, now.AddHours(3).AddMinutes(44), 300),
-             new("codex/secondary", "Codex · Weekly", UsageUnit.Percent, 36, 100, now.AddDays(5), 10080)], null, SourceHealth.Demo, PlanType: "pro");
+             new("codex/secondary", "Codex · Weekly", UsageUnit.Percent, 58, 100, now.AddDays(5), 10080)], null, SourceHealth.Demo, PlanType: "pro");
         Snapshots[claude.Id] = new(claude.Id, claude.Subject, claude.Scope, now,
             [new("session", "Current Session", UsageUnit.Percent, 12, 100, now.AddHours(3), 300),
-             new("weekly", "Weekly Limit", UsageUnit.Percent, 26, 100, now.AddDays(4), 10080)], null, SourceHealth.Demo, PlanType: "pro");
+             new("weekly", "Weekly Limit", UsageUnit.Percent, 94, 100, now.AddDays(4), 10080)], null, SourceHealth.Demo, PlanType: "pro");
         Snapshots[github.Id] = new(github.Id, github.Subject, github.Scope, now,
             [new("copilot/monthly", "AI credits · Monthly (10,000)", UsageUnit.Credits, 8200, 10000,
                 new DateTimeOffset(now.UtcDateTime.Year, now.UtcDateTime.Month, 1, 0, 0, 0, TimeSpan.Zero).AddMonths(1))], null, SourceHealth.Demo, PlanType: "individual_max");
