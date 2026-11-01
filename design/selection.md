@@ -1,5 +1,7 @@
 # AI Reset Radar — selected design direction
 
+Historical design record. For current implementation requirements, use [Design Guidelines](../docs/design.md). Later approved behavior supersedes conflicting early concepts, colors, and layouts below.
+
 ## Confirmed base
 
 The user selected the original **Reset Horizon**, image 3 from the first exploration, by attaching the exact screenshot. Its charcoal/lavender design, brand header, upcoming reset timeline, account usage rows, earned-reset summary and popup are the starting point.

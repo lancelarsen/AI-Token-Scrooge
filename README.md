@@ -134,7 +134,16 @@ Build on Windows. If you just want to use Scrooge, download the portable package
 
 5. Open `artifacts/publish/win-x64` and run `AIResetRadar.App.exe`. Keep the entire folder together when moving the app.
 
+## Contributions Welcome
+
+Want to help Scrooge keep track of more of your AI tools? We'd love contributions for Grok and other services, along with bug fixes, accessibility improvements, tests, and documentation.
+
+Start with [Contributing](CONTRIBUTING.md) and the [Contribution Roadmap](tasks/contributor-roadmap.md). Our [Design Guidelines](docs/design.md), [Application Architecture](docs/architecture.md), and [Provider Integration Guide](docs/integration.md) explain how additions should fit the app.
+
 ## Future Tasks
+
+- [ ] Research and integrate additional providers, including Grok, Gemini, Cursor, and Windsurf, where a reliable usage source is available
+- [ ] Expand contributor tooling, provider reliability, accessibility, and data recovery coverage in the [Contribution Roadmap](tasks/contributor-roadmap.md)
 
 - [ ] Provide a signed Windows installer
 - [ ] Complete broader live-provider testing, including reconnecting and removing accounts

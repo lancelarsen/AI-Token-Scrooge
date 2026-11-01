@@ -1,5 +1,28 @@
+# Repository Instructions
+
+## Required Contributor Guides
+
+Before implementation, read [Contributing](CONTRIBUTING.md), [Application Architecture](docs/architecture.md), and [Testing and Verification](docs/testing.md). Read the additional guides for the work being changed:
+
+- UI, layout, controls, icons, interaction, or copy: [Design Guidelines](docs/design.md)
+- Providers, browser/CLI sign-in, usage mapping, polling, or credential lifecycle: [Provider Integration](docs/integration.md) and [Security](SECURITY.md)
+- Persistence, retention, or migrations: [History Storage](docs/history-storage.md) and the architecture persistence section
+- Build, packaging, or releases: [Release Acceptance](docs/release-acceptance.md) and [Windows Preview Workflow](.github/workflows/windows-preview.yml)
+- New features and provider proposals: [Contribution Roadmap](tasks/contributor-roadmap.md)
+
+These guides are implementation requirements, not optional background reading. Current user instructions take priority. The current design guide supersedes conflicting historical concept notes. When code and a guide disagree, identify the discrepancy and resolve it within the task rather than silently creating a new pattern.
+
+## Architecture and Integration Boundaries
+
+- Keep domain logic in Core, external I/O and persistence in Infrastructure, and presentation/Windows orchestration in App. Use the existing shared controls.
+- Monitoring must not send inference prompts, redeem resets, buy credits, or switch accounts in other applications. Prefer provider-owned browser sign-in or an isolated official CLI profile.
+- Verify Subject and Scope, preserve nullable unknowns and allowance provenance, honor cancellation/retry deadlines, and reject stale results from removed or reconnected accounts.
+- Persist account changes before credential retirement; cleanup must remain retryable. Never put credentials or raw provider responses into logs, fixtures, screenshots, SQLite state, or release artifacts.
+- Add focused regression coverage for changed behavior. Report fixture, native, and live evidence separately. Update the relevant guide and roadmap when behavior or architecture changes.
+- Preserve unrelated working-tree changes. Do not mark a research-only provider supported or mark unverified acceptance work complete.
+
 ## UI Copy
-- Use Title Case for short UI titles, labels, tooltips, and concise status messages, capitalizing the principal words (for example, “Report Accounts”).
+- Use Title Case for short UI titles, labels, tooltips, and concise status messages, capitalizing the principal words (for example, "Report Accounts").
 - Do not add a trailing period to short UI strings. Keep full explanatory sentences in sentence case with normal punctuation.
 
 ## README and Documentation Copy
