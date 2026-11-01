@@ -32,7 +32,7 @@ Scrooge only monitors usage. It doesn't send AI prompts, redeem earned resets, p
 | --- | --- | --- |
 | OpenAI Codex | Provider-reported usage windows, remaining capacity, reset times, and available earned resets when supplied | Browser sign-in through a local Codex installation, using separate Scrooge-owned profiles. General ChatGPT model quotas and OpenAI API billing are outside this integration. |
 | GitHub Copilot | Monthly AI-credit/request usage, allowance when available, remaining percentage, and monthly refresh | Browser/device sign-in for personal billing; an advanced token path supports personal or organization billing. Billing data can lag. Automatic entitlement lookup uses an internal endpoint that may change; manual allowance is a labeled fallback. |
-| Claude | Session and weekly usage windows reported for connected Pro/Max accounts | Browser sign-in through Claude Code 2.1.310 or later, with isolated profiles. Monitoring does not send AI prompts. |
+| Claude | Session and weekly usage windows reported for connected Pro/Max accounts | Requires the installed Claude CLI (Claude Code) version 2.1.310 or later. Scrooge uses it to open browser sign-in and read usage, with a separate profile for each account. Monitoring does not send AI prompts. |
 
 Scrooge displays the limits a provider supplies. If an allowance is unknown, it says so. A plan name alone cannot tell us its quota or price. See [provider evidence](docs/provider-capabilities.md) and [verification notes](docs/verification.md) for the scope of live checks.
 
@@ -104,7 +104,7 @@ Windows notification settings and Do Not Disturb can affect popup delivery. Run 
 
 5. Leave Scrooge running in the tray if you want background monitoring. Use Exit Scrooge in the tray menu to stop it.
 
-The first launch has no connected accounts. OpenAI requires a local Codex installation; Claude requires the supported Claude Code version. GitHub browser sign-in requires the project's app registration to be configured. See [GitHub sign-in setup](docs/github-sign-in.md). The GitHub authorization screen currently uses the registered name AI Reset Radar.
+The first launch has no connected accounts. OpenAI requires a local Codex installation; Claude requires the installed Claude CLI (Claude Code), version 2.1.310 or later. GitHub browser sign-in requires the project's app registration to be configured. See [GitHub sign-in setup](docs/github-sign-in.md). The GitHub authorization screen currently uses the registered name AI Reset Radar.
 
 To try the interface before connecting an account, launch with `--demo`. Demo data is labeled, and changes stay in memory. Send Test Notification still displays a real Windows test notification.
 
@@ -152,7 +152,7 @@ Each account's settings include an auto-saved Polling Interval slider, from 1 to
 
 For reliable Windows notification activation and launch-at-sign-in, extract the preview into a stable folder before running it. Startup registration points to that executable path; moving or deleting it can break startup. After moving the app, launch it from the new location and toggle the launch-at-sign-in setting off and on if enabled. Run normally, not as administrator: Windows App SDK notifications are unsupported in elevated apps. See [Microsoft's notification guidance](https://learn.microsoft.com/en-us/windows/apps/develop/notifications/app-notifications/app-notifications-quickstart).
 
-Default application state: `%LOCALAPPDATA%\AIResetRadar`. SQLite stores non-secret connection metadata and usage/alert data. Protected token files are in `Credentials`; independent Codex profiles are in `Profiles`; Claude Code manages its own credentials in isolated `ClaudeProfiles` directories. Existing Codex/IDE profiles are not modified. Removing a connection deletes/signs out Scrooge's own saved credentials only. Logs must never include tokens or provider response bodies.
+Default application state: `%LOCALAPPDATA%\AIResetRadar`. SQLite stores non-secret connection metadata and usage/alert data. Protected token files are in `Credentials`; independent Codex profiles are in `Profiles`; The installed Claude CLI (Claude Code) manages its credentials in separate `ClaudeProfiles` directories for Scrooge. Existing Codex/IDE profiles are not modified. Removing a connection deletes/signs out Scrooge's own saved credentials only. Logs must never include tokens or provider response bodies.
 
 Reconnect validates a separate protected credential/profile before adopting it. It keeps the account's paused state and logical identity. Superseded credential references are queued durably for cleanup; a pending cleanup is shown and retried while monitoring. Removing a connection commits that removal before retiring its credentials/history. Snapshot and alert history retain 45 days by default.
 
