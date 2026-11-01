@@ -8,7 +8,7 @@ $entries = @(Get-ChildItem -LiteralPath $source -Recurse -Force)
 $files = @($entries | Where-Object { -not $_.PSIsContainer })
 foreach ($file in $entries) {
     $relative = [System.IO.Path]::GetRelativePath($source, $file.FullName)
-    if ($relative -match '(^|[\\/])(Credentials|Profiles|\.git)([\\/]|$)|(^|[\\/])(auth\.json|radar\.db.*|\.env.*)$|\.(pfx|pem|key)$') { throw 'The publish folder contains local state or credential material; packaging stopped.' }
+    if ($relative -match '(^|[\\/])(Credentials|Profiles|ClaudeProfiles|\.git)([\\/]|$)|(^|[\\/])(auth\.json|radar\.db.*|\.env.*)$|\.(pfx|pem|key)$') { throw 'The publish folder contains local state or credential material; packaging stopped.' }
     if ($file.Attributes -band [System.IO.FileAttributes]::ReparsePoint) { throw 'A publish file is a reparse point; packaging stopped.' }
 }
 $releaseDirectory = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../artifacts/releases'))

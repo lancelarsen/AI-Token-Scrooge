@@ -9,7 +9,7 @@ public class DashboardRenderTests
     [Fact]
     public void MidnightRefreshesTodayLabelsWithoutAProviderObservation()
     {
-        var before = new DateTimeOffset(new DateTime(2026, 10, 25, 23, 59, 59, DateTimeKind.Local));
+        var before = DateTimeOffset.Parse("2026-10-25T23:59:59-05:00");
         var state = new DashboardState();
         state.LoadDemo(before);
         var after = before.AddSeconds(1);

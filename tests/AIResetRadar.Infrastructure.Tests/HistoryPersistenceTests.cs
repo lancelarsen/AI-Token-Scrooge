@@ -14,7 +14,9 @@ public sealed class HistoryRangeTests
         using var files = new HistoryFixture();
         await files.Store.WriteAsync("settings", new RadarSettings(HistoryRetentionDays: 180));
         await files.Store.RecordSnapshotAsync(files.Snapshot(files.Now.AddDays(-120)));
-        Assert.Single(await files.Store.HistoryAsync("a"));
+        var reopened = new LocalStore(files.Database, files.Clock);
+        Assert.Equal(180, (await reopened.ReadAsync<RadarSettings>("settings"))!.HistoryRetentionDays);
+        Assert.Single(await reopened.HistoryAsync("a"));
         await files.Store.WriteAsync("settings", new RadarSettings(HistoryRetentionDays: 30));
         Assert.Empty(await files.Store.HistoryAsync("a"));
     }
