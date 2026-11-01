@@ -16,8 +16,6 @@ If you use several AI accounts, checking each provider's usage page gets old fas
 
 ![AI Token Scrooge dashboard with usage history and upcoming quota events](docs/images/dashboard.png)
 
-*These are screenshots of the Windows development preview using labeled demo data. The accounts and usage values are made up. Some UI changes may not be in the published builds yet.*
-
 ## What Scrooge does
 
 Keep personal and work accounts connected at the same time. Each account has a nickname, provider icon, and reported plan, so you can tell them apart even when they use the same service.
@@ -35,13 +33,9 @@ It only monitors usage. It doesn't send AI prompts, redeem earned resets, purcha
 ## Supported providers
 
 | Provider | What Scrooge shows | Connection and limits |
-
 | --- | --- | --- |
-
 | OpenAI Codex | Provider-reported usage windows, remaining capacity, reset times, and available earned resets when supplied | Browser sign-in through a local Codex installation, using separate Scrooge-owned profiles. General ChatGPT model quotas and OpenAI API billing are outside this integration. |
-
 | GitHub Copilot | Monthly AI-credit/request usage, allowance when available, remaining percentage, and monthly refresh | Browser/device sign-in for personal billing; an advanced token path supports personal or organization billing. Billing data can lag. Automatic entitlement lookup uses an internal endpoint that may change; manual allowance is a labeled fallback. |
-
 | Claude | Session and weekly usage windows reported for connected Pro/Max accounts | Browser sign-in through Claude Code 2.1.310 or later, with isolated profiles. Monitoring does not send AI prompts. |
 
 Scrooge displays the limits a provider supplies. If an allowance is unknown, it says so. A plan name alone cannot tell us its quota or price. See [provider evidence](docs/provider-capabilities.md) and [verification notes](docs/verification.md) for the scope of live checks.
@@ -53,19 +47,12 @@ Scrooge displays the limits a provider supplies. If an allowance is unknown, it 
 An account can have more than one limit. Your session allowance might refill tonight while the weekly allowance stays nearly empty until Thursday. Each row has its own countdown and alert controls for that reason.
 
 | Visual | Meaning |
-
 | --- | --- |
-
 | Used / Left percentages | How much of that particular allowance has been consumed and remains |
-
 | Green, blue, yellow, and red bar states | Normal capacity, informational threshold, warning, and critical capacity |
-
 | Colored threshold handles | Info, warning, and critical levels based on percentage remaining; drag them to adjust that row |
-
 | Bell controls | Enable or mute alerts for the individual quota row |
-
 | Countdown and date | The next reported refresh time for that quota window |
-
 | Account gear | Rename, adjust polling, choose a history-line color, pause monitoring, manage alerts, reconnect, or remove the connection |
 
 Click a usage bar for details. Sort by Most Remaining, Least Remaining, or Next Reset to find the account you need. For a fixed order, choose Custom Order and drag the account handles. Status messages tell you when a reading is stale, a connection needs attention, or usage is unknown.
@@ -93,27 +80,16 @@ Scrooge keeps history and alerts for 45 days by default. It compacts repeated id
 Changes in Settings save automatically. Set your defaults there, then adjust individual accounts and quota rows where needed.
 
 | Control | What it does |
-
 | --- | --- |
-
 | Popup Notifications / Alert on Icon | Choose Windows popup delivery and app-icon alert status |
-
 | Default Alert Levels | Set informational, warning, and critical percentages of capacity remaining |
-
 | Capacity Exhausted | Alert when a limit reaches no remaining capacity, with its dashboard alarm enabled |
-
 | Capacity Restored | Alert after an exhausted limit has capacity again and the provider confirms usage is allowed |
-
 | Earned Reset Expiration Alerts | Configure lead times and severities before unused earned resets expire |
-
 | Quota Refresh Alerts | Configure a separate schedule before quota refreshes |
-
 | Quiet Hours | Quiet notification delivery during a chosen time range, including overnight ranges, while monitoring continues |
-
 | Sounds | Choose Duck Sounds or Classic Chimes, adjust volume, and preview notification actions |
-
 | Alert History / Snooze | Review recorded alerts and postpone eligible notifications |
-
 | Time Zone | Control displayed dates, reset times, and quiet-hour interpretation |
 
 Choose how often to check each account with the Polling Interval slider: 1 to 30 minutes, starting at 2 minutes by default. A shorter interval catches changes sooner but makes more requests. Scrooge may check earlier at a known reset time; provider retry delays still take priority. Turn off Monitor This Account to pause its checks and alerts without losing the connection.
