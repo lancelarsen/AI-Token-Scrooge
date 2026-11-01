@@ -18,17 +18,13 @@ If you use several AI accounts, checking each provider's usage page gets old fas
 
 ## What Scrooge does
 
-Keep personal and work accounts connected at the same time. Each account has a nickname, provider icon, and reported plan, so you can tell them apart even when they use the same service.
+- Keep personal and work accounts connected at the same time. Nicknames, provider icons, and reported plans help you tell them apart.
+- See a usage bar and reset countdown for each quota window. Session and weekly limits stay separate when the provider reports both.
+- Use Reset Horizon to see upcoming quota refreshes and earned-reset expirations alongside recorded usage. Look back at how quickly you used an allowance, then ahead to its next refresh.
+- Choose alerts for usage thresholds, exhausted or restored capacity, and upcoming reset events. Mute individual quota rows, set quiet hours, change sounds, or snooze alerts.
+- Start Scrooge with Windows and keep it running in the system tray. Click the tray icon to bring the dashboard back.
 
-Every quota window gets its own usage bar and reset countdown. A session limit and a weekly limit are separate allowances; Scrooge shows both when the provider reports them.
-
-Reset Horizon puts upcoming quota refreshes and earned-reset expirations on a timeline. Recorded usage appears alongside those events, so you can look back at how quickly you used an allowance and look ahead to its next refresh.
-
-Choose when Scrooge should get your attention: at a usage threshold, when capacity runs out or returns, or before a reset event. You can mute individual quota rows, set quiet hours, change sounds, and snooze alerts.
-
-Scrooge can start with Windows and keep running in the system tray. Clicking its tray icon brings the dashboard back.
-
-It only monitors usage. It doesn't send AI prompts, redeem earned resets, purchase credits, or change the account you're using in another app.
+Scrooge only monitors usage. It doesn't send AI prompts, redeem earned resets, purchase credits, or change the account you're using in another app.
 
 ## Supported providers
 
