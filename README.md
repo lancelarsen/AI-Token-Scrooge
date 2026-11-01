@@ -30,6 +30,8 @@ You're paying for that AI capacity. Scrooge helps you see what's left and when i
 
 Checking usage does not consume AI tokens. Scrooge monitors and reminds you; it doesn't send AI prompts, claim resets, purchase credits, or switch accounts in your other apps.
 
+**Never Waste a Token! Never Miss a Reset!**
+
 ## Supported providers
 
 | Provider | What Scrooge shows | Connection and limits |
