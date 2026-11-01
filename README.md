@@ -18,11 +18,11 @@ If you use several AI accounts, checking each provider's usage page gets old fas
 
 ## What Scrooge does
 
-- Keep personal and work accounts connected at the same time. Nicknames, provider icons, and reported plans help you tell them apart.
-- See a usage bar and reset countdown for each quota window. Session and weekly limits stay separate when the provider reports both.
-- Use Reset Horizon to see upcoming quota refreshes and earned-reset expirations alongside recorded usage. Look back at how quickly you used an allowance, then ahead to its next refresh.
-- Choose alerts for usage thresholds, exhausted or restored capacity, and upcoming reset events. Mute individual quota rows, set quiet hours, change sounds, or snooze alerts.
-- Start Scrooge with Windows and keep it running in the system tray. Click the tray icon to bring the dashboard back.
+- Plan your next session with Reset Horizon. See when your AI limits refill and which earned resets are about to expire, with your usage history on the same timeline.
+- Know how much you have left before you start. Clear usage bars and countdowns show what's available across Codex, Copilot, and Claude, including separate session and weekly limits when reported.
+- Get a heads-up before you run out, and an alert when capacity is back. Set reminders for upcoming refreshes and expiring resets so you can put your available usage to work.
+- Make alerts work on your schedule. Choose sounds, set quiet hours, snooze reminders, or mute individual limits.
+- Keep working while Scrooge keeps watch. It can start with Windows and monitor from the system tray, with the dashboard one click away.
 
 Scrooge only monitors usage. It doesn't send AI prompts, redeem earned resets, purchase credits, or change the account you're using in another app.
 
