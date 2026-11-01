@@ -31,7 +31,7 @@ Scrooge only monitors usage. It doesn't send AI prompts, redeem earned resets, p
 | Provider | What Scrooge shows | Connection and limits |
 | --- | --- | --- |
 | OpenAI Codex | Provider-reported usage windows, remaining capacity, reset times, and available earned resets when supplied | Browser sign-in through a local Codex installation, using separate Scrooge-owned profiles. General ChatGPT model quotas and OpenAI API billing are outside this integration. |
-| GitHub Copilot | Monthly AI-credit/request usage, allowance when available, remaining percentage, and monthly refresh | Browser/device sign-in for personal billing; an advanced token path supports personal or organization billing. Billing data can lag. Automatic entitlement lookup uses an internal endpoint that may change; manual allowance is a labeled fallback. |
+| GitHub Copilot | Monthly AI-credit/request usage, allowance when available, remaining percentage, and monthly refresh | Sign in through GitHub's website using a short authorization code. Scrooge reads your reported usage and tries to detect your plan's allowance automatically. |
 | Claude | Session and weekly usage windows reported for connected Pro/Max accounts | Requires the installed Claude CLI (Claude Code) version 2.1.310 or later. Scrooge uses it to open browser sign-in and read usage, with a separate profile for each account. Monitoring does not send AI prompts. |
 
 Scrooge displays the limits a provider supplies. If an allowance is unknown, it says so. A plan name alone cannot tell us its quota or price. See [provider evidence](docs/provider-capabilities.md) and [verification notes](docs/verification.md) for the scope of live checks.
