@@ -2,6 +2,11 @@
 - Use Title Case for short UI titles, labels, tooltips, and concise status messages, capitalizing the principal words (for example, “Report Accounts”).
 - Do not add a trailing period to short UI strings. Keep full explanatory sentences in sentence case with normal punctuation.
 
+## README and Documentation Copy
+- Use Title Case for headings, table headers, navigation labels, standalone short labels, and named UI controls in README and documentation. Do not add trailing periods to these labels. Keep explanatory sentences and descriptive table content in sentence case.
+- This project preference overrides any writing skill's sentence-case heading default. Preserve approved taglines exactly.
+- Before publishing documentation edits, review every heading, table header, navigation label, and short label for capitalization, then check Markdown formatting and internal heading links.
+
 ## Running App
 - After each UI or runtime behavior update, rebuild and restart the running Windows app from the latest build, then confirm the visible app reflects the change before calling it complete. A successful build alone does not update an already-running instance.
 
