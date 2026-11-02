@@ -160,13 +160,7 @@ Start with [Contributing](CONTRIBUTING.md) and the [Contribution Roadmap](tasks/
 ## Future Tasks
 
 - [ ] Research and integrate additional providers, including Grok, Gemini, Cursor, and Windsurf, where a reliable usage source is available
-- [ ] Expand contributor tooling, provider reliability, accessibility, and data recovery coverage in the [Contribution Roadmap](tasks/contributor-roadmap.md)
-
 - [ ] Provide a signed Windows installer
 - [ ] Complete broader live-provider testing, including reconnecting and removing accounts
-- [ ] Verify notification clicks, tray behavior, and startup recovery across Windows environments
-- [ ] Expand display scaling and accessibility checks
-- [ ] Verify installation for a new Windows user
-- [ ] Complete longer-running resource tests and address the native CPU regression tracked in [Performance Notes](docs/native-performance.md)
 
 Found a problem? Open a [GitHub Issue](https://github.com/lancelarsen/AI-Token-Scrooge/issues) with your app version, provider, steps to reproduce, and a screenshot with private information removed.
