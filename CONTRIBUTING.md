@@ -1,6 +1,6 @@
 # Contributing to AI Token Scrooge
 
-Contributions are welcome: new provider integrations, bug fixes, accessibility improvements, tests, documentation, and Windows packaging work. Grok and other services are good places to help if you can establish a reliable, read-only usage source.
+Contributions are welcome: new provider integrations, bug fixes, and Windows packaging work. Grok and other services are good places to help if you can establish a reliable, read-only usage source.
 
 Start with the [Contribution Roadmap](tasks/contributor-roadmap.md). For a new provider or a substantial design/architecture change, open an issue describing the problem, proposed approach, and evidence before investing in a large PR. Small fixes can go straight to a focused PR.
 
@@ -42,8 +42,8 @@ Follow [Security](SECURITY.md) for vulnerabilities. Be respectful, make feedback
 
 ## Licensing and Maintainer Decisions
 
-A repository-wide LICENSE file is not yet present. Choosing and adding the project license is an open maintainer task in the roadmap. Do not invent license terms or replace third-party notices in a contribution. Identify the source and license of any new icons, sounds, or other assets.
+A repository-wide LICENSE file is not yet present. Choosing and adding the project license remains a maintainer decision. Do not invent license terms or replace third-party notices in a contribution. Identify the source and license of any new icons, sounds, or other assets.
 
 ## Release Behavior
 
-Pushes to main run the Windows preview workflow: install the pinned toolchain, test, publish, package, and upload an unsigned prerelease ZIP and manifest. Local commits and unmerged PRs do not publish releases. PR-only CI is a separate roadmap task. A green build is required, but does not replace live-provider, native UI, or clean-Windows-user acceptance.
+Pushes to main run the Windows preview workflow: install the pinned toolchain, test, publish, package, and upload an unsigned prerelease ZIP and manifest. Local commits and unmerged PRs do not publish releases. Contributors should verify the behavior their change affects using the relevant testing guide.

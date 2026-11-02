@@ -19,6 +19,7 @@ These guides are implementation requirements, not optional background reading. C
 - Verify Subject and Scope, preserve nullable unknowns and allowance provenance, honor cancellation/retry deadlines, and reject stale results from removed or reconnected accounts.
 - Persist account changes before credential retirement; cleanup must remain retryable. Never put credentials or raw provider responses into logs, fixtures, screenshots, SQLite state, or release artifacts.
 - Add focused regression coverage for changed behavior. Report fixture, native, and live evidence separately. Update the relevant guide and roadmap when behavior or architecture changes.
+- When the user changes planned work or contributor scope, update README, CONTRIBUTING, the active roadmap, and affected cross-references together. Keep required verification for actual changes distinct from standalone future projects.
 - Preserve unrelated working-tree changes. Do not mark a research-only provider supported or mark unverified acceptance work complete.
 
 ## UI Copy

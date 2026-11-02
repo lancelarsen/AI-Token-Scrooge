@@ -6,7 +6,7 @@ Scrooge handles account access needed to read usage. Contributions must preserve
 
 Do not post tokens, credential files, databases, personal account details, or an exploit containing private data in a public issue.
 
-Private vulnerability reporting was checked on November 1, 2026 and is currently disabled. If GitHub's Security tab later offers private vulnerability reporting, use that channel. If it is unavailable, open a minimal issue requesting a private reporting channel without vulnerability details. Establish the private channel with a maintainer before sending sensitive material. Enabling and documenting a permanent private reporting channel is a roadmap item; this document does not imply it is already enabled.
+Private vulnerability reporting was checked on November 1, 2026 and is currently disabled. If GitHub's Security tab later offers private vulnerability reporting, use that channel. If it is unavailable, open a minimal issue requesting a private reporting channel without vulnerability details. Establish the private channel with a maintainer before sending sensitive material. Enabling a permanent private reporting channel remains a maintainer decision.
 
 Provide affected versions, the security boundary involved, reproduction steps using synthetic data, impact, and a suggested mitigation if known. No response-time guarantee or supported-version policy has been established yet.
 

@@ -153,7 +153,7 @@ Build on Windows. If you just want to use Scrooge, download the portable package
 
 ## Contributions Welcome
 
-Want to help Scrooge keep track of more of your AI tools? We'd love contributions for Grok and other services, along with bug fixes, accessibility improvements, tests, and documentation.
+Want to help Scrooge keep track of more of your AI tools? We'd love contributions for Grok and other services, along with bug fixes.
 
 Start with [Contributing](CONTRIBUTING.md) and the [Contribution Roadmap](tasks/contributor-roadmap.md). Our [Design Guidelines](docs/design.md), [Application Architecture](docs/architecture.md), and [Provider Integration Guide](docs/integration.md) explain how additions should fit the app.
 
