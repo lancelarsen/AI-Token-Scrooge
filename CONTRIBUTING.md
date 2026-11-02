@@ -42,7 +42,7 @@ Follow [Security](SECURITY.md) for vulnerabilities. Be respectful, make feedback
 
 ## Licensing and Maintainer Decisions
 
-A repository-wide LICENSE file is not yet present. Choosing and adding the project license remains a maintainer decision. Do not invent license terms or replace third-party notices in a contribution. Identify the source and license of any new icons, sounds, or other assets.
+AI Token Scrooge is open source under the [MIT License](LICENSE). Contributions are provided under the same license. Preserve third-party notices. Identify the source and license of any new icons, sounds, or other assets.
 
 ## Release Behavior
 

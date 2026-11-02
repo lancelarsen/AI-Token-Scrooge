@@ -164,3 +164,7 @@ Start with [Contributing](CONTRIBUTING.md) and the [Contribution Roadmap](tasks/
 - [ ] Complete broader live-provider testing, including reconnecting and removing accounts
 
 Found a problem? Open a [GitHub Issue](https://github.com/lancelarsen/AI-Token-Scrooge/issues) with your app version, provider, steps to reproduce, and a screenshot with private information removed.
+
+## License
+
+AI Token Scrooge is open source under the [MIT License](LICENSE).
