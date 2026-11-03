@@ -1,10 +1,10 @@
 namespace AIResetRadar.Core;
-public sealed record RadarSettings(bool Notifications = true, bool Sound = false, bool Privacy = false,
-    bool QuietHours = false, int QuietStartHour = 22, int QuietEndHour = 8, decimal LowThreshold = 30,
+public sealed record RadarSettings(bool Notifications = true, bool Sound = true, bool Privacy = false,
+    bool QuietHours = true, int QuietStartHour = 0, int QuietEndHour = 8, decimal LowThreshold = 30,
     decimal CriticalThreshold = 10, bool LaunchAtSignIn = true, bool CloseToTray = true, IReadOnlyList<AlertRule>? Rules = null,
-    string TimeZoneId = TimeZones.DefaultId, AccountSortMode AccountSort = AccountSortMode.NextReset,
+    string TimeZoneId = TimeZones.DefaultId, AccountSortMode AccountSort = AccountSortMode.CustomOrder,
     IReadOnlyList<string>? AccountOrder = null, IReadOnlyList<QuotaAlertSection>? DisabledCapacityAlerts = null, string SoundTheme = "Ducks", double SoundVolume = 65,
-    IReadOnlyList<TimedReminder>? ResetExpiryReminders = null, IReadOnlyList<TimedReminder>? QuotaRefreshReminders = null, decimal InfoThreshold = 50, bool AlertOnIcon = true, int ReminderDefaultsVersion = 0, int HistoryRetentionDays = HistoryRetention.Days)
+    IReadOnlyList<TimedReminder>? ResetExpiryReminders = null, IReadOnlyList<TimedReminder>? QuotaRefreshReminders = null, decimal InfoThreshold = 50, bool AlertOnIcon = true, int ReminderDefaultsVersion = 0, IReadOnlyList<string>? CustomLineColors = null, int HistoryRetentionDays = HistoryRetention.Days)
 {
     public IReadOnlyList<TimedReminder> EffectiveResetReminders => ResetExpiryReminders ?? TimedReminder.Defaults(true);
     public IReadOnlyList<TimedReminder> EffectiveRefreshReminders => QuotaRefreshReminders ?? TimedReminder.Defaults(false);

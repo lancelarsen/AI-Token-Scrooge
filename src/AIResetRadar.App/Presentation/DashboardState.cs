@@ -7,9 +7,9 @@ public sealed record QuotaRow(ProviderAccount Account, QuotaSnapshot Snapshot, Q
     public string WindowTitle => UiTitle.CapitalizeWords(Window.Name);
     public bool IsWarning => Window.Capacity(Low, Critical) is CapacityState.Low or CapacityState.Critical or CapacityState.Exhausted;
     bool DisplayPercent => Window.Unit == UsageUnit.Percent || Account.Provider == "GitHub Copilot";
-    public string UsedText => DisplayPercent ? Window.UsedPercent is { } percent ? $"{percent:0.#}% used" : "Usage unavailable" :
+    public string UsedText => DisplayPercent ? Window.UsedPercent is { } percent ? $"{percent:0}% used" : "Usage unavailable" :
         Window.Used is { } used ? $"{used:N0} used" : "Usage unavailable";
-    public string LeftText => DisplayPercent ? Window.RemainingPercent is { } percent ? $"{percent:0.#}% left" : "Left unavailable" :
+    public string LeftText => DisplayPercent ? Window.RemainingPercent is { } percent ? $"{percent:0}% left" : "Left unavailable" :
         Window.Remaining is { } left ? left < 0 ? $"{-left:N0} over" : $"{left:N0} left" : "Limit unavailable";
     public string CardNote => Snapshot.Health == SourceHealth.Healthy && Snapshot.UsageAllowed != false &&
         (Account.Provider == "Claude" || Snapshot.Message is "Allowance reported by GitHub; billing usage may lag.") ? "" : SourceNote;
@@ -140,6 +140,9 @@ public sealed record HorizonDay(DateOnly Date, bool IsToday, HorizonEvent[] Even
 
 public static class HorizonTimeline
 {
+    public static HorizonEvent[] VisibleEvents(IEnumerable<HorizonEvent> source, HistoryPreferences choices) =>
+        source.Where(e => choices.Includes(e.AccountId)).OrderBy(e => e.At).ToArray();
+
     public static HorizonDay[] Build(IEnumerable<HorizonEvent> source, DateTimeOffset now, TimeZoneInfo? zone = null)
     {
         zone ??= TimeZoneInfo.Local;

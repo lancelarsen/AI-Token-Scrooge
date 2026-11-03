@@ -113,13 +113,15 @@ Scrooge reads usage from the providers you connect. The app has no developer-hos
 
 ### What Stays on Your Computer
 
-The default data folder is `%LOCALAPPDATA%\AIResetRadar`. The older internal folder name remains in use even though the app is named AI Token Scrooge. A `--data-dir` argument can select another location for app data and profiles.
+The default data folder is `%LOCALAPPDATA%\AIResetRadar`. The older internal folder name remains in use even though the app is named AI Token Scrooge. A `--data-dir` argument selects another app-data location. In the development build, new CLI profiles use the local Security root; existing profiles retain their saved location.
 
 - **Settings and History:** `radar.db` is a local SQLite database containing account nicknames and identifiers (such as email/login and organization scope), settings, quota snapshots, reset details, and alert state/history. It is not encrypted by Scrooge. History and alerts default to 90 days of retention, which you can customize in Settings.
-- **GitHub Credentials:** `Credentials\*.bin` holds access/refresh credentials or the advanced token, encrypted with Windows DPAPI for the current Windows user. Tokens are stored separately from the database.
-- **Codex Profile:** `Profiles\<id>` is the isolated `CODEX_HOME`. Scrooge requests the CLI's keyring credential store; the CLI manages credentials and any profile files.
-- **Claude Profile:** `ClaudeProfiles\<id>` is the isolated `CLAUDE_CONFIG_DIR`. The installed CLI manages its credentials and profile files. Scrooge's DPAPI protection for GitHub tokens should not be assumed to apply to these files.
+- **GitHub Credentials:** Access/refresh credentials or the advanced token are encrypted with Windows DPAPI for the current Windows user, separately from the database. The development build moves legacy `Credentials\*.bin` records to `%LOCALAPPDATA%\AIResetRadar\Security\<data-directory-id>\Credentials`, even when the database uses `--data-dir`. It verifies the encrypted copy before deleting the old record; older releases use the original location.
+- **Codex Profile:** `Profiles\<id>` is the isolated `CODEX_HOME`, under the local Security namespace for new development-build sign-ins or the saved data directory for older connections. Scrooge requests the CLI's keyring credential store; the CLI manages credentials and profile files.
+- **Claude Profile:** `ClaudeProfiles\<id>` is the isolated `CLAUDE_CONFIG_DIR`, using the same new-versus-existing location policy. The installed CLI manages its credentials and profile files. Scrooge restricts Windows file permissions but does not add encryption to these files.
 - **Local Diagnostics:** Windows exception handling writes `last-crash.log` or `last-focus-recovery.log` in the default data folder, containing a timestamp, exception type, HRESULT, and stack trace. It omits exception messages and does not upload these files. CLI-managed diagnostics may also exist in the profiles.
+
+See [Security](SECURITY.md#credential-storage-policy) for the provider-specific storage policy and the [Credential Protection Plan](tasks/credential-protection-plan.md) for hardening progress and remaining verification. Local development changes do not establish which protections are in a downloaded release.
 
 ## Getting Started
 

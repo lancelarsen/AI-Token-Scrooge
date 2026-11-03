@@ -12,6 +12,8 @@ public sealed partial class LocalStore
     int retentionDays = HistoryRetention.Days;
     public async Task<IReadOnlyList<AlertEvent>> WriteMonitoringStateAsync(IReadOnlyList<ProviderAccount> accounts, IReadOnlyList<QuotaSnapshot> snapshots, IReadOnlyList<ProviderAccount>? retired = null, IReadOnlyList<AlertEvent>? alerts = null, CancellationToken ct = default, QuotaSnapshot? historySnapshot = null)
     {
+        if (accounts.Concat(retired ?? []).Any(a => !Enum.IsDefined(a.ProfileLocation)))
+            throw new InvalidDataException("Unknown credential profile location.");
         if (historySnapshot is not null && (!snapshots.Contains(historySnapshot) ||
             !accounts.Any(account => historySnapshot.BelongsTo(account))))
             throw new InvalidDataException("The history snapshot must belong to an accepted account and its current monitoring state.");
@@ -21,12 +23,24 @@ public sealed partial class LocalStore
         try
         {
             await using var connection = await OpenAsync(ct); using var transaction = connection.BeginTransaction();
+            if (accounts.Concat(retired ?? []).Any(a => a.ProfileLocation == CredentialProfileLocation.LocalSecurityDirectory))
+            {
+                await using var version = connection.CreateCommand(); version.Transaction = transaction;
+                version.CommandText = "PRAGMA user_version=4"; await version.ExecuteNonQueryAsync(ct);
+            }
             foreach (var item in values)
             {
                 await using var command = connection.CreateCommand(); command.Transaction = transaction;
                 command.CommandText = "INSERT INTO state(key,value) VALUES($key,$value) ON CONFLICT(key) DO UPDATE SET value=excluded.value";
                 command.Parameters.AddWithValue("$key", item.Key); command.Parameters.AddWithValue("$value", item.Value); await command.ExecuteNonQueryAsync(ct);
             }
+            var acceptedCredentials = accounts.Select(a => a.CredentialId ?? a.Id).ToHashSet(StringComparer.Ordinal);
+            var pendingCredentials = await ReadPendingAsync(connection, transaction, ct);
+            if (pendingCredentials.Any(p => accounts.Any(a => (a.CredentialId ?? a.Id) == p.CredentialId &&
+                (a.Provider != p.Provider || a.ProfileLocation != p.ProfileLocation))))
+                throw new InvalidDataException("The accepted credential does not match its pending provider and location.");
+            if (pendingCredentials.Any(p => acceptedCredentials.Contains(p.CredentialId)))
+                await WritePendingAsync(connection, transaction, pendingCredentials.Where(p => !acceptedCredentials.Contains(p.CredentialId)), ct);
             List<AlertEvent> inserted = [];
             if (alerts is { Count: > 0 })
             {
@@ -112,7 +126,7 @@ public sealed partial class LocalStore
             await using var command = connection.CreateCommand();
             command.CommandText = "PRAGMA user_version";
             var version = Convert.ToInt64(await command.ExecuteScalarAsync(ct));
-            if (version > 3) throw new InvalidDataException("This database was created by a newer Scrooge version. Update Scrooge before opening it.");
+            if (version > 4) throw new InvalidDataException("This database was created by a newer Scrooge version. Update Scrooge before opening it.");
             command.CommandText = "CREATE TABLE IF NOT EXISTS state(key TEXT PRIMARY KEY,value TEXT NOT NULL); CREATE TABLE IF NOT EXISTS history(account_id TEXT NOT NULL,observed_at INTEGER NOT NULL,value TEXT NOT NULL,PRIMARY KEY(account_id,observed_at)); CREATE INDEX IF NOT EXISTS history_observed ON history(observed_at);";
             await command.ExecuteNonQueryAsync(ct);
             if (version < 3) await UpgradeHistoryAsync(connection, ct);

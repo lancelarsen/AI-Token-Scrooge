@@ -24,8 +24,7 @@ public sealed class SettingsPage : ContentPage
             TextColor = Color.FromArgb("#F2F1F5"), BackgroundColor = Color.FromArgb("#232429") };
         timeZone.SelectedItem = zones.FirstOrDefault(z => z.Id == TimeZones.Resolve(original.TimeZoneId).Id);
         SemanticProperties.SetDescription(timeZone, "Time Zone for dates and quiet hours");
-        SettingsHelp.Attach(timeZone, SettingsHelp.For("Time Zone")!);
-        form.Children.Add(SettingsHelp.WithInfo(timeZone));
+        form.Children.Add(timeZone);
         WrapCard(displayStart, "Time Zone");
         var retentionStart = form.Children.Count;
         var retentionOptions = new[] { 7, 30, 60, 90, 180, 365 }.Append(Math.Clamp(original.HistoryRetentionDays, 1, 365)).Distinct().Order().ToArray();
@@ -50,9 +49,7 @@ public sealed class SettingsPage : ContentPage
         SemanticProperties.SetDescription(volume, "Notification Volume");
         volume.ValueChanged += (_, _) => UpdateVolumeLabel();
         var volumeRow = new Grid { ColumnDefinitions = [new(GridLength.Auto), new(GridLength.Star)], ColumnSpacing = 12 };
-        SettingsHelp.Attach(volumeLabel, "Playback Volume for Scrooge Sounds");
-        SettingsHelp.Attach(volume, "Adjust Sound Volume from 0% to 100%");
-        volumeRow.Add(SettingsHelp.WithInfo(volumeLabel), 0); volumeRow.Add(SettingsHelp.WithInfo(volume), 1);
+        volumeRow.Add(volumeLabel, 0); volumeRow.Add(volume, 1);
         form.Children.Add(volumeRow);
         var soundGroup = $"SoundStyle-{Guid.NewGuid():N}";
         var duckSounds = new RadioButton { Content = "Duck Sounds", GroupName = soundGroup, IsChecked = original.SoundTheme != "Classic", TextColor = Color.FromArgb("#F2F1F5") };
@@ -65,18 +62,15 @@ public sealed class SettingsPage : ContentPage
                         foreach (var part in new[] { "Fill", "Stroke" })
                             native.Resources[$"RadioButtonOuterEllipseChecked{part}{state}"] = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 169, 144, 237));
             };
-        SettingsHelp.Attach(duckSounds, "Use Quacks for Alerts and Notification Actions");
-        SettingsHelp.Attach(classicChimes, "Use Conventional Chimes for Alerts and Notification Actions");
-        form.Children.Add(new VerticalStackLayout { Spacing = 0, Children = { SettingsHelp.WithInfo(duckSounds), SettingsHelp.WithInfo(classicChimes) } });
+        form.Children.Add(new VerticalStackLayout { Spacing = 0, Children = { duckSounds, classicChimes } });
         var previewStatus = new Label { FontSize = 12, TextColor = Color.FromArgb("#EAAA51") };
         var previews = new Grid { ColumnDefinitions = [new(GridLength.Star), new(GridLength.Star)], RowDefinitions = [new(GridLength.Auto), new(GridLength.Auto)], ColumnSpacing = 8, RowSpacing = 8 };
         var previewIndex = 0;
         foreach (var cue in new[] { ("Alarm", "alert"), ("Snooze", "snooze"), ("Dismiss", "dismiss"), ("Show Info", "info") })
         {
             var preview = new ActionButton { Text = "Preview " + cue.Item1 };
-            SettingsHelp.Attach(preview, "Play This Sound at the Selected Volume");
             preview.Clicked += (_, _) => previewStatus.Text = AlertSounds.Play(original with { SoundTheme = classicChimes.IsChecked ? "Classic" : "Ducks", SoundVolume = volume.Value }, cue.Item2, preview: true) ?? "";
-            previews.Add(SettingsHelp.WithInfo(preview), previewIndex % 2, previewIndex / 2); previewIndex++;
+            previews.Add(preview, previewIndex % 2, previewIndex / 2); previewIndex++;
         }
         form.Children.Add(previews);
         form.Children.Add(previewStatus);
@@ -85,7 +79,6 @@ public sealed class SettingsPage : ContentPage
         var quiet = new Switch { IsToggled = original.QuietHours, OnColor = Color.FromArgb("#8170CF"), VerticalOptions = LayoutOptions.Center };
         SemanticProperties.SetDescription(quiet, "Enable Quiet Hours");
         var quietRange = new QuietHoursRange(original.QuietStartHour, original.QuietEndHour) { IsEnabled = original.QuietHours, Opacity = original.QuietHours ? 1 : 0.5 };
-        SettingsHelp.Attach(quiet, SettingsHelp.For("Quiet Hours")!);
         quiet.Toggled += (_, e) => { quietRange.IsEnabled = e.Value; quietRange.Opacity = e.Value ? 1 : 0.5; };
         form.Children.Add(quietRange);
         WrapCard(quietCardStart, "Quiet Hours", "A little peace, right on schedule.", quiet);
@@ -117,23 +110,24 @@ public sealed class SettingsPage : ContentPage
             var snapshot = snapshots.GetValueOrDefault(account.Id);
             var name = new Entry { Text = account.Nickname, Placeholder = "Personal, Work" };
             SemanticProperties.SetDescription(name, "Account Name");
-            SettingsHelp.Attach(name, "A Local Label to Tell Your Accounts Apart. Saved When You Leave This Field.");
             var nameRow = new Grid { ColumnDefinitions = [new(190), new(GridLength.Star)], ColumnSpacing = 12 };
             nameRow.Add(new Label { Text = "Account Name", VerticalOptions = LayoutOptions.Center });
-            nameRow.Add(SettingsHelp.WithInfo(name), 1);
+            nameRow.Add(name, 1);
             form.Children.Add(nameRow);
             var colorRow = new Grid { ColumnDefinitions = [new(190), new(GridLength.Star)], ColumnSpacing = 12 };
             var colorLabel = new Label { Text = "Line Color", VerticalOptions = LayoutOptions.Center };
-            SettingsHelp.Attach(colorLabel, "Color Used for This Account's History Line and Selector Badges");
-            colorRow.Add(SettingsHelp.WithInfo(colorLabel));
-            var swatches = new HorizontalStackLayout { Spacing = 8 };
+            colorRow.Add(colorLabel);
+            var swatches = new FlexLayout { Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap, AlignItems = Microsoft.Maui.Layouts.FlexAlignItems.Start };
             var buttons = new List<Button>();
             var selectedColor = AIResetRadar.App.Presentation.HistoryChartLayout.AccountColor(account, PlanLabels.Display(account.Provider, snapshot?.PlanType));
             void MarkColor() { foreach (var b in buttons) { b.Text = (string)b.CommandParameter == selectedColor ? "\u2713" : ""; b.BorderWidth = (string)b.CommandParameter == selectedColor ? 2 : 0; } }
-            foreach (var hex in new[] { "#B99AF8", "#CDEB82", "#58A6FF", "#D587A5", "#55C9BD", "#F2C94C", "#F05B69" })
+            var palette = new[] { "#B99AF8", "#CDEB82", "#58A6FF", "#D587A5", "#55C9BD", "#F2C94C", "#F05B69" }
+                .Concat(original.CustomLineColors ?? []).Append(selectedColor).Where(hex => hex.Length == 7 && hex[0] == '#' && hex.Skip(1).All(Uri.IsHexDigit))
+                .Select(hex => hex.ToUpperInvariant()).Distinct().ToList();
+            void AddSwatch(string hex)
             {
                 var choice = new Button { WidthRequest = 32, HeightRequest = 32, Padding = 0, CornerRadius = 9,
-                    BackgroundColor = Color.FromArgb(hex), TextColor = Color.FromArgb("#141519"), BorderColor = Colors.White, CommandParameter = hex };
+                    Margin = new Thickness(0, 0, 8, 8), BackgroundColor = Color.FromArgb(hex), TextColor = Color.FromArgb("#141519"), BorderColor = Colors.White, CommandParameter = hex };
                 SemanticProperties.SetDescription(choice, $"Line Color {hex}");
                 choice.Clicked += async (_, _) => {
                     await saveGate.WaitAsync();
@@ -143,6 +137,37 @@ public sealed class SettingsPage : ContentPage
                 };
                 buttons.Add(choice); swatches.Children.Add(choice);
             }
+            foreach (var hex in palette) AddSwatch(hex);
+            var addColor = new Button { Text = "+", WidthRequest = 32, HeightRequest = 32, Padding = 0, CornerRadius = 9,
+                FontSize = 22, BackgroundColor = Color.FromArgb("#232429"), TextColor = Color.FromArgb("#B5A0F4"),
+                BorderColor = Color.FromArgb("#65577F"), BorderWidth = 1, Margin = new Thickness(0, 0, 8, 8) };
+            SemanticProperties.SetDescription(addColor, "Add Custom Line Color");
+            SettingsHelp.Attach(addColor, "Add Custom Line Color");
+            addColor.Clicked += async (_, _) =>
+            {
+                addColor.IsEnabled = false;
+                try
+                {
+                    var hex = await ThemedDialogs.PickColorAsync(this, selectedColor);
+                    if (hex is null) return;
+                    await saveGate.WaitAsync();
+                    try
+                    {
+                        if (!palette.Contains(hex))
+                        {
+                            var candidate = original with { CustomLineColors = (original.CustomLineColors ?? []).Append(hex).Distinct().ToArray() };
+                            await save(candidate); original = candidate;
+                            palette.Add(hex); swatches.Children.Remove(addColor); AddSwatch(hex); swatches.Children.Add(addColor);
+                        }
+                        await update(Latest() with { LineColor = hex }, false);
+                        selectedColor = hex; MarkColor(); status.Text = "";
+                    }
+                    finally { saveGate.Release(); }
+                }
+                catch { status.Text = "Custom Color Could Not Be Saved"; }
+                finally { addColor.IsEnabled = true; }
+            };
+            swatches.Children.Add(addColor);
             MarkColor(); colorRow.Add(swatches, 1); form.Children.Add(colorRow);
             async Task RenameAsync()
             {
@@ -157,46 +182,21 @@ public sealed class SettingsPage : ContentPage
             }
             name.Unfocused += async (_, _) => await RenameAsync();
             name.Completed += async (_, _) => await RenameAsync();
-            var polling = new Slider { Minimum = 1, Maximum = 30, Value = account.EffectivePollingMinutes,
-                MinimumTrackColor = Color.FromArgb("#A990ED"), MaximumTrackColor = Color.FromArgb("#41434F"),
-                ThumbColor = Color.FromArgb("#C3ADF8") };
-            polling.HandlerChanged += (_, _) =>
-            {
-                if (polling.Handler?.PlatformView is Microsoft.UI.Xaml.Controls.Slider native)
-                {
-                    native.TickFrequency = 1;
-                    native.TickPlacement = Microsoft.UI.Xaml.Controls.Primitives.TickPlacement.None;
-                    native.StepFrequency = 1;
-                    native.SnapsTo = Microsoft.UI.Xaml.Controls.Primitives.SliderSnapsTo.Ticks;
-                }
-            };
+            var polling = new MinuteSlider(account.EffectivePollingMinutes) { HeightRequest = 44 };
             var pollingLabel = new Label { WidthRequest = 190, VerticalOptions = LayoutOptions.Center };
             void UpdatePollingLabel() => pollingLabel.Text = $"Polling Interval: {polling.Value:0} Min";
             UpdatePollingLabel();
             SemanticProperties.SetDescription(polling, "Polling Interval in Minutes, 1 to 30");
             var pollingRow = new Grid { ColumnDefinitions = [new(GridLength.Auto), new(GridLength.Star)], ColumnSpacing = 12 };
-            SettingsHelp.Attach(pollingLabel, "How Often Scrooge Automatically Checks This Account for New Usage");
-            SettingsHelp.Attach(polling, "Choose 1–30 Minutes. Each Tick Is One Minute; Changes Save Automatically.");
+            SettingsHelp.Attach(pollingLabel, "How often Scrooge automatically checks this account for updated usage, from 1 to 30 minutes. Shorter intervals show changes sooner; longer intervals make fewer requests. Changes save automatically.");
             pollingRow.Add(SettingsHelp.WithInfo(pollingLabel));
-            var pollingTrack = new Grid();
-
-            var minuteTicks = new AbsoluteLayout { InputTransparent = true, Margin = new Thickness(14, 0) };
-            for (var minute = 0; minute < 30; minute++)
-            {
-                var tick = new BoxView { Color = Color.FromArgb("#A990ED"), InputTransparent = true };
-                AbsoluteLayout.SetLayoutFlags(tick, Microsoft.Maui.Layouts.AbsoluteLayoutFlags.PositionProportional);
-                AbsoluteLayout.SetLayoutBounds(tick, new Rect(minute / 29d, 0.5, 1, 12));
-                minuteTicks.Children.Add(tick);
-            }
-            pollingTrack.Add(minuteTicks);
-            pollingTrack.Add(polling);
-            pollingRow.Add(pollingTrack, 1); form.Children.Add(pollingRow);
+            pollingRow.Add(polling, 1); form.Children.Add(pollingRow);
             async Task SavePollingAsync()
             {
                 await saveGate.WaitAsync();
                 try
                 {
-                    var minutes = (int)Math.Round(polling.Value);
+                    var minutes = polling.Value;
                     if (minutes != Latest().EffectivePollingMinutes)
                         await update(Latest() with { PollingMinutes = minutes }, false);
                     status.Text = "";
@@ -206,13 +206,11 @@ public sealed class SettingsPage : ContentPage
             }
             polling.ValueChanged += async (_, _) =>
             {
-                var rounded = Math.Round(polling.Value);
-                if (Math.Abs(polling.Value - rounded) > 0.001) { polling.Value = rounded; return; }
                 UpdatePollingLabel();
                 await SavePollingAsync();
             };
             flushAccountName = async () => { await RenameAsync(); await SavePollingAsync(); };
-            var enabled = Toggle("Monitor This Account", account.Enabled);
+            var enabled = Toggle("Monitor This Account", account.Enabled, showHelp: true);
             var syncing = false;
             enabled.Toggled += async (_, args) => {
                 if (demo || syncing) return;
@@ -234,9 +232,9 @@ public sealed class SettingsPage : ContentPage
             }
             var alertStart = form.Children.Count;
             var accountRule = original.RuleFor(account.Id);
-            var exhausted = Toggle("Capacity Exhausted", accountRule.Exhausted);
-            var restored = Toggle("Capacity Restored", accountRule.Restored);
-            var expiry = Toggle("Reset Expiry Reminders", accountRule.Expiry);
+            var exhausted = Toggle("Capacity Exhausted", accountRule.Exhausted, showHelp: true);
+            var restored = Toggle("Capacity Restored", accountRule.Restored, showHelp: true);
+            var expiry = Toggle("Reset Expiry Reminders", accountRule.Expiry, showHelp: true);
             async Task SaveAccountAlertsAsync()
             {
                 await saveGate.WaitAsync();
@@ -255,16 +253,14 @@ public sealed class SettingsPage : ContentPage
             var connectionStart = form.Children.Count;
             form.Children.Add(new Label { Text = "Sign in again only if this account needs a new connection. Your saved settings stay in place.", FontSize = 13, TextColor = Color.FromArgb("#B6B8C8") });
             var signIn = new ActionButton { Text = "Sign In Again", IsEnabled = !demo };
-            SettingsHelp.Attach(signIn, "Reconnect This Account While Keeping Its Saved Settings");
             signIn.Clicked += async (_, _) => await AccountAction(() => reconnect(Latest()));
-            form.Children.Add(SettingsHelp.WithInfo(signIn));
+            form.Children.Add(signIn);
             var remove = new ActionButton { Text = "Remove Account", IsEnabled = !demo };
-            SettingsHelp.Attach(remove, "Remove the Saved Connection from Scrooge. Your Provider Account Is Unaffected.");
             remove.Clicked += async (_, _) => await AccountAction(async () => {
                 if (await ThemedDialogs.ShowAsync(this, "Remove Account?", "This removes the saved connection from Scrooge. Your provider account is unaffected.", "Remove", "Cancel"))
                 { await update(Latest(), true); await AppPanels.CloseAsync(this); }
             });
-            form.Children.Add(SettingsHelp.WithInfo(remove));
+            form.Children.Add(remove);
             WrapCard(connectionStart, "Connection");
         }
         async Task AutoSaveAsync()
@@ -365,13 +361,18 @@ public sealed class SettingsPage : ContentPage
         }
         SizeChanged += (_, _) => form.WidthRequest = Math.Max(0, Math.Min(960, Width - 24));
     }
-    Switch Toggle(string title, bool value)
+    Switch Toggle(string title, bool value, bool showHelp = false)
     {
         var toggle = new Switch { IsToggled = value, OnColor = Color.FromArgb("#8170CF") };
         SemanticProperties.SetDescription(toggle, title);
         var row = new Grid { ColumnDefinitions = [new(GridLength.Star), new(GridLength.Auto)], ColumnSpacing = 16, MinimumHeightRequest = 36 };
         var label = new Label { Text = title, VerticalOptions = LayoutOptions.Center };
-        if (SettingsHelp.For(title) is { } help) { SettingsHelp.Attach(label, help); SettingsHelp.Attach(toggle, help); }
+        if (showHelp && SettingsHelp.For(title) is { } help)
+        {
+            SettingsHelp.Attach(label, help);
+            SettingsHelp.Attach(toggle, help);
+            SemanticProperties.SetHint(toggle, help);
+        }
         row.Add(SettingsHelp.WithInfo(label)); row.Add(toggle, 1); form.Children.Add(row); return toggle;
     }
     async Task AccountAction(Func<Task> action) { try { await action(); } catch { await AccountError(); } }
@@ -427,8 +428,6 @@ public sealed class SettingsPage : ContentPage
         SemanticProperties.SetDescription(slider, title + ": percent remaining");
         void Update() => label.Text = $"{title} @ {slider.Value:0}% Left";
         slider.ValueChanged += (_, _) => { var rounded = Math.Round(slider.Value); if (Math.Abs(slider.Value - rounded) > 0.001) slider.Value = rounded; Update(); };
-        SettingsHelp.Attach(label, "Trigger This Alert When Remaining Capacity Reaches the Selected Percentage");
-        SettingsHelp.Attach(slider, "Percentage Remaining, Not Used. Critical Must Be Below Warning; Info Must Be at or Above Warning.");
-        Update(); form.Children.Add(new VerticalStackLayout { Spacing = 2, Children = { SettingsHelp.WithInfo(label), slider } }); return slider;
+        Update(); form.Children.Add(new VerticalStackLayout { Spacing = 2, Children = { label, slider } }); return slider;
     }
 }

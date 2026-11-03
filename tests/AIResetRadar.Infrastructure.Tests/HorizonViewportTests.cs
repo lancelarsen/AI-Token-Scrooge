@@ -128,6 +128,29 @@ public class HorizonViewportTests
     }
 
     [Theory]
+    [InlineData(480)]
+    [InlineData(980)]
+    public void HistoryOffClampsEveryNavigationPathAtToday(double width)
+    {
+        var view = new HorizonViewport(Now, Now.AddDays(35), Central, width);
+        view.ScrollTo(0); // Browse the past before switching History off.
+        view.Update(Now, Now.AddDays(35), Central, width, false);
+        var todayStart = DateTimeOffset.Parse("2026-10-29T00:00:00-05:00");
+        Close(todayStart, view.VisibleStart);
+        view.ScrollTo(-7 * view.PixelsPerDay);
+        Close(todayStart, view.VisibleStart);
+        view.CenterFromOverview(-width, width);
+        Close(todayStart, view.VisibleStart);
+        view.DragOverview(0, -width, width);
+        Close(todayStart, view.VisibleStart);
+        view.Update(Now, Now.AddDays(35), Central, width / 2, false);
+        Close(todayStart, view.VisibleStart);
+        Assert.Equal(view.PixelsPerDay / 2, view.FutureDayPosition(view.Today) - view.ScrollOffset, 6);
+        Assert.Equal(view.PixelsPerDay,
+            view.FutureDayPosition(view.Today.AddDays(1)) - view.FutureDayPosition(view.Today), 6);
+    }
+
+    [Theory]
     [InlineData("2026-11-02T09:49:00-06:00", 2026, 10, 31)]
     [InlineData("2026-03-09T09:49:00-05:00", 2026, 3, 7)]
     public void DayTicksStayEquallySpacedAcrossDst(string nowText, int year, int month, int day)

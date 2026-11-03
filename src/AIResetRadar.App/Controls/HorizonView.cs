@@ -31,7 +31,7 @@ public sealed class HorizonView : Border
         header.Children.Add(Legend(expiryLabel, "#EAAA51"));
         header.Children.Add(new HorizontalStackLayout { Spacing = 7, Margin = new Thickness(0, 0, 18, 0), Children = {
             historyToggle, new Label { Text = "History", FontSize = 13, VerticalOptions = LayoutOptions.Center } } });
-        SemanticProperties.SetDescription(historyToggle, "Show Weekly and Monthly Usage History");
+        SemanticProperties.SetDescription(historyToggle, "Show Usage History Graph");
         historyToggle.Toggled += async (_, e) => {
             if (updating) return;
             historyToggle.IsEnabled = false;
@@ -57,13 +57,13 @@ public sealed class HorizonView : Border
     public void Update(IEnumerable<HorizonEvent> source, HistorySeries[] series, HistoryPreferences choices, TimeZoneInfo zone,
         DateTimeOffset now, bool loading = false, string? error = null)
     {
-        var events = source.ToArray();
+        var events = HorizonTimeline.VisibleEvents(source, choices);
         refreshLabel.Text = $"Quota Refresh ({events.Count(e => !e.IsExpiry)})";
         expiryLabel.Text = $"Reset Expires ({events.Count(e => e.IsExpiry)})";
         updating = true; historyToggle.IsToggled = choices.Enabled; updating = false;
         SetHistoryVisible(choices.Enabled);
         history.Update(series, events, choices, zone, now, loading, error);
-        hint.Text = choices.Enabled ? "Scroll Left for History" : "Hover or Click for Details";
+        hint.Text = choices.Enabled ? "Scroll Left for History" : "Select Services to Filter Timeline";
     }
     void SetHistoryVisible(bool enabled) => history.SetHistoryEnabled(enabled);
     static View Legend(Label label, string color)

@@ -89,6 +89,25 @@ internal static class ThemedDialogs
         finally { queue.Release(); }
     }
 
+    public static async Task<string?> PickColorAsync(Microsoft.Maui.Controls.Page page, string initialColor)
+    {
+        await queue.WaitAsync();
+        try
+        {
+            var picker = new Native.Controls.ColorPicker { Color = Brush(initialColor).Color,
+                IsAlphaEnabled = false, IsAlphaSliderVisible = false, IsAlphaTextInputVisible = false,
+                IsHexInputVisible = true, IsColorPreviewVisible = true, MinWidth = 280 };
+            var content = new Native.Controls.ScrollViewer { Content = picker, MaxHeight = 420,
+                VerticalScrollBarVisibility = Native.Controls.ScrollBarVisibility.Auto };
+            var dialog = Create(page, "Add Line Color", content, "Cancel");
+            dialog.PrimaryButtonText = "Add Color";
+            if (await ShowStyledAsync(dialog) != ContentDialogResult.Primary) return null;
+            var color = picker.Color;
+            return $"#{color.R:X2}{color.G:X2}{color.B:X2}";
+        }
+        finally { queue.Release(); }
+    }
+
     public static async Task<string?> PromptAsync(Microsoft.Maui.Controls.Page page, string title, string message, string initialValue)
     {
         await queue.WaitAsync();

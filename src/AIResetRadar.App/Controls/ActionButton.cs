@@ -49,6 +49,21 @@ public sealed class ActionButton : Button
     Microsoft.UI.Xaml.FrameworkElement CreateIcon()
     {
         var accent = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 181, 160, 244));
+        if (Text == "Custom Order")
+        {
+            var grip = new Microsoft.UI.Xaml.Controls.Canvas { Width = 20, Height = 22,
+                VerticalAlignment = Microsoft.UI.Xaml.VerticalAlignment.Center };
+            for (var row = 0; row < 3; row++)
+                for (var column = 0; column < 2; column++)
+                {
+                    var dot = new Microsoft.UI.Xaml.Shapes.Ellipse { Width = 5, Height = 5,
+                        Stroke = accent, StrokeThickness = 1.5 };
+                    Microsoft.UI.Xaml.Controls.Canvas.SetLeft(dot, 3 + column * 9);
+                    Microsoft.UI.Xaml.Controls.Canvas.SetTop(dot, 1 + row * 7.5);
+                    grip.Children.Add(dot);
+                }
+            return grip;
+        }
         if (Text is "Most Remaining" or "Least Remaining")
         {
             var meter = new Microsoft.UI.Xaml.Controls.Grid { Width = 22, Height = 20,

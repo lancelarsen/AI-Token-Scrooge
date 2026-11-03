@@ -18,7 +18,10 @@ public sealed class AppServices
         Store = new(Path.Combine(DirectoryPath, "radar.db"));
         GitHubSignIn = new(http, TimeProvider.System);
         GitHubClientId = ReadGitHubClientId();
-        Monitor = new(DirectoryPath, new WindowsSecretStore(Path.Combine(DirectoryPath, "Credentials")), new(http, TimeProvider.System), TimeProvider.System, GitHubSignIn);
+        var credentialDirectory = WindowsMigratingSecretStore.DirectoryFor(DirectoryPath,
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));
+        Monitor = new(DirectoryPath, new WindowsMigratingSecretStore(credentialDirectory, Path.Combine(DirectoryPath, "Credentials")),
+            new(http, TimeProvider.System), TimeProvider.System, GitHubSignIn, Store, Path.GetDirectoryName(credentialDirectory)!);
     }
     static string? ReadGitHubClientId()
     {

@@ -3,6 +3,25 @@ using Xunit;
 namespace AIResetRadar.Infrastructure.Tests;
 public class HorizonTimelineTests
 {
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ServiceChoicesFilterRefreshesAndExpirationsRegardlessOfHistoryGraph(bool historyEnabled)
+    {
+        var now = DateTimeOffset.Parse("2026-10-31T12:00:00Z");
+        HorizonEvent[] source = [
+            new("hidden", "Refresh", "", now.AddHours(1), false),
+            new("shown", "Expiry", "", now.AddHours(4), true),
+            new("hidden", "Expiry", "", now.AddHours(3), true),
+            new("shown", "Refresh", "", now.AddHours(2), false)];
+        var choices = new AIResetRadar.Core.HistoryPreferences(historyEnabled).WithAccount("hidden", false);
+        var visible = HorizonTimeline.VisibleEvents(source, choices);
+        Assert.Equal(new[] { source[3], source[1] }, visible);
+        Assert.Equal(4, source.Length);
+        Assert.Equal(4, HorizonTimeline.VisibleEvents(source, choices.WithAccount("hidden", true)).Length);
+        Assert.Empty(HorizonTimeline.VisibleEvents(source, choices.WithAccount("shown", false)));
+    }
+
     [Fact]
     public void DashboardRetainsFurthestEventAndDropsDisabledAccountEvents()
     {

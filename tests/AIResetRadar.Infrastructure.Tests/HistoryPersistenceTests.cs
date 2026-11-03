@@ -295,7 +295,7 @@ sealed class HistoryFixture : IDisposable
     }
     public void Dispose()
     {
-        SqliteConnection.ClearAllPools();
+        TestDatabasePools.Clear(Database);
         var root = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "AIResetRadar-tests")) + Path.DirectorySeparatorChar;
         Assert.StartsWith(root, Path.GetFullPath(folder));
         if (Directory.Exists(folder)) Directory.Delete(folder, true);

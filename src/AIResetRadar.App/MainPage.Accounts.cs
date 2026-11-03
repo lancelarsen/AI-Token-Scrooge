@@ -8,6 +8,7 @@ public sealed partial class MainPage
     readonly Dictionary<string, (ProviderAccount Account, TaskCompletionSource Ended)> readCompletions = [];
     readonly List<ProviderAccount> retiredCredentials = [];
     readonly SemaphoreSlim cleanupGate = new(1, 1);
+    readonly TimeProvider cleanupClock = TimeProvider.System;
     static string CredentialKey(ProviderAccount account) => account.CredentialId ?? account.Id;
     async Task CommitConnectionAsync(ProviderAccount incoming, QuotaSnapshot snapshot, ProviderAccount? original)
     {
@@ -55,7 +56,12 @@ public sealed partial class MainPage
                     if (readCompletions.TryGetValue(retired.Id, out var read) && CredentialKey(read.Account) == CredentialKey(retired)) await read.Ended.Task;
                     if (state.IsDemo) return;
                     if (!state.Accounts.Any(a => CredentialKey(a) == CredentialKey(retired)))
-                    { using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(8)); await AppServices.Current.Monitor.DisconnectAsync(retired, timeout.Token); }
+                    {
+                        // Codex initialization and logout each allow 40 seconds; Claude allows 60.
+                        // Do not cancel those bounded provider operations after only eight seconds.
+                        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(90), cleanupClock);
+                        await AppServices.Current.Monitor.DisconnectAsync(retired, timeout.Token);
+                    }
                     if (state.IsDemo) return;
                     if (!state.Accounts.Any(a => a.Id == retired.Id)) await AppServices.Current.Store.DeleteHistoryAsync(retired.Id);
                     await accountChanges.WaitAsync();

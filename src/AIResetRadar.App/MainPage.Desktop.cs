@@ -73,7 +73,7 @@ public sealed partial class MainPage
         var iconAlert = IconAlerts.Evaluate(state.Accounts, state.Snapshots, preferences, DateTimeOffset.UtcNow);
         var text = limiting is null ? "AI Token Scrooge" : $"Scrooge · {limiting.Account.Provider} / {limiting.AccountLabel} / {limiting.Window.Name}: {limiting.LeftText}";
         if (status.Notice is not null) text += " · " + status.Notice; if (state.IsDemo) text = "DEMO · " + text;
-        if (iconAlert is not null) text = $"Scrooge � {iconAlert.Title} � {iconAlert.Detail}";
+        if (iconAlert is not null) text = $"Scrooge · {iconAlert.Title} · {iconAlert.Detail}";
         tray?.Update(text, iconAlert?.Severity, preferences.AlertOnIcon && unknown);
     }
 }

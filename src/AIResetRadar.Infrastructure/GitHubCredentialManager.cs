@@ -8,14 +8,22 @@ public sealed class GitHubCredentialManager(ISecretStore secrets, GitHubUsageCli
 {
     const string Prefix = "github-app:v1:";
     sealed record Envelope(int Version, string Subject, GitHubAppTokens Tokens, bool NeedsVerification = false, bool RenewalStarted = false);
+    sealed record PendingRenewal(Envelope Replacement, string ExpectedRecord);
     readonly ConcurrentDictionary<string, SemaphoreSlim> gates = new();
-    readonly ConcurrentDictionary<string, Envelope> pending = new();
+    readonly ConcurrentDictionary<string, PendingRenewal> pending = new();
     SemaphoreSlim Gate(string id) => gates.GetOrAdd(id, _ => new(1, 1));
 
-    public Task SaveAppAsync(string id, string subject, GitHubAppTokens tokens)
+    public async Task SaveAppAsync(string id, string subject, GitHubAppTokens tokens)
     {
         var record = new Envelope(1, subject, tokens); Validate(record);
-        return secrets.SaveAsync(id, Encode(record));
+        var gate = Gate(id); await gate.WaitAsync();
+        try
+        {
+            using var operation = await secrets.AcquireOperationAsync(id);
+            await secrets.SaveAsync(id, Encode(record));
+            pending.TryRemove(id, out _);
+        }
+        finally { gate.Release(); }
     }
 
     public async Task<string> ReadAccessTokenAsync(ProviderAccount account, CancellationToken ct)
@@ -24,6 +32,7 @@ public sealed class GitHubCredentialManager(ISecretStore secrets, GitHubUsageCli
         await gate.WaitAsync(ct);
         try
         {
+            using var operation = await secrets.AcquireOperationAsync(id, ct);
             // A successful remote rotation must be made durable even if its caller canceled.
             if (pending.TryGetValue(id, out var replacement)) await PersistReplacementAsync(id, replacement);
             ct.ThrowIfCancellationRequested();
@@ -44,11 +53,13 @@ public sealed class GitHubCredentialManager(ISecretStore secrets, GitHubUsageCli
                 if (flow is null || record.Tokens.RefreshExpiresAt <= clock.GetUtcNow()) throw GitHubDeviceFlow.Reconnect();
                 ct.ThrowIfCancellationRequested();
                 // A crash/lost response after this point cannot safely retry the consumed token.
-                await secrets.SaveAsync(id, Encode(record with { RenewalStarted = true }));
+                var renewalMarker = Encode(record with { RenewalStarted = true });
+                await secrets.SaveAsync(id, renewalMarker);
                 var rotated = await flow.RefreshAsync(record.Tokens, ct);
                 record = record with { Tokens = rotated, NeedsVerification = true, RenewalStarted = false };
-                pending[id] = record;
-                await PersistReplacementAsync(id, record);
+                var renewal = new PendingRenewal(record, renewalMarker);
+                pending[id] = renewal;
+                await PersistReplacementAsync(id, renewal);
             }
             ct.ThrowIfCancellationRequested();
             if (record.NeedsVerification)
@@ -64,9 +75,21 @@ public sealed class GitHubCredentialManager(ISecretStore secrets, GitHubUsageCli
         finally { gate.Release(); }
     }
 
-    async Task PersistReplacementAsync(string id, Envelope record)
+    async Task PersistReplacementAsync(string id, PendingRenewal renewal)
     {
-        try { await secrets.SaveAsync(id, Encode(record)); pending.TryRemove(id, out _); }
+        try
+        {
+            var saved = await secrets.ReadAsync(id);
+            var replacement = Encode(renewal.Replacement);
+            // Another process may have removed or replaced the credential after an earlier
+            // failed save. Never restore it from this process's pending memory.
+            if (saved != renewal.ExpectedRecord && saved != replacement)
+            {
+                pending.TryRemove(id, out _);
+                throw GitHubDeviceFlow.Reconnect();
+            }
+            await secrets.SaveAsync(id, replacement); pending.TryRemove(id, out _);
+        }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or CryptographicException)
         {
             throw new ProviderAccessException("Windows could not save the renewed GitHub sign-in. Retry refresh before closing Scrooge.", SourceHealth.Stale);
@@ -76,7 +99,11 @@ public sealed class GitHubCredentialManager(ISecretStore secrets, GitHubUsageCli
     public async Task RemoveAsync(string id, CancellationToken ct)
     {
         var gate = Gate(id); await gate.WaitAsync(ct);
-        try { secrets.Remove(id); pending.TryRemove(id, out _); }
+        try
+        {
+            using var operation = await secrets.AcquireOperationAsync(id, ct);
+            secrets.Remove(id); pending.TryRemove(id, out _);
+        }
         finally { gate.Release(); }
     }
 

@@ -34,11 +34,13 @@ Use Title Case for headings and short labels; use sentence case for explanatory 
 
 Start with the research note and verification matrix in [Provider Integration](docs/integration.md). Prefer provider browser sign-in or the installed official CLI. A new provider must reuse Scrooge's account cards, timeline, alert rules, credential isolation, and cleanup flow. It must not consume model tokens to discover usage.
 
+Complete the [Credential Checklist](docs/integration.md#credential-checklist) and include the provider's [Recovery Guidance](docs/credential-recovery.md). Fixture tests do not establish live renewal, Windows cross-user isolation, or remote revocation.
+
 ## Issues and Security
 
 For ordinary bugs, include the app version or commit, Windows version, provider, reproduction steps, expected/actual behavior, and sanitized screenshots. Never attach your database, credential files, browser cookies, tokens, or raw provider responses.
 
-Follow [Security](SECURITY.md) for vulnerabilities. Be respectful, make feedback specific, and explain tradeoffs without personal attacks.
+Follow [Security](SECURITY.md) for vulnerabilities and provider-specific credential storage requirements. Planned hardening and sign-in research are tracked in the [Credential Protection Plan](tasks/credential-protection-plan.md); proposed protections must not be described as shipped. Be respectful, make feedback specific, and explain tradeoffs without personal attacks.
 
 ## Licensing and Maintainer Decisions
 

@@ -7,6 +7,15 @@ public partial class App : Application
         var page = new MainPage();
         var window = new Window(page) { Title = "AI Token Scrooge", Width = 1440, Height = 1024, MinimumWidth = 800, MinimumHeight = 650 };
         if (Environment.GetCommandLineArgs().Contains("--compact")) { window.Width = 800; window.Height = 700; }
+        var initialActivation = true;
+        window.Activated += (_, _) =>
+        {
+            if (!initialActivation) return;
+            initialActivation = false;
+            if (!Environment.GetCommandLineArgs().Contains("--compact") && window.Handler?.PlatformView is Microsoft.UI.Xaml.Window native
+                && native.AppWindow.Presenter is Microsoft.UI.Windowing.OverlappedPresenter presenter)
+                native.DispatcherQueue.TryEnqueue(() => presenter.Maximize());
+        };
         window.HandlerChanged += (_, _) =>
         {
             if (window.Handler?.PlatformView is Microsoft.UI.Xaml.Window native)

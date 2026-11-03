@@ -48,7 +48,7 @@ public class DisableAccountTests
         }
         finally
         {
-            SqliteConnection.ClearAllPools();
+            TestDatabasePools.Clear(System.IO.Path.Combine(folder, "radar.db"));
             if (Directory.Exists(folder)) Directory.Delete(folder, true);
         }
     }

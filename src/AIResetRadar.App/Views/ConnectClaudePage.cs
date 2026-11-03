@@ -41,7 +41,7 @@ public sealed class ConnectClaudePage : ContentPage
             {
                 if (!committed)
                 {
-                    pending ??= new ProviderAccount(credential, "Claude", "", "", "", CredentialId: credential);
+                    pending ??= new ProviderAccount(credential, "Claude", "", "", "", CredentialId: credential, ProfileLocation: CredentialProfileLocation.LocalSecurityDirectory);
                     try { using var cleanup = new CancellationTokenSource(TimeSpan.FromSeconds(8)); await AppServices.Current.Monitor.Claude.DisconnectAsync(pending, cleanup.Token); } catch { }
                 }
                 committing = false; busy = false; signIn.IsEnabled = true; cancel.IsEnabled = true;

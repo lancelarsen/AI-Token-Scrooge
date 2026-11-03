@@ -139,7 +139,7 @@ public sealed class CompactHistoryTests
         Assert.Equal("saved", await files.Store.ReadAsync<string>("fixture"));
         var reopened = new LocalStore(files.Database, files.Clock);
         Assert.Equal(2, (await reopened.HistoryPageAsync("a", first.ObservedAt, files.Now)).Intervals.Count);
-        await using var backup = new SqliteConnection($"Data Source={files.Database}.before-history-v3.bak;Mode=ReadOnly");
+        await using var backup = new SqliteConnection($"Data Source={files.Database}.before-history-v3.bak;Mode=ReadOnly;Pooling=False");
         await backup.OpenAsync(); await using var command = backup.CreateCommand();
         command.CommandText = "SELECT COUNT(*) FROM history"; Assert.Equal(3L, await command.ExecuteScalarAsync());
         command.CommandText = "PRAGMA user_version"; Assert.Equal(2L, await command.ExecuteScalarAsync());

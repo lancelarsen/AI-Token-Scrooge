@@ -71,7 +71,7 @@ public static class AlertEvaluator
     static AlertEvent Reminder(ProviderAccount account, string? window, string target, DateTimeOffset at,
         TimedReminder reminder, bool refresh, RadarSettings settings, DateTimeOffset now, string name) =>
         new($"{account.Id}/{(refresh ? "refresh" : "credit")}/{target}/{at.ToUnixTimeSeconds()}/{reminder.Id}", account.Id, window,
-            $"{reminder.Severity} Alert · {(refresh ? "Quota Refresh" : "Reset Expiration")}",
-            $"{name} · {ResetTime.Countdown(at, now)} · {TimeZones.Format(at, TimeZones.Resolve(settings.TimeZoneId), "ddd, MMM d h:mm tt")} · {account.Nickname}",
+            $"{reminder.Severity} Alert Â· {(refresh ? "Quota Refresh" : "Reset Expiration")}",
+            $"{name} Â· {ResetTime.Countdown(at, now)} Â· {TimeZones.Format(at, TimeZones.Resolve(settings.TimeZoneId), "ddd, MMM d h:mm tt")} Â· {account.Nickname}",
             now, Severity: reminder.Severity, ReminderId: reminder.Id, IsRefreshReminder: refresh);
 }

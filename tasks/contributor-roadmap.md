@@ -20,6 +20,10 @@ A provider is ready only after mapping and failure tests, identity/scope isolati
 - [ ] Verify that multiple connected accounts remain isolated during usage updates and credential renewal
 - [ ] Compare reported usage with the provider's own usage screen for supported account types
 
+## Credential Protection
+
+- [ ] Execute the [Credential Protection Plan](credential-protection-plan.md): retain Codex keyring and GitHub DPAPI, verify/harden Claude file permissions, and review optional encryption and GitHub PKCE compatibility. Keep documented behavior separate from verified release evidence
+
 ## Windows Installer
 
 - [ ] Provide a signed Windows installer

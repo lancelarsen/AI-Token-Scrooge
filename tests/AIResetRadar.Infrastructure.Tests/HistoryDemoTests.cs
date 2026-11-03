@@ -46,8 +46,8 @@ public class HistoryDemoTests
         var (accounts, snapshots) = Fixture();
         var result = HistoryDemo.Build(accounts, snapshots, Now, TimeZoneInfo.Utc);
         var claude = result.Single(s => s.Account.Provider == "Claude");
-        Assert.Single(claude.Points.Where(p => p.StartsSegment));
-        var gapEnd = Assert.Single(claude.Points.Where(p => p.InterpolatedFromPrevious));
+        Assert.Single(claude.Points, p => p.StartsSegment);
+        var gapEnd = Assert.Single(claude.Points, p => p.InterpolatedFromPrevious);
         Assert.Null(gapEnd.ReplenishedFrom);
         var plus = result[0];
         var expiry = Assert.Single(plus.Events, e => e.Kind == HistoryEventKind.ReportedExpiration);

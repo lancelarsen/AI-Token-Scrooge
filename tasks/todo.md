@@ -236,3 +236,18 @@ Verification: `dotnet test` on the actual test projects, targeted Release MAUI b
 - [ ] Required acceptance checks pass, including authorized live multi-account/provider coverage.
 - [ ] Selected UI, background monitor, earned-reset expiry and notification workflows are reviewable in the running Windows app.
 - [ ] Required gaps are resolved or explicitly remain open; do not mark a future goal complete merely because the demo runs or its budget is ending.
+
+## Credential Protection Follow-Up
+
+See [Credential Protection Plan](credential-protection-plan.md) for dependencies and acceptance criteria.
+
+- [ ] Establish Windows credential-storage evidence
+- [ ] Harden DPAPI storage, permissions, and credential-location migration
+- [ ] Verify and harden Claude's supported file permissions; record optional encryption findings
+- [x] Review GitHub PKCE compatibility and document a sign-in decision: retain device flow under the current no-client-secret policy; see [Storage Decisions](../docs/decisions/credential-storage.md)
+- [ ] Complete credential retirement and leakage checks
+- [x] Add durable unfinished-sign-in cleanup and validated CLI profile deletion with synthetic failure tests; live lifecycle acceptance remains open
+- [x] Coordinate GitHub renewal/removal with a shared OS lease and reject stale in-memory replacement retries; synthetic manager and separate-process lease tests pass
+- [x] Review CLI executable selection and inherited environment; add redirected-path rejection, explicit credential filtering, bounded Claude output, and process cancellation tests
+- [x] Route new CLI sign-ins to the local Security root with persisted location references, cleanup routing, and an older-build database guard; existing-profile migration and live sign-in verification remain open
+- [ ] Verify the release artifact and update security claims

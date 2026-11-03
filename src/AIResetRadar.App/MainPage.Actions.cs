@@ -8,10 +8,12 @@ public sealed partial class MainPage
 {
     readonly SemaphoreSlim refreshing = new(1, 1);
     bool initialized;
+    bool initializing;
     RadarSettings preferences = new();
     async Task InitializeAsync()
     {
-        if (initialized) return; initialized = true;
+        if (initialized || initializing) return;
+        initializing = true;
         AIResetRadar.App.Platforms.Windows.NotificationService.Current.AccountsLoading();
         try
         {
@@ -24,28 +26,33 @@ public sealed partial class MainPage
                 catch { preferences = preferences with { LaunchAtSignIn = false }; }
             }
             if (!state.IsDemo && (savedSettings is null || savedSettings.ReminderDefaultsVersion < 2)) await AppServices.Current.Store.WriteAsync("settings", preferences);
-            retiredCredentials.Clear();
-            alertHistory.Clear(); snoozed.Clear();
             if (!state.IsDemo)
             {
-                retiredCredentials.AddRange(await AppServices.Current.Store.ReadAsync<ProviderAccount[]>("retired") ?? []);
-                alertHistory.AddRange(await AppServices.Current.Store.ReadAsync<AlertEvent[]>("alerts") ?? []);
-                foreach (var item in await AppServices.Current.Store.ReadAsync<Dictionary<string, DateTimeOffset>>("snoozed") ?? []) snoozed[item.Key] = item.Value;
-                state.Accounts.AddRange(await AppServices.Current.Store.ReadAsync<ProviderAccount[]>("accounts") ?? []);
-                foreach (var snapshot in await AppServices.Current.Store.ReadAsync<QuotaSnapshot[]>("snapshots") ?? [])
+                // Stage every read before adopting any account state. A failed load must
+                // never let the background refresh save an empty/partial inventory.
+                var saved = await AppServices.Current.Store.LoadMonitoringStateAsync();
+                retiredCredentials.Clear(); retiredCredentials.AddRange(saved.Retired);
+                alertHistory.Clear(); alertHistory.AddRange(saved.Alerts);
+                snoozed.Clear(); foreach (var item in saved.Snoozed) snoozed[item.Key] = item.Value;
+                state.Accounts.Clear(); state.Accounts.AddRange(saved.Accounts);
+                state.Snapshots.Clear();
+                foreach (var snapshot in saved.Snapshots)
                     if (state.Accounts.Any(snapshot.BelongsTo)) state.Snapshots[snapshot.AccountId] = snapshot with { Health = SourceHealth.Stale, Message = "Saved values — refreshing" };
+                initialized = true;
                 Render();
                 AIResetRadar.App.Platforms.Windows.NotificationService.Current.AccountsLoaded();
                 await RefreshAsync();
             }
-            else { AIResetRadar.App.Platforms.Windows.NotificationService.Current.AccountsLoaded(); Render(); }
+            else { initialized = true; AIResetRadar.App.Platforms.Windows.NotificationService.Current.AccountsLoaded(); Render(); }
         }
         catch { await AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, "Local storage unavailable", "Scrooge could not load its local account data. Check available disk space and folder access before connecting accounts.", "OK"); }
+        finally { initializing = false; }
     }
     readonly Dictionary<string, int> failures = [];
     readonly Dictionary<string, DateTimeOffset> throttledUntil = [];
     async Task RefreshByUserAsync()
     {
+        if (!initialized) { await InitializeAsync(); return; }
         if (refreshing.CurrentCount == 0) return;
         AlertSounds.Play(preferences, "refresh");
         await RefreshAsync();
@@ -53,6 +60,7 @@ public sealed partial class MainPage
 
     async Task RefreshAsync(bool force = true)
     {
+        if (!initialized) return;
         if (!await refreshing.WaitAsync(0)) return;
         if (force) refresh.IsEnabled = false;
         try
@@ -112,21 +120,26 @@ public sealed partial class MainPage
     }
     async Task SaveAsync()
     {
-        if (state.IsDemo) return;
+        if (!initialized || state.IsDemo) return;
         await accountChanges.WaitAsync();
         try { await AppServices.Current.Store.WriteMonitoringStateAsync(state.Accounts.ToArray(), state.Snapshots.Values.ToArray(), retiredCredentials.ToArray()); }
         finally { accountChanges.Release(); }
     }
     async Task AddAccountAsync()
     {
+        if (!initialized) { await InitializeAsync(); if (!initialized) return; }
         var provider = await AIResetRadar.App.Services.ThemedDialogs.ChooseAsync(this, "Connect account", "OpenAI Codex", "GitHub Copilot", "Claude");
         if (provider == "Claude") { await AppPanels.ShowAsync(this, new ConnectClaudePage((account, snapshot) => CommitConnectionAsync(account, snapshot, null))); return; }
         if (provider is not ("OpenAI Codex" or "GitHub Copilot")) return;
         await AppPanels.ShowAsync(this, new ConnectAccountPage(provider == "OpenAI Codex", (account, snapshot) => CommitConnectionAsync(account, snapshot, null)));
     }
-    async Task OpenSettingsAsync(bool earnedResetAlerts = false) => await AppPanels.ShowAsync(this, new SettingsPage(state.Accounts, state.Snapshots, preferences, state.IsDemo,
+    async Task OpenSettingsAsync(bool earnedResetAlerts = false)
+    {
+        if (!initialized) { await InitializeAsync(); if (!initialized) return; }
+        await AppPanels.ShowAsync(this, new SettingsPage(state.Accounts, state.Snapshots, preferences, state.IsDemo,
         SaveSettingsAsync,
         UpdateAccountAsync, OpenHistoryAsync, TestNotificationAsync, ReconnectAsync, earnedResetAlerts: earnedResetAlerts));
+    }
     async Task OpenAccountSettingsAsync(string accountId)
     {
         if (!state.Accounts.Any(a => a.Id == accountId)) return;

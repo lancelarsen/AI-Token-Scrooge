@@ -18,13 +18,10 @@ public sealed class CodexConnection : IAsyncDisposable
 
     public static async Task<CodexConnection> StartAsync(string executable, string profile, CancellationToken ct = default)
     {
-        if (!File.Exists(executable) || Path.GetExtension(executable) != ".exe") throw new FileNotFoundException("Install Codex to connect an OpenAI account.");
-        Directory.CreateDirectory(profile);
-        var start = new ProcessStartInfo(executable) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true,
-            RedirectStandardOutput = true, RedirectStandardError = true, WorkingDirectory = profile };
-        foreach (var key in start.Environment.Keys.Where(k => k.StartsWith("CODEX_", StringComparison.OrdinalIgnoreCase) || k.StartsWith("OPENAI_", StringComparison.OrdinalIgnoreCase)).ToArray()) start.Environment.Remove(key);
-        start.Environment["CODEX_HOME"] = Path.GetFullPath(profile);
-        foreach (var arg in new[] { "app-server", "--stdio", "-c", "cli_auth_credentials_store=\"keyring\"", "-c", "mcp_servers={}", "-c", "analytics.enabled=false" }) start.ArgumentList.Add(arg);
+        executable = CliExecutablePath.Validate(executable);
+        if (OperatingSystem.IsWindows()) WindowsCredentialDirectory.Ensure(profile);
+        else Directory.CreateDirectory(profile);
+        var start = StartInfo(executable, profile);
         var connection = new CodexConnection(Process.Start(start) ?? throw new IOException("Could not start Codex."));
         try
         {
@@ -32,6 +29,16 @@ public sealed class CodexConnection : IAsyncDisposable
             await connection.WriteAsync(new { method = "initialized" }, ct); return connection;
         }
         catch { await connection.DisposeAsync(); throw; }
+    }
+
+    internal static ProcessStartInfo StartInfo(string executable, string profile)
+    {
+        var start = new ProcessStartInfo(executable) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true,
+            RedirectStandardOutput = true, RedirectStandardError = true, WorkingDirectory = Path.GetFullPath(profile) };
+        CliEnvironment.Sanitize(start.Environment);
+        start.Environment["CODEX_HOME"] = Path.GetFullPath(profile);
+        foreach (var arg in new[] { "app-server", "--stdio", "-c", "cli_auth_credentials_store=\"keyring\"", "-c", "mcp_servers={}", "-c", "analytics.enabled=false" }) start.ArgumentList.Add(arg);
+        return start;
     }
 
     public async Task<JsonElement> CallAsync(string method, object? parameters = null, CancellationToken ct = default)
@@ -97,7 +104,15 @@ public static class CodexLocator
     public static string? Find()
     {
         var directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OpenAI", "Codex", "bin");
-        return Directory.Exists(directory) ? Directory.EnumerateFiles(directory, "codex.exe", SearchOption.AllDirectories)
-            .OrderByDescending(File.GetLastWriteTimeUtc).FirstOrDefault() : null;
+        return FindIn(directory);
+    }
+    internal static string? FindIn(string directory)
+    {
+        if (!Directory.Exists(directory)) return null;
+        if (OperatingSystem.IsWindows()) WindowsCredentialDirectory.RejectReparsePoints(directory);
+        var candidate = Directory.EnumerateFiles(directory, "codex.exe", new EnumerationOptions
+        { RecurseSubdirectories = true, AttributesToSkip = FileAttributes.ReparsePoint, IgnoreInaccessible = false })
+            .OrderByDescending(File.GetLastWriteTimeUtc).FirstOrDefault();
+        return candidate is null ? null : CliExecutablePath.Validate(candidate);
     }
 }

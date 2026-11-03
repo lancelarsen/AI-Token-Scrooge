@@ -14,6 +14,8 @@ Copy this file to a provider-specific note when proposing an integration. Replac
 
 Describe the browser/official CLI flow, required permissions, stable identity fields, scope checks, credential location, renewal, cancellation, reconnect, and logout. Explain how two accounts and the user's existing CLI login remain isolated.
 
+Complete the [Credential Checklist](../integration.md#credential-checklist). Record the supported storage backend, Windows protection, plaintext fallback behavior, sign-in journal and cleanup integration, renewal writer/lock, and crash recovery. Identify what logout removes locally, what it revokes remotely, and the provider's recovery controls. Link evidence for each claim and retain unverified cases explicitly.
+
 ## Usage Contract
 
 | Field | Source Field or Calculation | Unknown/Failure Behavior |

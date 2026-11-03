@@ -4,6 +4,31 @@ namespace AIResetRadar.Infrastructure.Tests;
 
 public class LocalStoreTests
 {
+    [Fact] public async Task MissingStartupStateIsEmptyButPersistedNullIsNotAnEmptyAccountList()
+    {
+        using var files = new TestDirectory(); var store = new LocalStore(files.Database);
+        Assert.Empty((await store.LoadMonitoringStateAsync()).Accounts);
+        await store.WriteAsync<ProviderAccount[]?>("accounts", null);
+        await Assert.ThrowsAsync<InvalidDataException>(() => store.LoadMonitoringStateAsync());
+    }
+
+    [Fact] public async Task StartupLoadFailsAsAUnitAndCanRetryWithoutLosingAccounts()
+    {
+        using var files = new TestDirectory(); var store = new LocalStore(files.Database);
+        var account = new ProviderAccount("a", "OpenAI", "Personal", "fixture", "scope");
+        await store.WriteMonitoringStateAsync([account], [], []);
+        await store.WriteAsync("snapshots", "invalid snapshot shape");
+        await Assert.ThrowsAsync<System.Text.Json.JsonException>(() => store.LoadMonitoringStateAsync());
+        Assert.Equal(account, Assert.Single((await store.ReadAsync<ProviderAccount[]>("accounts"))!));
+        await store.WriteAsync("snapshots", Array.Empty<QuotaSnapshot>());
+        var loaded = await store.LoadMonitoringStateAsync();
+        Assert.Equal(account, Assert.Single(loaded.Accounts));
+        Assert.Empty(loaded.Snapshots);
+        Assert.Empty(loaded.Retired);
+        Assert.Empty(loaded.Alerts);
+        Assert.Empty(loaded.Snoozed);
+    }
+
     sealed class Clock(DateTimeOffset now) : TimeProvider
     { public DateTimeOffset Now = now; public override DateTimeOffset GetUtcNow() => Now; }
     [Fact] public async Task HistoryExpiresAfterOfflineTimeWithoutAnotherProviderSnapshot()
@@ -27,7 +52,7 @@ public class LocalStoreTests
         public string Database => Path.Combine(Folder, "radar.db");
         public void Dispose()
         {
-            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+            TestDatabasePools.Clear(Database);
             Assert.StartsWith(root + Path.DirectorySeparatorChar, Path.GetFullPath(Folder));
             if (Directory.Exists(Folder)) Directory.Delete(Folder, true);
         }
@@ -95,7 +120,7 @@ public class LocalStoreTests
         Assert.Equal(62, loaded.Windows[0].RemainingPercent);
         Assert.True(loaded.Reserve!.HasPartialDetails);
         // Pool clearing releases SQLite's file handles before scoped test cleanup.
-        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+        TestDatabasePools.Clear(Path.Combine(directory, "radar.db"));
         Assert.StartsWith(Path.GetFullPath(Path.Combine(Path.GetTempPath(), "AIResetRadar-tests")) + Path.DirectorySeparatorChar, Path.GetFullPath(directory));
         Directory.Delete(directory, true);
     }
@@ -112,7 +137,7 @@ public class LocalStoreTests
         await store.RecordSnapshotAsync(old with { ObservedAt = now.AddDays(1 - HistoryRetention.Days) });
         Assert.Equal(new[] { now, now.AddDays(1 - HistoryRetention.Days) }.Order(), (await store.HistoryAsync("a")).Select(s => s.ObservedAt).Order());
         Assert.Single(await store.HistoryAsync("b"));
-        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+        TestDatabasePools.Clear(Path.Combine(directory, "radar.db"));
         Assert.StartsWith(Path.GetFullPath(Path.Combine(Path.GetTempPath(), "AIResetRadar-tests")) + Path.DirectorySeparatorChar, Path.GetFullPath(directory));
         Directory.Delete(directory, true);
     }

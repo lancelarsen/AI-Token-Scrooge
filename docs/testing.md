@@ -49,6 +49,18 @@ Test with Windows display scaling as well as a smaller window. Screenshots alone
 
 Record the tested version, product, account type, billing/workspace scope, provider-screen comparison, and verification date in a sanitized note. Identify untested renewal, second-account, or organization scenarios explicitly. Never publish personal identifiers or credentials. See [Provider Integration](integration.md#required-verification).
 
+## Credential Isolation Probe
+
+The Probe project includes synthetic Windows isolation checks. Preparation requires a new GUID-named folder directly beneath artifacts/native-qa. It never needs a provider token or a live profile.
+
+| Mode | Purpose |
+| --- | --- |
+| `--prepare-credential-isolation <folder>` | Create synthetic protected files and a separately readable ciphertext copy, then verify owner access |
+| `--verify-credential-owner <folder>` | Repeat owner access and DPAPI decryption checks |
+| `--verify-credential-other-user <folder>` | Check denied access to protected files and failed decryption of the readable copy under a different, non-elevated standard Windows user |
+
+The different-user mode returns NotRun with exit code 2 for the owner or an elevated administrator. An owner pass is not cross-user evidence. Missing files or other inconclusive I/O errors must not count as denied access. Keep this fixture separate from actual credentials and record unavailable environments as unverified. See the [Credential Verification Checkpoint](credential-protection-verification.md#synthetic-windows-isolation-probe) for results and limitations.
+
 ## Reporting Results
 
 Include commands and outcomes, the commit/build tested, and any remaining gaps. Separate fixture tests, native demo observations, and live-provider verification. Keep historical evidence in [Verification Notes](verification.md); do not turn dated observations into permanent guarantees.

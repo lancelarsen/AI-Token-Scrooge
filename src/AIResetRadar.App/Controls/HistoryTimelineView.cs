@@ -4,14 +4,14 @@ using Microsoft.Maui.Controls.Shapes;
 
 namespace AIResetRadar.App.Controls;
 
-// One renderer for both horizon modes; history only adds selectors, graph and past events.
+// One timeline and service filter; History enables the usage graph and navigation before Today.
 public sealed class HistoryTimelineView : Grid
 {
     static readonly Color Accent = Color.FromArgb("#B5A0F4");
     static readonly Color Muted = Color.FromArgb("#BEC1D2");
     bool historyEnabled = true;
-    float AxisLeft => historyEnabled ? 40 : 0;
-    float PlotRight => historyEnabled ? 12 : 0;
+    float AxisLeft => 40;
+    float PlotRight => 12;
     float railY = 60;
     float PlotTop => railY + 32;
     static readonly DateOnly CoordinateAnchor = new(2000, 1, 1);
@@ -70,7 +70,7 @@ public sealed class HistoryTimelineView : Grid
         chart.Drawable = new Plot(this); navigator.Drawable = new Overview(this);
         chart.SizeChanged += (_, _) => Reflow();
         SizeChanged += (_, _) => Reflow();
-        SemanticProperties.SetDescription(navigator, "History Timeline Navigator · Drag Left for the Past Seven Days · Drag Right for Upcoming Events");
+        SemanticProperties.SetDescription(navigator, "Timeline Navigator · Drag to Browse Dates");
         Platforms.Windows.HistoryChartInput.Attach(chart, Hover, ClearHover, MoveCursor, Pan, FollowToday, chartInput);
         Platforms.Windows.HistoryChartInput.AttachNavigator(navigator, Pan, FollowToday, navigatorInput, BeginNavigation, DragNavigation, () => navigating = false);
     }
@@ -120,9 +120,7 @@ public sealed class HistoryTimelineView : Grid
     void Reflow()
     {
         if (chart.Width <= 0) return;
-        selectorRail.IsVisible = historyEnabled;
-        ColumnDefinitions[0].Width = new GridLength(historyEnabled ? (Width < 850 ? 95 : 112) : 0);
-        ColumnSpacing = historyEnabled ? 10 : 0;
+        ColumnDefinitions[0].Width = new GridLength(Width < 850 ? 95 : 112);
         var firstRecorded = series.SelectMany(s => s.Points).Select(p => (DateTimeOffset?)p.At).Min() ?? now;
         model.Update(now, future.LastOrDefault()?.At, zone, Span, historyEnabled, earliestHistory: firstRecorded);
         projectionOrigin = model.PositionAt(CoordinateAnchor);
@@ -135,7 +133,7 @@ public sealed class HistoryTimelineView : Grid
         }
         var futureRows = future.GroupBy(e => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(e.At, zone).DateTime))
             .Select(g => g.Count()).DefaultIfEmpty().Max();
-        var height = historyEnabled ? HistoryChartLayout.Height(series.Length, futureRows, railY) : railY + 21 + Math.Max(1, futureRows) * 76;
+        var height = HistoryChartLayout.Height(series.Length, futureRows, railY);
         plotBottom = height - 8;
         if (chart.HeightRequest != height)
             chart.HeightRequest = chartHost.HeightRequest = selectorScroll.HeightRequest = height;
@@ -230,8 +228,8 @@ public sealed class HistoryTimelineView : Grid
                     WidthRequest = 12, HeightRequest = 12, HorizontalOptions = LayoutOptions.Center,
                     VerticalOptions = LayoutOptions.Center, IsVisible = enabled } });
             var action = new Button { BackgroundColor = Colors.Transparent, Text = "", BorderWidth = 0, HeightRequest = HistoryChartLayout.SelectorHeight };
-            SemanticProperties.SetDescription(action, $"{(enabled ? "Hide" : "Show")} {item.Account.Provider} / {item.Account.Nickname} · {item.PlanLabel} · {item.Period} History");
-            Platforms.Windows.ImmediateToolTip.Attach(action, $"{item.Account.Provider} / {item.Account.Nickname} · {item.PlanLabel}\n{item.Period} History{CoverageDetails(item)}{(item.Status is null ? "" : "\n" + item.Status)}");
+            SemanticProperties.SetDescription(action, $"{(enabled ? "Hide" : "Show")} {item.Account.Provider} / {item.Account.Nickname} · {item.PlanLabel} · Timeline");
+            Platforms.Windows.ImmediateToolTip.Attach(action, $"{item.Account.Provider} / {item.Account.Nickname} · {item.PlanLabel}\nShow or Hide History, Resets and Refreshes{CoverageDetails(item)}{(item.Status is null ? "" : "\n" + item.Status)}");
             action.Clicked += async (_, _) => {
                 action.IsEnabled = false;
                 try {
@@ -265,7 +263,7 @@ public sealed class HistoryTimelineView : Grid
         foreach (var group in groups)
         {
             var dateX = AxisLeft + (float)(model.FutureDayPosition(group.Key) - model.ScrollOffset);
-            if (dateX < (historyEnabled ? Math.Max(AxisLeft, TodayX) : AxisLeft) - 24 || dateX > AxisLeft + Span + 12) continue;
+            if (dateX < Math.Max(AxisLeft, TodayX) - 24 || dateX > AxisLeft + Span + 12) continue;
             var slot = 0;
             foreach (var e in group)
             {
@@ -424,7 +422,6 @@ public sealed class HistoryTimelineView : Grid
                     c.DrawCircle(futureX, owner.railY, 4);
                 }
             }
-            if (!owner.historyEnabled) return;
             foreach (var marker in owner.historicalMarkers) {
                 var expiry = marker.Kind == HistoryEventKind.ReportedExpiration;
                 c.FillColor = Color.FromArgb(expiry ? "#EAAA51" : "#B99AF8");
@@ -434,6 +431,7 @@ public sealed class HistoryTimelineView : Grid
                 c.DrawString(marker.Count > 1 ? marker.Count.ToString() : expiry ? "\uE823" : "\uE72C",
                     marker.X - 11, marker.Y - 11, 22, 22, HorizontalAlignment.Center, VerticalAlignment.Center);
             }
+            if (!owner.historyEnabled) return;
             c.Font = Microsoft.Maui.Graphics.Font.Default;
             c.SaveState(); c.ClipRectangle(owner.AxisLeft, owner.PlotTop, owner.Span, owner.plotBottom - owner.PlotTop);
             foreach (var s in owner.Visible) {

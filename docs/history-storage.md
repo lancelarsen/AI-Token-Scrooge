@@ -12,7 +12,11 @@ A run stops when any state changes, polling cadence changes, a known reset/expir
 
 The upgrade creates `radar.db.before-history-v3.bak` using SQLite's backup API, then converts rows in a transaction while streaming legacy data through SQLite. Failed conversion rolls back both schema and data. After conversion, SQLite reclaims free pages where possible. The backup is retained separately for rollback; an older executable requires that pre-upgrade database, since it cannot read version 3.
 
-Ordinary history retention still follows the configured application policy (currently 45 days). Runs overlapping the cutoff retain their real first endpoint as a continuity anchor. Account removal deletes both runs and shared metadata. The migration backup is a separate recovery file and is not included in ongoing retention cleanup.
+Ordinary history retention still follows the configured application policy (currently 90 days). Runs overlapping the cutoff retain their real first endpoint as a continuity anchor. Account removal deletes both runs and shared metadata. The migration backup is a separate recovery file and is not included in ongoing retention cleanup.
+
+## Credential Profile References in Version 4
+
+The history tables remain unchanged. Staging or accepting a CLI profile in the local Security root raises user_version to 4 transactionally, so older executables refuse to open state containing location references they cannot preserve. ProfileLocation in account and pending-cleanup JSON identifies the legacy data directory or local Security root. Old records without this field continue to use their legacy location. The database contains no credential contents or arbitrary profile paths. See [Architecture](architecture.md#persistence-and-secrets).
 
 ## Graph Loading and Drawing
 

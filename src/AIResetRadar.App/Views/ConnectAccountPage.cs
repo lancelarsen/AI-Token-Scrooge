@@ -23,6 +23,7 @@ public sealed partial class ConnectAccountPage : ContentPage
     readonly ProviderAccount? reconnect;
     string? loginId;
     bool signingIn;
+    bool codexSignInStarted;
     bool connecting;
     bool committed, committing;
     ProviderAccount? pendingAccount;
@@ -64,7 +65,15 @@ public sealed partial class ConnectAccountPage : ContentPage
             {
                 if (signingIn) { await FinishCodexAsync(); return; }
                 if (connection is not null) { await connection.DisposeAsync(); connection = null; }
-                connection = await AppServices.Current.Monitor.OpenCodexAsync(credentialId, lifetime.Token);
+                codexSignInStarted = true;
+                var opened = await AppServices.Current.Monitor.BeginCodexSignInAsync(credentialId, lifetime.Token);
+                if (lifetime.IsCancellationRequested)
+                {
+                    await opened.DisposeAsync();
+                    try { using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(8)); await AppServices.Current.Monitor.DisconnectAsync(new(credentialId, "OpenAI", "", "", "", CredentialId: credentialId, ProfileLocation: CredentialProfileLocation.LocalSecurityDirectory), timeout.Token); } catch { }
+                    return;
+                }
+                connection = opened;
                 connection.Notification += notification =>
                 {
                     if (ProviderMapping.Text(notification, "method") == "account/login/completed")
@@ -124,9 +133,10 @@ public sealed partial class ConnectAccountPage : ContentPage
             var owned = connection; connection = null;
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(3));
             try { if (loginId is not null) await owned.CallAsync("account/login/cancel", new { loginId }, timeout.Token); } catch { }
-            if (!committed) { try { await owned.CallAsync("account/logout", ct: timeout.Token); } catch { } }
             await owned.DisposeAsync();
         }
+        if (!committed && codex && codexSignInStarted)
+        { try { using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(8)); await AppServices.Current.Monitor.DisconnectAsync(new(credentialId, "OpenAI", "", "", "", CredentialId: credentialId, ProfileLocation: CredentialProfileLocation.LocalSecurityDirectory), timeout.Token); } catch { } }
         if (!committed && pendingAccount is not null)
         { try { await AppServices.Current.Monitor.DisconnectAsync(pendingAccount); } catch { } pendingAccount = null; }
     }

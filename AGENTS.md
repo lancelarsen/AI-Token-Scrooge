@@ -6,6 +6,7 @@ Before implementation, read [Contributing](CONTRIBUTING.md), [Application Archit
 
 - UI, layout, controls, icons, interaction, or copy: [Design Guidelines](docs/design.md)
 - Providers, browser/CLI sign-in, usage mapping, polling, or credential lifecycle: [Provider Integration](docs/integration.md) and [Security](SECURITY.md)
+- Credential failure, removal, or revocation guidance: [Credential Recovery](docs/credential-recovery.md)
 - Persistence, retention, or migrations: [History Storage](docs/history-storage.md) and the architecture persistence section
 - Build, packaging, or releases: [Release Acceptance](docs/release-acceptance.md) and [Windows Preview Workflow](.github/workflows/windows-preview.yml)
 - New features and provider proposals: [Contribution Roadmap](tasks/contributor-roadmap.md)

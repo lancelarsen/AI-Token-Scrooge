@@ -4,6 +4,7 @@ $source = (Resolve-Path -LiteralPath $PublishDirectory).Path
 foreach ($name in @('AIResetRadar.App.exe','AIResetRadar.App.dll','AIResetRadar.App.runtimeconfig.json','github-app.json','coreclr.dll','Microsoft.UI.Xaml.dll','README.txt')) {
     if (-not (Test-Path -LiteralPath (Join-Path $source $name) -PathType Leaf)) { throw "Missing self-contained publish file: $name" }
 }
+& (Join-Path $PSScriptRoot 'Test-PublishContent.ps1') -PublishDirectory $source
 $entries = @(Get-ChildItem -LiteralPath $source -Recurse -Force)
 $files = @($entries | Where-Object { -not $_.PSIsContainer })
 foreach ($file in $entries) {

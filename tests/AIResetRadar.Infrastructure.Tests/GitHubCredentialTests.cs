@@ -31,7 +31,8 @@ public class GitHubCredentialTests
         var manager = new GitHubCredentialManager(secrets, new(http, clock), new(http, clock), clock);
         await manager.SaveAppAsync("credential", "42", Expiring(clock));
         var first = manager.ReadAccessTokenAsync(Account(), default); await entered.Task;
-        var second = manager.ReadAccessTokenAsync(Account(), default); release.SetResult();
+        var otherManager = new GitHubCredentialManager(secrets, new(http, clock), new(http, clock), clock);
+        var second = otherManager.ReadAccessTokenAsync(Account(), default); Assert.False(second.IsCompleted); release.SetResult();
         Assert.Equal(new[] { "ghu_test-access", "ghu_test-access" }, await Task.WhenAll(first, second)); Assert.Equal(1, rotations);
         await manager.RemoveAsync("credential", default); Assert.Empty(secrets.Values);
         await Assert.ThrowsAsync<ProviderAccessException>(() => manager.ReadAccessTokenAsync(Account(), default));
@@ -87,7 +88,8 @@ public class GitHubCredentialTests
         var manager = new GitHubCredentialManager(secrets, new(http, clock), new(http, clock), clock);
         await manager.SaveAppAsync("credential", "42", Expiring(clock));
         var read = manager.ReadAccessTokenAsync(Account(), default); await entered.Task;
-        var remove = manager.RemoveAsync("credential", default); Assert.False(remove.IsCompleted); release.SetResult();
+        var otherManager = new GitHubCredentialManager(secrets, new(http, clock), new(http, clock), clock);
+        var remove = otherManager.RemoveAsync("credential", default); Assert.False(remove.IsCompleted); release.SetResult();
         var error = await Assert.ThrowsAsync<ProviderAccessException>(() => read); Assert.Equal(SourceHealth.AuthenticationRequired, error.Health);
         await remove; Assert.Empty(secrets.Values);
     }
@@ -102,5 +104,68 @@ public class GitHubCredentialTests
         Assert.Equal("old-access", await manager.ReadAccessTokenAsync(Account("fresh", "84"), default));
         await Assert.ThrowsAsync<ProviderAccessException>(() => manager.ReadAccessTokenAsync(Account("fresh", "42"), default));
         await manager.RemoveAsync("fresh", default); Assert.Equal("legacy-pat", secrets.Values["legacy"]);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PendingRenewalCannotRestoreRemovedOrReplacedCredential(bool replace)
+    {
+        var clock = new Clock(); var secrets = new Secrets(); var rotations = 0;
+        using var http = new HttpClient(new Handler((r, _) => {
+            if (r.RequestUri!.Host == "github.com") rotations++;
+            return Task.FromResult(Json(r.RequestUri.Host == "github.com" ? Tokens : """{"id":42,"login":"sample"}"""));
+        }));
+        var first = new GitHubCredentialManager(secrets, new(http, clock), new(http, clock), clock);
+        var second = new GitHubCredentialManager(secrets, new(http, clock), new(http, clock), clock);
+        await first.SaveAppAsync("credential", "42", Expiring(clock));
+        secrets.Reject = value => value.Contains("ghu_test-access");
+        await Assert.ThrowsAsync<ProviderAccessException>(() => first.ReadAccessTokenAsync(Account(), default));
+        secrets.Reject = null;
+        await second.RemoveAsync("credential", default);
+        if (replace) await second.SaveAppAsync("credential", "42", Expiring(clock) with { AccessToken = "newer-access", ExpiresAt = clock.Now.AddHours(8) });
+        await Assert.ThrowsAsync<ProviderAccessException>(() => first.ReadAccessTokenAsync(Account(), default));
+        if (replace) Assert.Equal("newer-access", await first.ReadAccessTokenAsync(Account(), default));
+        else Assert.Empty(secrets.Values);
+        Assert.Equal(1, rotations);
+    }
+
+    [Fact] public async Task SeparateWindowsStoreInstancesSerializeRenewalAndRemoval()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        var folder = Path.Combine(Path.GetTempPath(), "ScroogeRenewalTests", Guid.NewGuid().ToString("N"));
+        var id = Guid.NewGuid().ToString("N"); var clock = new Clock(); var rotations = 0;
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var http = new HttpClient(new Handler(async (r, ct) => {
+            if (r.RequestUri!.Host == "github.com") { Interlocked.Increment(ref rotations); entered.TrySetResult(); await release.Task.WaitAsync(ct); return Json(Tokens); }
+            return Json("""{"id":42,"login":"sample"}""");
+        }));
+        var first = new GitHubCredentialManager(new WindowsMigratingSecretStore(Path.Combine(folder, "current"), Path.Combine(folder, "legacy")), new(http, clock), new(http, clock), clock);
+        var second = new GitHubCredentialManager(new WindowsMigratingSecretStore(Path.Combine(folder, "current"), Path.Combine(folder, "legacy")), new(http, clock), new(http, clock), clock);
+        Task<string>? read = null;
+        Task? remove = null;
+        try
+        {
+            await first.SaveAppAsync(id, "42", Expiring(clock));
+            read = first.ReadAccessTokenAsync(Account(id), timeout.Token); await entered.Task.WaitAsync(timeout.Token);
+            remove = second.RemoveAsync(id, timeout.Token); Assert.False(remove.IsCompleted);
+            // An unrelated credential remains usable while this renewal owns its lease.
+            var unrelated = Guid.NewGuid().ToString("N");
+            await second.SaveAppAsync(unrelated, "42", Expiring(clock) with { ExpiresAt = clock.Now.AddHours(8) });
+            Assert.Equal("old-access", await second.ReadAccessTokenAsync(Account(unrelated), timeout.Token));
+            release.TrySetResult();
+            Assert.Equal("ghu_test-access", await read); await remove;
+            await Assert.ThrowsAsync<ProviderAccessException>(() => first.ReadAccessTokenAsync(Account(id), timeout.Token));
+            Assert.Equal(1, rotations);
+        }
+        finally
+        {
+            release.TrySetResult();
+            if (read is not null) try { await read; } catch { }
+            if (remove is not null) try { await remove; } catch { }
+            if (Directory.Exists(folder)) Directory.Delete(folder, true);
+        }
     }
 }

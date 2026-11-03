@@ -12,7 +12,11 @@ A connection must read usage without sending a model prompt, redeeming a reset, 
 
 Prefer a documented, supported usage endpoint. If an internal endpoint is necessary, isolate it, document its role and failure behavior, and avoid making its optional fields a prerequisite for unrelated working reads. Do not bypass access controls or silently scrape shared browser sessions.
 
+Follow [Credential Storage Policy](../SECURITY.md#credential-storage-policy): keep Codex's explicit keyring mode, GitHub's current-user DPAPI store, and Claude's supported CLI-managed file with verified Windows permissions. Do not equate isolation with encryption or replace a CLI's credential format without compatibility evidence. The [Storage Decisions](decisions/credential-storage.md) retain Claude's file format and record the GitHub PKCE compatibility blocker; neither additional Claude encryption nor PKCE is implemented. Track remaining lifecycle and migration work in the [Credential Protection Plan](../tasks/credential-protection-plan.md).
+
 ## Existing Implementations
+
+New CLI sign-ins use the local Security root supplied by AppServices. Preserve ProfileLocation on the account, pending sign-in, and retired credential. Old records default to their legacy data-directory location. Never move a Codex profile or change its location flag without validating the corresponding keyring lookup. Acceptance must match the journal's provider and location, and cleanup must use the retired credential's location rather than the replacement account's.
 
 | Provider | Sign-In and Identity | Usage Source | Important Boundaries |
 | --- | --- | --- | --- |
@@ -30,7 +34,7 @@ These are descriptions of this repository's implementation, not guarantees that 
 
 ### GitHub
 
-[GitHubDeviceFlow](../src/AIResetRadar.Infrastructure/GitHubDeviceFlow.cs) implements authorization-code approval in the browser. [GitHubCredentialManager](../src/AIResetRadar.Infrastructure/GitHubCredentialManager.cs) handles saved credentials and renewal. [GitHub Sign-In Setup](github-sign-in.md) documents app registration; public client IDs are not client secrets.
+[GitHubDeviceFlow](../src/AIResetRadar.Infrastructure/GitHubDeviceFlow.cs) implements device authorization with approval in the browser, not the authorization-code/PKCE flow. [GitHubCredentialManager](../src/AIResetRadar.Infrastructure/GitHubCredentialManager.cs) handles saved credentials and renewal. [GitHub Sign-In Setup](github-sign-in.md) documents app registration; public client IDs are not client secrets.
 
 [GitHubUsageClient](../src/AIResetRadar.Infrastructure/GitHubUsageClient.cs) resolves /user on reads, requests the correct billing scope and unit, bounds response size, and classifies auth, permission, transient, and rate-limit failures. Personal allowance lookup uses an internal endpoint. An optional lookup failure must not turn unavailable allowance into a guessed denominator. Manual allowance has explicit provenance.
 
@@ -61,9 +65,23 @@ Use synthetic fixtures for tests. Never commit raw responses or personal identif
 4. Extend the existing connection views (`ConnectAccountPage`, its GitHub partial, or the focused `ConnectClaudePage` pattern). Use shared controls and provider-owned browser sign-in. Handle cancel, denied authorization, missing CLI, and retry.
 5. Add presentation identity through existing provider icon, plan-label, link, and account-row paths. Search existing provider literals across App/Core/Infrastructure to find all dispatch points; do not implement a second timeline or provider-specific usage bar.
 6. Integrate polling, history, alerts, disabled accounts, and cleanup through existing orchestration. A late response from an old credential must not be applied after reconnect/removal.
+   Stage the new provider/credential ID through ICredentialLifecycleJournal before sign-in can persist credentials. Account acceptance clears it transactionally; startup retries abandoned sign-ins through the retirement queue. Complete cleanup only after secret removal or CLI logout and validated profile deletion succeed. Add the provider to journal validation and explicit dispatch routes.
 7. Add tests, sanitized demo data, contributor evidence, and user-facing prerequisites. Update the supported-provider list only to the extent the integration is actually verified.
 
 ## Required Verification
+
+### Credential Checklist
+
+- [ ] Document the provider-supported storage mechanism, Windows protection, credential permissions, and the exact CLI/API versions checked. Distinguish encryption from file permissions.
+- [ ] Keep secrets separate from SQLite, logs, command arguments, URLs, screenshots, fixtures, and release artifacts. Use synthetic sentinels to verify these boundaries.
+- [ ] Use the local Security root for new profiles and preserve explicit location references through sign-in, acceptance, reconnect, and retirement. Validate ownership and reject redirected paths before writing or deleting.
+- [ ] Journal sign-in before credentials can be created. Commit the accepted account before retiring its predecessor; retain retry state after failed cleanup.
+- [ ] Serialize credential renewal and removal across all possible writers. Test interruption after remote rotation and before local save, and prevent stale retries from restoring a removed or replaced credential.
+- [ ] Verify identity, scope, two-account isolation, cancellation, restart, renewal, and logout. Keep synthetic, native, and live results separate; identify missing test accounts or Windows users.
+- [ ] Bound CLI output and execution time, filter inherited authentication overrides, and use the expected installed executable. Verify that monitoring never invokes inference.
+- [ ] Document local cleanup separately from remote revocation, including any impact on shared tokens or other sessions. Add provider-specific guidance to [Credential Recovery](credential-recovery.md) and identify unverified revocation behavior.
+
+### Behavior Matrix
 
 | Area | Cases |
 | --- | --- |

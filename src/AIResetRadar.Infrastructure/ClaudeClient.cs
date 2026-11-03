@@ -6,41 +6,57 @@ using AIResetRadar.Core;
 
 namespace AIResetRadar.Infrastructure;
 
-public sealed class ClaudeClient(string directory, TimeProvider clock)
+public sealed class ClaudeClient(string directory, TimeProvider clock, ICredentialLifecycleJournal? journal = null, string? securityDirectory = null)
 {
-    public string ProfilePath(string id) => Guid.TryParse(id, out var guid) ? Path.Combine(directory, "ClaudeProfiles", guid.ToString("N")) : throw new ArgumentException("Invalid account identity.");
+    readonly CliProfilePaths profiles = new(directory, securityDirectory);
+    public string ProfilePath(string id, CredentialProfileLocation location = CredentialProfileLocation.LegacyDataDirectory) => profiles.PathFor("Claude", id, location);
     public static string Find() => File.Exists(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "bin", "claude.exe"))
-        ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "bin", "claude.exe")
+        ? CliExecutablePath.Validate(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "bin", "claude.exe"))
         : throw new FileNotFoundException("Install Claude Code to connect a Claude account.");
     internal static ProcessStartInfo StartInfo(string executable, string profile)
     {
-        var start = new ProcessStartInfo(executable) { WorkingDirectory = profile, UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
-        foreach (var key in start.Environment.Keys.Where(k => k.StartsWith("ANTHROPIC_", StringComparison.OrdinalIgnoreCase) || k.StartsWith("CLAUDE_", StringComparison.OrdinalIgnoreCase)).ToArray()) start.Environment.Remove(key);
-        start.Environment["CLAUDE_CONFIG_DIR"] = profile;
+        var start = new ProcessStartInfo(executable) { WorkingDirectory = Path.GetFullPath(profile), UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
+        CliEnvironment.Sanitize(start.Environment);
+        start.Environment["CLAUDE_CONFIG_DIR"] = Path.GetFullPath(profile);
         return start;
     }
     async Task<string> RunAsync(string profile, CancellationToken ct, params string[] args)
     {
-        Directory.CreateDirectory(profile);
+        if (OperatingSystem.IsWindows())
+        {
+            WindowsCredentialDirectory.Ensure(profile);
+            var credentialFile = Path.Combine(profile, ".credentials.json");
+            WindowsCredentialDirectory.RejectReparsePoints(credentialFile);
+            if (File.Exists(credentialFile)) WindowsCredentialDirectory.RestrictFile(credentialFile);
+        }
+        else Directory.CreateDirectory(profile);
         var start = StartInfo(Find(), profile);
         foreach (var arg in args) start.ArgumentList.Add(arg);
-        using var process = Process.Start(start) ?? throw new IOException("Claude Code could not start.");
         try
         {
-            var stdout = process.StandardOutput.ReadToEndAsync(ct); var stderr = process.StandardError.ReadToEndAsync(ct);
-            await process.WaitForExitAsync(ct);
-            var text = await stdout; await stderr;
-            if (process.ExitCode != 0) throw new ProviderAccessException("Claude sign-in could not be confirmed. Reconnect this account.", SourceHealth.AuthenticationRequired);
-            return text;
+            var timeout = args is ["auth", "login"] ? TimeSpan.FromMinutes(10) : TimeSpan.FromSeconds(60);
+            var result = await BoundedCliProcess.RunAsync(start, timeout, ct);
+            if (result.ExitCode != 0) throw new ProviderAccessException("Claude sign-in could not be confirmed. Reconnect this account.", SourceHealth.AuthenticationRequired);
+            return result.Output;
         }
-        finally { if (!process.HasExited) { process.Kill(true); await process.WaitForExitAsync(CancellationToken.None); } }
+        finally
+        {
+            // Refresh/login can replace the file. Recheck permissions without changing its format.
+            if (OperatingSystem.IsWindows())
+            {
+                var credentialFile = Path.Combine(profile, ".credentials.json");
+                WindowsCredentialDirectory.RejectReparsePoints(credentialFile);
+                if (File.Exists(credentialFile)) WindowsCredentialDirectory.RestrictFile(credentialFile);
+            }
+        }
     }
     public async Task<(ProviderAccount Account, QuotaSnapshot Snapshot)> ConnectAsync(string id, string credentialId, string nickname, CancellationToken ct)
     {
-        var profile = ProfilePath(credentialId);
+        var profile = ProfilePath(credentialId, CredentialProfileLocation.LocalSecurityDirectory);
+        if (journal is not null) await journal.StageCredentialAsync("Claude", credentialId, ct, CredentialProfileLocation.LocalSecurityDirectory);
         await RunAsync(profile, ct, "auth", "login");
         var (subject, scope, plan) = await IdentityAsync(profile, ct);
-        var account = new ProviderAccount(id, "Claude", nickname, subject, scope, Login: subject, CredentialId: credentialId);
+        var account = new ProviderAccount(id, "Claude", nickname, subject, scope, Login: subject, CredentialId: credentialId, ProfileLocation: CredentialProfileLocation.LocalSecurityDirectory);
         var snapshot = await ReadUsageAsync(account, profile, plan, ct);
         return (account, snapshot);
     }
@@ -55,12 +71,18 @@ public sealed class ClaudeClient(string directory, TimeProvider clock)
     }
     public async Task<QuotaSnapshot> RefreshAsync(ProviderAccount account, CancellationToken ct)
     {
-        var profile = ProfilePath(account.CredentialId ?? account.Id);
+        var profile = ProfilePath(account.CredentialId ?? account.Id, account.ProfileLocation);
         var (subject, scope, plan) = await IdentityAsync(profile, ct);
         if (subject != account.Subject || scope != account.Scope) throw new ProviderAccessException("Claude profile identity changed. Reconnect this account.", SourceHealth.AuthenticationRequired);
         return await ReadUsageAsync(account, profile, plan, ct);
     }
-    public async Task DisconnectAsync(ProviderAccount account, CancellationToken ct) => await RunAsync(ProfilePath(account.CredentialId ?? account.Id), ct, "auth", "logout");
+    public async Task DisconnectAsync(ProviderAccount account, CancellationToken ct)
+    {
+        await RunAsync(ProfilePath(account.CredentialId ?? account.Id, account.ProfileLocation), ct, "auth", "logout");
+        ct.ThrowIfCancellationRequested();
+        await profiles.DeleteAsync("Claude", account.CredentialId ?? account.Id, account.ProfileLocation, ct);
+        if (journal is not null) await journal.CompleteCredentialCleanupAsync(account.CredentialId ?? account.Id);
+    }
     async Task<QuotaSnapshot> ReadUsageAsync(ProviderAccount account, string profile, string plan, CancellationToken ct)
     {
         // Older clients require an interactive terminal. Never fall back to model inference.

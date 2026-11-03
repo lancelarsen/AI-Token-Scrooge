@@ -1,6 +1,40 @@
 using AIResetRadar.Infrastructure;
 using AIResetRadar.Core;
 
+if (args.Length == 2 && args[0] is "--prepare-credential-isolation" or "--verify-credential-owner" or "--verify-credential-other-user")
+    return await CredentialIsolationProbe.RunAsync(args[0], args[1]);
+
+if (args.Length == 2 && args[0] == "--credential-directory")
+{
+    if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Windows credential storage is required.");
+    if (!Directory.Exists(args[1])) throw new DirectoryNotFoundException("The app data directory must exist.");
+    Console.WriteLine(WindowsMigratingSecretStore.DirectoryFor(args[1], Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)));
+    return 0;
+}
+
+if (args.Length == 2 && args[0] == "--migrate-legacy-credential-namespace")
+{
+    if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Windows credential storage is required.");
+    var data = Path.TrimEndingDirectorySeparator(Path.GetFullPath(args[1]));
+    var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+    var destination = WindowsMigratingSecretStore.DirectoryFor(data, local);
+    var oldKey = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(data.ToUpperInvariant()))).ToLowerInvariant();
+    var legacy = Path.Combine(local, "AIResetRadar", "Security", oldKey, "Credentials");
+    var migrated = 0;
+    if (Directory.Exists(legacy))
+    {
+        var store = new WindowsMigratingSecretStore(destination, legacy);
+        foreach (var path in Directory.EnumerateFiles(legacy, "*.bin"))
+        {
+            var id = Path.GetFileNameWithoutExtension(path);
+            if (!Guid.TryParseExact(id, "N", out _)) throw new InvalidDataException("Unexpected credential filename; migration stopped.");
+            if (await store.ReadAsync(id) is not null) migrated++;
+        }
+    }
+    Console.WriteLine($"Encrypted records migrated and verified: {migrated}. No credential values were printed.");
+    return 0;
+}
+
 if (args.Length == 2 && args[0] is "--prepare-demo-isolation" or "--verify-demo-isolation")
 {
     var folder = Path.GetFullPath(args[1]);

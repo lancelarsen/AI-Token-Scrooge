@@ -8,6 +8,70 @@ namespace AIResetRadar.Infrastructure.Tests
     public sealed class RetirementOrchestrationTests
     {
         [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task RetirementAllowsProviderDeadlineAndKeepsTimedOutCleanupRetryable(bool expire)
+        {
+            var folder = Path.Combine(Path.GetTempPath(), "AIResetRadar-tests", Guid.NewGuid().ToString("N"));
+            try
+            {
+                var store = new LocalStore(Path.Combine(folder, "radar.db"));
+                var account = new ProviderAccount("saved", "OpenAI", "Saved", "fixture", "personal", CredentialId: "11111111111111111111111111111111");
+                var retired = account with { CredentialId = "22222222222222222222222222222222" };
+                var snapshot = new QuotaSnapshot(account.Id, account.Subject, account.Scope, DateTimeOffset.UtcNow, [], null);
+                await store.WriteMonitoringStateAsync([account], [snapshot], [retired]);
+                var clock = new CleanupClock();
+                var monitor = new AIResetRadar.App.Services.TestCredentialMonitor
+                {
+                    OnDisconnect = token =>
+                    {
+                        clock.Advance(TimeSpan.FromSeconds(9));
+                        Assert.False(token.IsCancellationRequested);
+                        if (expire) clock.Advance(TimeSpan.FromSeconds(81));
+                        token.ThrowIfCancellationRequested();
+                        return Task.CompletedTask;
+                    }
+                };
+                var page = new AIResetRadar.App.MainPage(store, monitor, account, retired, false, clock);
+                await page.RunCleanupAsync();
+                Assert.Equal(expire ? 1 : 0, (await store.ReadAsync<ProviderAccount[]>("retired"))!.Length);
+                Assert.Equal(account, Assert.Single((await store.ReadAsync<ProviderAccount[]>("accounts"))!));
+                if (expire)
+                {
+                    monitor.OnDisconnect = null;
+                    await page.RunCleanupAsync();
+                    Assert.Empty((await store.ReadAsync<ProviderAccount[]>("retired"))!);
+                }
+                Assert.All(monitor.Disconnected, a => Assert.Equal(retired.CredentialId, a.CredentialId));
+            }
+            finally
+            {
+                TestDatabasePools.Clear(Path.Combine(folder, "radar.db"));
+                if (Directory.Exists(folder)) Directory.Delete(folder, true);
+            }
+        }
+
+        sealed class CleanupClock : TimeProvider
+        {
+            ManualTimer? timer;
+            public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period) => timer = new(callback, state, dueTime);
+            public void Advance(TimeSpan duration) => timer!.Advance(duration);
+            sealed class ManualTimer(TimerCallback callback, object? state, TimeSpan dueTime) : ITimer
+            {
+                TimeSpan remaining = dueTime;
+                bool disposed;
+                public void Advance(TimeSpan duration)
+                {
+                    remaining -= duration;
+                    if (!disposed && remaining <= TimeSpan.Zero) { disposed = true; callback(state); }
+                }
+                public bool Change(TimeSpan dueTime, TimeSpan period) { remaining = dueTime; return !disposed; }
+                public void Dispose() => disposed = true;
+                public ValueTask DisposeAsync() { Dispose(); return ValueTask.CompletedTask; }
+            }
+        }
+
+        [Theory]
         [InlineData(true, true, 0, 1, 1)]
         [InlineData(false, true, 1, 1, 0)]
         [InlineData(false, false, 1, 0, 0)]
@@ -32,7 +96,7 @@ namespace AIResetRadar.Infrastructure.Tests
             }
             finally
             {
-                Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+                TestDatabasePools.Clear(System.IO.Path.Combine(folder, "radar.db"));
                 if (Directory.Exists(folder)) Directory.Delete(folder, true);
             }
         }
@@ -56,8 +120,9 @@ namespace AIResetRadar.App
         readonly List<TestRow> rowViews = [];
         sealed class TestRow { public void UpdateAlertRules(RadarSettings settings) { } }
         sealed class TestLabel { public string? Text { get; set; } }
-        public MainPage(LocalStore store, Services.TestCredentialMonitor monitor, ProviderAccount? live, ProviderAccount? retired, bool demo)
+        public MainPage(LocalStore store, Services.TestCredentialMonitor monitor, ProviderAccount? live, ProviderAccount? retired, bool demo, TimeProvider? cleanupTime = null)
         {
+            cleanupClock = cleanupTime ?? TimeProvider.System;
             Services.AppServices.Current = new() { Store = store, Monitor = monitor };
             Platforms.Windows.NotificationService.Current = new();
             Platforms.Windows.StartupService.Reset();
@@ -128,7 +193,8 @@ namespace AIResetRadar.App.Services
     public sealed class TestCredentialMonitor
     {
         public List<ProviderAccount> Disconnected { get; } = [];
+        public Func<CancellationToken, Task>? OnDisconnect { get; set; }
         public Task DisconnectAsync(ProviderAccount account, CancellationToken cancellationToken)
-        { Disconnected.Add(account); return Task.CompletedTask; }
+        { Disconnected.Add(account); return OnDisconnect?.Invoke(cancellationToken) ?? Task.CompletedTask; }
     }
 }

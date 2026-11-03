@@ -89,7 +89,7 @@ public class HistoryPreferencesTests
         public string Database => Path.Combine(Folder, "radar.db");
         public void Dispose()
         {
-            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+            TestDatabasePools.Clear(Database);
             Assert.StartsWith(root + Path.DirectorySeparatorChar, Path.GetFullPath(Folder));
             if (Directory.Exists(Folder)) Directory.Delete(Folder, true);
         }

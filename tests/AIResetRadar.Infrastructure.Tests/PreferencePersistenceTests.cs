@@ -157,6 +157,6 @@ public sealed class PreferencePersistenceTests
     {
         readonly string folder = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "AIResetRadar-tests", Guid.NewGuid().ToString("N"));
         public string Path => System.IO.Path.Combine(folder, "radar.db");
-        public void Dispose() { SqliteConnection.ClearAllPools(); if (Directory.Exists(folder)) Directory.Delete(folder, true); }
+        public void Dispose() { TestDatabasePools.Clear(Path); if (Directory.Exists(folder)) Directory.Delete(folder, true); }
     }
 }
