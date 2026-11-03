@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Xunit;
 
 namespace AIResetRadar.Infrastructure.Tests;
@@ -14,6 +13,7 @@ public sealed class OwnedProfileDirectoryTests : IDisposable
         Directory.CreateDirectory(Path.Combine(Profile, "nested"));
         File.WriteAllText(Path.Combine(Profile, ".credentials.json"), "synthetic-only");
         File.WriteAllText(Path.Combine(Profile, "nested", "state.json"), "synthetic-only");
+        WindowsTestFileSystem.AssignCurrentUserOwnership(root);
     }
 
     [Fact] public void RemovesOnlySelectedProfileAndCanRetryAfterRemoval()
@@ -54,6 +54,7 @@ public sealed class OwnedProfileDirectoryTests : IDisposable
         var cache = Path.Combine(Profile, "nested", "cache.pack");
         var outside = Path.Combine(root, "unrelated.pack");
         File.WriteAllText(cache, "synthetic-cache"); File.WriteAllText(outside, "unrelated");
+        WindowsTestFileSystem.AssignCurrentUserOwnership(root);
         File.SetAttributes(cache, FileAttributes.ReadOnly); File.SetAttributes(outside, FileAttributes.ReadOnly);
         try
         {
@@ -80,20 +81,15 @@ public sealed class OwnedProfileDirectoryTests : IDisposable
         if (!redirectProfile) CreateProfile();
         else Directory.CreateDirectory(Path.GetDirectoryName(Profile)!);
         var link = redirectProfile ? Profile : Path.Combine(Profile, "redirected");
-        var start = new ProcessStartInfo("powershell.exe") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
-        start.Environment["SCROOGE_TEST_ALIAS"] = link; start.Environment["SCROOGE_TEST_TARGET"] = target;
-        foreach (var arg in new[] { "-NoProfile", "-NonInteractive", "-Command", "$ErrorActionPreference='Stop'; New-Item -ItemType Junction -Path $env:SCROOGE_TEST_ALIAS -Target $env:SCROOGE_TEST_TARGET | Out-Null" }) start.ArgumentList.Add(arg);
-        using var process = Process.Start(start)!;
         try
         {
-            await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(15)); Assert.Equal(0, process.ExitCode);
+            await WindowsTestFileSystem.CreateJunctionAsync(link, target);
             Assert.Throws<IOException>(() => OwnedProfileDirectory.Delete(root, "Claude", id));
             Assert.Equal("unrelated", File.ReadAllText(sentinel));
             if (!redirectProfile) Assert.True(File.Exists(Path.Combine(Profile, ".credentials.json")));
         }
         finally
         {
-            if (!process.HasExited) { process.Kill(true); await process.WaitForExitAsync(); }
             if (Directory.Exists(link)) Directory.Delete(link, false);
         }
     }

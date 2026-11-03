@@ -25,6 +25,10 @@ Core tests cover arithmetic, time, rules, scheduling, and identity policies. Inf
 
 Use injected TimeProvider/fake clocks, synthetic accounts, isolated temporary databases, and HTTP/CLI fixtures. Avoid sleeps and local-time assumptions. Test the configured zone explicitly, including DST. Do not clear shared resources belonging to another parallel test; fixture cleanup must stay inside that fixture's directory and connection pool.
 
+GitHub's [hosted Windows runners](https://docs.github.com/en/actions/reference/runners/github-hosted-runners) run as administrators with UAC disabled. A newly created file's [default owner comes from the process token](https://learn.microsoft.com/en-us/windows/win32/secauthz/owner-of-a-new-object), which may be a group rather than the individual user. Credential fixtures that model ordinary user-owned files must assign the current user's ownership explicitly with WindowsTestFileSystem before testing cleanup or legacy migration. The helper is restricted to GUID-named temporary fixture trees and rejects redirected paths; production ownership checks remain unchanged.
+
+Use the shared CreateJunctionAsync fixture helper for Windows junction tests. It allows up to 60 seconds for cold PowerShell startup, drains redirected output, and terminates the owned subprocess on timeout. Keep provider deadline and cancellation tests separate from fixture setup timing.
+
 ## Change-Specific Evidence
 
 | Change | Required Evidence |

@@ -42,6 +42,7 @@ public sealed class CliProfileLocationTests : IDisposable
         Directory.CreateDirectory(legacy); Directory.CreateDirectory(current);
         File.WriteAllText(Path.Combine(legacy, "keep"), "synthetic-old");
         File.WriteAllText(Path.Combine(current, "remove"), "synthetic-new");
+        WindowsTestFileSystem.AssignCurrentUserOwnership(folder);
         await paths.DeleteAsync("Claude", id, CredentialProfileLocation.LocalSecurityDirectory);
         Assert.True(File.Exists(Path.Combine(legacy, "keep"))); Assert.False(Directory.Exists(current));
     }
@@ -54,6 +55,7 @@ public sealed class CliProfileLocationTests : IDisposable
         Directory.CreateDirectory(legacy); Directory.CreateDirectory(current);
         File.WriteAllText(Path.Combine(legacy, "keep"), "synthetic-old");
         File.WriteAllText(Path.Combine(current, "keep"), "synthetic-new");
+        WindowsTestFileSystem.AssignCurrentUserOwnership(folder);
         using var canceled = new CancellationTokenSource(); canceled.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => paths.DeleteAsync("Claude", id,
             CredentialProfileLocation.LocalSecurityDirectory, canceled.Token));
@@ -68,6 +70,7 @@ public sealed class CliProfileLocationTests : IDisposable
         var current = paths.PathFor("Claude", id, CredentialProfileLocation.LocalSecurityDirectory);
         Directory.CreateDirectory(current);
         var locked = Path.Combine(current, "locked"); File.WriteAllText(locked, "synthetic-only");
+        WindowsTestFileSystem.AssignCurrentUserOwnership(folder);
         using (var held = new FileStream(locked, FileMode.Open, FileAccess.Read, FileShare.None))
             await Assert.ThrowsAsync<IOException>(() => paths.DeleteAsync("Claude", id, CredentialProfileLocation.LocalSecurityDirectory));
         Assert.True(File.Exists(locked));

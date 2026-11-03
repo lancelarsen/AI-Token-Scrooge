@@ -1,6 +1,5 @@
 using System.Runtime.Versioning;
 using System.Text;
-using System.Diagnostics;
 using AIResetRadar.Core;
 using Xunit;
 
@@ -105,29 +104,15 @@ public sealed class WindowsCredentialMigrationTests : IDisposable
         var data = Path.Combine(root, "data");
         var alias = Path.Combine(root, "alias");
         Directory.CreateDirectory(data);
-        var start = new ProcessStartInfo("powershell.exe")
-        {
-            UseShellExecute = false, CreateNoWindow = true,
-            RedirectStandardOutput = true, RedirectStandardError = true
-        };
-        start.Environment["SCROOGE_TEST_ALIAS"] = alias;
-        start.Environment["SCROOGE_TEST_TARGET"] = data;
-        foreach (var arg in new[] { "-NoProfile", "-NonInteractive", "-Command",
-            "$ErrorActionPreference='Stop'; New-Item -ItemType Junction -Path $env:SCROOGE_TEST_ALIAS -Target $env:SCROOGE_TEST_TARGET | Out-Null" })
-            start.ArgumentList.Add(arg);
-        using var process = Process.Start(start)!;
         try
         {
-            await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(15));
-            Assert.Equal(0, process.ExitCode);
-            Assert.True((File.GetAttributes(alias) & FileAttributes.ReparsePoint) != 0);
+            await WindowsTestFileSystem.CreateJunctionAsync(alias, data);
             var local = Path.Combine(root, "local");
             Assert.Equal(WindowsMigratingSecretStore.DirectoryFor(data, local),
                 WindowsMigratingSecretStore.DirectoryFor(alias, local));
         }
         finally
         {
-            if (!process.HasExited) { process.Kill(true); await process.WaitForExitAsync(); }
             if (Directory.Exists(alias)) Directory.Delete(alias); // Remove only the link, never its target.
         }
     }

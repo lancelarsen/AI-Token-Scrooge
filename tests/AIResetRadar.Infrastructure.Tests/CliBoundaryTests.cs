@@ -22,12 +22,9 @@ public sealed class CliBoundaryTests : IDisposable
         Directory.CreateDirectory(installs); Directory.CreateDirectory(outside);
         File.WriteAllText(Path.Combine(outside, "codex.exe"), "synthetic-not-executed");
         var link = Path.Combine(installs, "redirected");
-        var start = Start("New-Item -ItemType Junction -Path $env:SCROOGE_TEST_ALIAS -Target $env:SCROOGE_TEST_TARGET | Out-Null");
-        start.Environment["SCROOGE_TEST_ALIAS"] = link; start.Environment["SCROOGE_TEST_TARGET"] = outside;
         try
         {
-            var result = await BoundedCliProcess.RunAsync(start, TimeSpan.FromSeconds(10), default);
-            Assert.Equal(0, result.ExitCode);
+            await WindowsTestFileSystem.CreateJunctionAsync(link, outside);
             Assert.Null(CodexLocator.FindIn(installs));
             Assert.Throws<IOException>(() => CliExecutablePath.Validate(Path.Combine(link, "codex.exe")));
         }

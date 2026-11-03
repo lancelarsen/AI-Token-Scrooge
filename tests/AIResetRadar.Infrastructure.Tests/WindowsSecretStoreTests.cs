@@ -42,6 +42,7 @@ public sealed class WindowsSecretStoreTests : IDisposable
         var bytes = ProtectedData.Protect(Encoding.UTF8.GetBytes("legacy-synthetic"),
             Encoding.UTF8.GetBytes("AIResetRadar.Credentials.v1"), DataProtectionScope.CurrentUser);
         await File.WriteAllBytesAsync(CredentialPath, bytes);
+        WindowsTestFileSystem.AssignCurrentUserOwnership(directory);
         Assert.Equal("legacy-synthetic", await new WindowsSecretStore(directory).ReadAsync(id));
     }
 
