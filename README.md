@@ -111,6 +111,16 @@ Choose how often to check each account with the Polling Interval slider: 1 to 30
 
 Scrooge reads usage from the providers you connect. The app has no developer-hosted backend, analytics upload, or automatic crash-report upload. Its monitoring code does not read or send your prompts, chats, source files, or locally recorded usage history to the developer. Checking usage does not consume AI tokens.
 
+### What Stays on Your Computer
+
+The default data folder is `%LOCALAPPDATA%\AIResetRadar`. The older internal folder name remains in use even though the app is named AI Token Scrooge. A `--data-dir` argument can select another location for app data and profiles.
+
+- **Settings and History:** `radar.db` is a local SQLite database containing account nicknames and identifiers (such as email/login and organization scope), settings, quota snapshots, reset details, and alert state/history. It is not encrypted by Scrooge. History and alerts default to 90 days of retention, which you can customize in Settings.
+- **GitHub Credentials:** `Credentials\*.bin` holds access/refresh credentials or the advanced token, encrypted with Windows DPAPI for the current Windows user. Tokens are stored separately from the database.
+- **Codex Profile:** `Profiles\<id>` is the isolated `CODEX_HOME`. Scrooge requests the CLI's keyring credential store; the CLI manages credentials and any profile files.
+- **Claude Profile:** `ClaudeProfiles\<id>` is the isolated `CLAUDE_CONFIG_DIR`. The installed CLI manages its credentials and profile files. Scrooge's DPAPI protection for GitHub tokens should not be assumed to apply to these files.
+- **Local Diagnostics:** Windows exception handling writes `last-crash.log` or `last-focus-recovery.log` in the default data folder, containing a timestamp, exception type, HRESULT, and stack trace. It omits exception messages and does not upload these files. CLI-managed diagnostics may also exist in the profiles.
+
 ## Getting Started
 
 1. Download the Windows preview ZIP from [Releases](https://github.com/lancelarsen/AI-Token-Scrooge/releases), or follow the build instructions below.
