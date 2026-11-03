@@ -107,6 +107,10 @@ Purple events mark quota refreshes, when an allowance is expected to refill. Amb
 
 Choose how often to check each account with the Polling Interval slider: 1 to 30 minutes, starting at 2 minutes by default. A shorter interval catches changes sooner.
 
+## Privacy, Network Connections, and Local Storage
+
+Scrooge reads usage from the providers you connect. The app has no developer-hosted backend, analytics upload, or automatic crash-report upload. Its monitoring code does not read or send your prompts, chats, source files, or locally recorded usage history to the developer. Checking usage does not consume AI tokens.
+
 ## Getting Started
 
 1. Download the Windows preview ZIP from [Releases](https://github.com/lancelarsen/AI-Token-Scrooge/releases), or follow the build instructions below.
