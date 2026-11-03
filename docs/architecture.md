@@ -111,6 +111,8 @@ GitHubDeviceFlow remains the production sign-in transport. The plan separately r
 
 ## Rendering and Windows Lifecycle
 
+App updates use BuildVersion and UpdateSchedule in Core, GitHubUpdates/UpdatePackage/UpdateInstallation in Infrastructure, and AppUpdateService plus the Settings card in App. The standalone Launcher owns the process handoff and active-version pointer. It has no database or credential dependency. Update-check metadata uses its own LocalStore key so it cannot overwrite global settings. See [App Versions and Updates](app-updates.md) for the layout, trust boundary, and acceptance checks.
+
 DashboardState produces ordered account/window data, events, and render signatures. Preserve stable controls during timestamp-only updates so polling does not interrupt dragging, focus, or scrolling. UI work belongs on the dispatcher; provider and database work must not block it.
 
 Platforms/Windows owns native services and handlers. Keep close-to-tray distinct from Exit Scrooge. Notification activation, single-instance routing, tray restoration, and startup recovery are lifecycle behaviors requiring native tests, not just unit tests.

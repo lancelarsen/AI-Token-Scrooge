@@ -49,3 +49,5 @@ AI Token Scrooge is open source under the [MIT License](LICENSE). Contributions 
 ## Release Behavior
 
 Pushes to main run the Windows preview workflow: install the pinned toolchain, test, publish, package, and upload an unsigned prerelease ZIP and manifest. Local commits and unmerged PRs do not publish releases. Contributors should verify the behavior their change affects using the relevant testing guide.
+
+Calendar-version tags reserve daily build numbers permanently, even after older downloadable releases are removed. Read [App Versions and Updates](docs/app-updates.md) before changing version allocation, package layout, release filtering, or the restart helper. Do not delete reserved version tags or treat a checksum as a publisher signature.

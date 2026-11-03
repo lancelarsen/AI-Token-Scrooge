@@ -6,6 +6,7 @@ public sealed class AppServices
     public static AppServices Current { get; } = new();
     public string DirectoryPath { get; }
     public LocalStore Store { get; }
+    public AppUpdateService Updates { get; }
     public AccountMonitor Monitor { get; }
     public GitHubDeviceFlow GitHubSignIn { get; }
     public string? GitHubClientId { get; }
@@ -16,6 +17,7 @@ public sealed class AppServices
         var args = Environment.GetCommandLineArgs(); var dataIndex = Array.IndexOf(args, "--data-dir");
         if (dataIndex >= 0 && dataIndex + 1 < args.Length) DirectoryPath = Path.GetFullPath(args[dataIndex + 1]);
         Store = new(Path.Combine(DirectoryPath, "radar.db"));
+        Updates = new(Store);
         GitHubSignIn = new(http, TimeProvider.System);
         GitHubClientId = ReadGitHubClientId();
         var credentialDirectory = WindowsMigratingSecretStore.DirectoryFor(DirectoryPath,

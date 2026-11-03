@@ -9,6 +9,7 @@ Before implementation, read [Contributing](CONTRIBUTING.md), [Application Archit
 - Credential failure, removal, or revocation guidance: [Credential Recovery](docs/credential-recovery.md)
 - Persistence, retention, or migrations: [History Storage](docs/history-storage.md) and the architecture persistence section
 - Build, packaging, or releases: [Release Acceptance](docs/release-acceptance.md) and [Windows Preview Workflow](.github/workflows/windows-preview.yml)
+- App versions, update checks, or restart handoff: [App Versions and Updates](docs/app-updates.md)
 - New features and provider proposals: [Contribution Roadmap](tasks/contributor-roadmap.md)
 
 These guides are implementation requirements, not optional background reading. Current user instructions take priority. The current design guide supersedes conflicting historical concept notes. When code and a guide disagree, identify the discrepancy and resolve it within the task rather than silently creating a new pattern.

@@ -5,7 +5,11 @@
     <UseMaui>true</UseMaui><SingleProject>true</SingleProject>
     <ApplicationTitle>AI Token Scrooge</ApplicationTitle>
     <ApplicationId>com.lancelarsen.airesetradar</ApplicationId>
-    <ApplicationDisplayVersion>0.1.0</ApplicationDisplayVersion><ApplicationVersion>1</ApplicationVersion>
+    <ScroogeVersion Condition="'$(ScroogeVersion)' == ''">2026.11.3.0</ScroogeVersion>
+    <Version>$(ScroogeVersion)</Version>
+    <AssemblyVersion>$(ScroogeVersion)</AssemblyVersion>
+    <FileVersion>$(ScroogeVersion)</FileVersion>
+    <ApplicationDisplayVersion>$(ScroogeVersion)</ApplicationDisplayVersion><ApplicationVersion>1</ApplicationVersion>
     <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <WindowsPackageType>None</WindowsPackageType>

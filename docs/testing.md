@@ -67,4 +67,6 @@ The different-user mode returns NotRun with exit code 2 for the owner or an elev
 
 ## Reporting Results
 
+For app-update changes, also follow [App Versions and Updates](app-updates.md#verification). Use a fresh publish directory when packaging; an activated installation containing Versions, Updates, or an active-version pointer is not a release source. Keep synthetic handoff tests separate from an actual GitHub download and from the user's credential-bearing data directory.
+
 Include commands and outcomes, the commit/build tested, and any remaining gaps. Separate fixture tests, native demo observations, and live-provider verification. Keep historical evidence in [Verification Notes](verification.md); do not turn dated observations into permanent guarantees.

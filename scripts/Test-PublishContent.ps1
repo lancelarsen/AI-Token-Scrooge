@@ -12,7 +12,7 @@ while ($pending.Count -gt 0) {
         if ($entry.Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
             throw 'A publish entry is redirected; packaging stopped.'
         }
-        if ($entry.Name -match '^(Credentials|Profiles|ClaudeProfiles|\.git)$|^(auth\.json|\.credentials\.json|\.env)(\..*)?$|^radar\.db.*$|\.(pfx|pem|key)$') {
+        if ($entry.Name -match '^(Credentials|Profiles|ClaudeProfiles|Updates|Versions|\.git)$|^current-version\.(txt|pending)$|^(auth\.json|\.credentials\.json|\.env)(\..*)?$|^radar\.db.*$|\.(pfx|pem|key)$') {
             throw 'The publish folder contains local state or credential material; packaging stopped.'
         }
         if ($entry.PSIsContainer) { $pending.Push($entry.FullName); continue }

@@ -48,6 +48,15 @@ and Send test notification. Windows notification settings and Do Not Disturb
 can affect delivery. Elevated applications cannot display these notifications.
 Windows notification clicks while hidden or closed remain release-test gates.
 
+APP UPDATES
+
+Settings shows your date-based build version above Time Zone. Check for Newer
+Versions is on by default and checks GitHub every eight hours. Check Now works
+on demand. Get Update downloads and verifies a newer build, then Update and
+Restart reopens Scrooge with your saved data. Keep the complete extracted folder,
+including Launcher, in a location where your Windows user can write files.
+Updates do not have a rollback option. Packages remain unsigned.
+
 SAVED ACCOUNTS
 
 Data is stored under %LOCALAPPDATA%\AIResetRadar. GitHub credentials are

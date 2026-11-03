@@ -26,6 +26,8 @@ A provider is ready only after mapping and failure tests, identity/scope isolati
 
 ## Windows Installer
 
+Date-based versions and portable updates are being implemented. The [Update Guide](../docs/app-updates.md) defines the release and native acceptance requirements; this does not complete the signed-installer task below.
+
 - [ ] Provide a signed Windows installer
 
 Use [Contributing](../CONTRIBUTING.md) to propose scope and report verification. Mark an item complete only with evidence appropriate to the behavior, not solely because a scaffold or fixture exists.

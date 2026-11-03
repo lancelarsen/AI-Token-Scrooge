@@ -4,7 +4,7 @@ public sealed record RadarSettings(bool Notifications = true, bool Sound = true,
     decimal CriticalThreshold = 10, bool LaunchAtSignIn = true, bool CloseToTray = true, IReadOnlyList<AlertRule>? Rules = null,
     string TimeZoneId = TimeZones.DefaultId, AccountSortMode AccountSort = AccountSortMode.CustomOrder,
     IReadOnlyList<string>? AccountOrder = null, IReadOnlyList<QuotaAlertSection>? DisabledCapacityAlerts = null, string SoundTheme = "Ducks", double SoundVolume = 65,
-    IReadOnlyList<TimedReminder>? ResetExpiryReminders = null, IReadOnlyList<TimedReminder>? QuotaRefreshReminders = null, decimal InfoThreshold = 50, bool AlertOnIcon = true, int ReminderDefaultsVersion = 0, IReadOnlyList<string>? CustomLineColors = null, int HistoryRetentionDays = HistoryRetention.Days)
+    IReadOnlyList<TimedReminder>? ResetExpiryReminders = null, IReadOnlyList<TimedReminder>? QuotaRefreshReminders = null, decimal InfoThreshold = 50, bool AlertOnIcon = true, int ReminderDefaultsVersion = 0, IReadOnlyList<string>? CustomLineColors = null, int HistoryRetentionDays = HistoryRetention.Days, bool CheckForNewerVersions = true)
 {
     public IReadOnlyList<TimedReminder> EffectiveResetReminders => ResetExpiryReminders ?? TimedReminder.Defaults(true);
     public IReadOnlyList<TimedReminder> EffectiveRefreshReminders => QuotaRefreshReminders ?? TimedReminder.Defaults(false);

@@ -50,7 +50,7 @@ public sealed partial class MainPage
             tray?.Dispose(); NotificationService.Current.Dispose();
         };
         timer = Dispatcher.CreateTimer(); timer.Interval = TimeSpan.FromSeconds(30);
-        timer.Tick += async (_, _) => { foreach (var row in rowViews) row.UpdateClock(DateTimeOffset.Now); if (!state.IsDemo) await RefreshAsync(false); else UpdateTray(); };
+        timer.Tick += async (_, _) => { foreach (var row in rowViews) row.UpdateClock(DateTimeOffset.Now); if (!state.IsDemo) { if (initialized) _ = AppServices.Current.Updates.CheckAsync(automatic: true, preferences.CheckForNewerVersions); await RefreshAsync(false); } else UpdateTray(); };
         timer.Start();
         networkChanged = (_, args) => { if (args.IsAvailable) Dispatcher.Dispatch(async () => { nextRefresh.Clear(); if (!state.IsDemo) await RefreshAsync(); }); };
         System.Net.NetworkInformation.NetworkChange.NetworkAvailabilityChanged += networkChanged;
@@ -63,6 +63,17 @@ public sealed partial class MainPage
         nativeWindow?.AppWindow.Show();
         if (nativeWindow?.AppWindow.Presenter is Microsoft.UI.Windowing.OverlappedPresenter presenter && presenter.State == Microsoft.UI.Windowing.OverlappedPresenterState.Minimized) presenter.Restore();
         nativeWindow?.Activate();
+    }
+    async Task RestartForUpdateAsync()
+    {
+        if (exiting) return;
+        if (!await AppServices.Current.Updates.PrepareRestartAsync(AppServices.Current.DirectoryPath)) return;
+        exiting = true;
+        timer?.Stop();
+        foreach (var pending in pendingReads.Values) pending.Cancel();
+        await refreshing.WaitAsync();
+        try { if (Window is { } window) Application.Current!.CloseWindow(window); }
+        finally { refreshing.Release(); }
     }
     void UpdateTray()
     {

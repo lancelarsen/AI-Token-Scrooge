@@ -14,7 +14,12 @@ foreach ($file in $entries) {
 }
 $releaseDirectory = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../artifacts/releases'))
 New-Item -ItemType Directory -Force -Path $releaseDirectory | Out-Null
-$destination = Join-Path $releaseDirectory 'AITokenScrooge-0.1.0-win-x64-preview.zip'
+$build = Get-Content -LiteralPath (Join-Path $source 'build-info.json') -Raw | ConvertFrom-Json
+if ($build.Version -notmatch '^v\d{4}\.\d{1,2}\.\d{1,2}\.\d{3,5}$') { throw 'Invalid package version.' }
+if ([Version][Diagnostics.FileVersionInfo]::GetVersionInfo((Join-Path $source 'AIResetRadar.App.dll')).FileVersion -ne [Version]$build.Version.Substring(1)) { throw 'App assembly and package versions differ.' }
+if (-not (Test-Path -LiteralPath (Join-Path $source 'Launcher/Scrooge.exe') -PathType Leaf)) { throw 'The update launcher is missing.' }
+$packageName = "AITokenScrooge-$($build.Version)-win-x64"
+$destination = Join-Path $releaseDirectory "$packageName.zip"
 if (Test-Path -LiteralPath $destination) { Remove-Item -LiteralPath $destination -Force }
 [System.IO.Compression.ZipFile]::CreateFromDirectory($source, $destination, [System.IO.Compression.CompressionLevel]::Optimal, $false)
 $archive = [System.IO.Compression.ZipFile]::OpenRead($destination)
@@ -27,7 +32,10 @@ try {
 }
 finally { $archive.Dispose() }
 $manifest = [ordered]@{
-    Package = $destination
+    Version = $build.Version
+    Commit = $build.Commit
+    UpdateProtocol = $build.UpdateProtocol
+    Package = [System.IO.Path]::GetFileName($destination)
     SHA256 = (Get-FileHash -LiteralPath $destination -Algorithm SHA256).Hash
     ManagedAssemblySHA256 = (Get-FileHash -LiteralPath (Join-Path $source 'AIResetRadar.App.dll') -Algorithm SHA256).Hash
     Files = $count
@@ -35,5 +43,5 @@ $manifest = [ordered]@{
     Signed = $false
     Acceptance = 'Preview only; live account, final native UI, lifecycle, and clean-user acceptance remain open.'
 }
-$manifest | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $releaseDirectory 'AITokenScrooge-0.1.0-win-x64-preview.manifest.json')
+$manifest | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $releaseDirectory "$packageName.manifest.json")
 $manifest | ConvertTo-Json -Depth 5

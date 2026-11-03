@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>Scrooge</AssemblyName>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <ApplicationIcon>../../src/AIResetRadar.App/Resources/app.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/AIResetRadar.Core/AIResetRadar.Core.csproj" />
+    <Compile Include="../../src/AIResetRadar.Infrastructure/GitHubUpdates.cs" Link="GitHubUpdates.cs" />
+    <Compile Include="../../src/AIResetRadar.Infrastructure/UpdatePackage.cs" Link="UpdatePackage.cs" />
+    <Compile Include="../../src/AIResetRadar.Infrastructure/UpdateInstallation.cs" Link="UpdateInstallation.cs" />
+  </ItemGroup>
+</Project>

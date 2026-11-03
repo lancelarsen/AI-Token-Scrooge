@@ -39,6 +39,7 @@ public sealed partial class MainPage
                 foreach (var snapshot in saved.Snapshots)
                     if (state.Accounts.Any(snapshot.BelongsTo)) state.Snapshots[snapshot.AccountId] = snapshot with { Health = SourceHealth.Stale, Message = "Saved values — refreshing" };
                 initialized = true;
+                _ = AppServices.Current.Updates.CheckAsync(automatic: true, preferences.CheckForNewerVersions);
                 Render();
                 AIResetRadar.App.Platforms.Windows.NotificationService.Current.AccountsLoaded();
                 await RefreshAsync();
@@ -60,7 +61,7 @@ public sealed partial class MainPage
 
     async Task RefreshAsync(bool force = true)
     {
-        if (!initialized) return;
+        if (!initialized || exiting) return;
         if (!await refreshing.WaitAsync(0)) return;
         if (force) refresh.IsEnabled = false;
         try
@@ -138,7 +139,7 @@ public sealed partial class MainPage
         if (!initialized) { await InitializeAsync(); if (!initialized) return; }
         await AppPanels.ShowAsync(this, new SettingsPage(state.Accounts, state.Snapshots, preferences, state.IsDemo,
         SaveSettingsAsync,
-        UpdateAccountAsync, OpenHistoryAsync, TestNotificationAsync, ReconnectAsync, earnedResetAlerts: earnedResetAlerts));
+        UpdateAccountAsync, OpenHistoryAsync, TestNotificationAsync, ReconnectAsync, earnedResetAlerts: earnedResetAlerts, restartUpdate: RestartForUpdateAsync));
     }
     async Task OpenAccountSettingsAsync(string accountId)
     {

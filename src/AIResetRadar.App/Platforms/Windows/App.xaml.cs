@@ -4,6 +4,17 @@ public partial class App : MauiWinUIApplication
     readonly Mutex instance;
     public App()
     {
+        var installation = AIResetRadar.Infrastructure.UpdateInstallation.RootFor(AppContext.BaseDirectory);
+        var active = AIResetRadar.Infrastructure.UpdateInstallation.ApplicationDirectory(installation);
+        if (File.Exists(AIResetRadar.Infrastructure.UpdateInstallation.Launcher(installation)) &&
+            (!Path.TrimEndingDirectorySeparator(active).Equals(Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory), StringComparison.OrdinalIgnoreCase) ||
+             !Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory).Equals(Environment.GetEnvironmentVariable("SCROOGE_LAUNCHED_DIRECTORY"), StringComparison.OrdinalIgnoreCase)))
+        {
+            var start = new System.Diagnostics.ProcessStartInfo(AIResetRadar.Infrastructure.UpdateInstallation.Launcher(installation)) { UseShellExecute = false };
+            foreach (var argument in Environment.GetCommandLineArgs().Skip(1)) start.ArgumentList.Add(argument);
+            System.Diagnostics.Process.Start(start);
+            Environment.Exit(0);
+        }
         instance = new Mutex(true, "Local\\AIResetRadar.Desktop", out var created);
         if (!created)
         {

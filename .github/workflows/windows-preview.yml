@@ -18,6 +18,11 @@ jobs:
           global-json-file: global.json
       - name: Install MAUI Windows
         run: dotnet workload install maui-windows
+      - name: Reserve Build Version
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./scripts/New-BuildVersion.ps1
       - name: Test and Package
         shell: pwsh
         run: ./scripts/Build-Windows.ps1 -Package
@@ -26,8 +31,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = "preview-${{ github.run_number }}-${{ github.run_attempt }}"
-          gh release create $tag artifacts/releases/* --target ${{ github.sha }} --prerelease --title "AI Token Scrooge for Windows (x64)" --notes "Portable Windows x64 preview built from commit ${{ github.sha }}. Extract the entire ZIP and run AIResetRadar.App.exe. This preview is unsigned."
+          gh release create $env:SCROOGE_TAG artifacts/releases/* --verify-tag --prerelease --title "AI Token Scrooge for Windows (x64)" --notes "$env:SCROOGE_TAG built from commit ${{ github.sha }}. Extract the entire ZIP and run AIResetRadar.App.exe. This preview is unsigned."
           if ($LASTEXITCODE -ne 0) { throw "Release upload failed" }
       - name: Keep Only the Newest Preview
         shell: pwsh

@@ -18,6 +18,10 @@ Local hardening changes add explicit Windows permissions for credential/profile 
 
 Scrooge's monitoring is read-only, but stolen credentials may grant broader provider access. DPAPI and OS keyrings do not establish protection against malware running as the same user or a compromised administrator/OS. Directory isolation and Windows permissions are not equivalent to encryption. Removing a local credential also does not necessarily revoke it at the provider.
 
+## Application Update Downloads
+
+Update checks use the public GitHub release API without provider credentials. Downloads are limited to the project's versioned Windows package and GitHub release-asset hosts over HTTPS. The updater checks GitHub's SHA-256 digest, byte count, embedded version/protocol, required files, and ZIP paths before handoff. No update step runs elevated. Releases remain unsigned; checksums are not publisher signatures. See [App Versions and Updates](docs/app-updates.md#network-and-trust) for the exact boundary and local staging behavior.
+
 ## Sign-In Review
 
 GitHub's current guidance prefers authorization code with PKCE over device flow outside constrained environments. Scrooge currently uses GitHub App device flow. Review PKCE compatibility, registration and callback requirements, token renewal, and public-client handling before changing it. Do not assume a client secret shipped in a desktop binary can remain confidential. This review does not change the DPAPI storage decision.

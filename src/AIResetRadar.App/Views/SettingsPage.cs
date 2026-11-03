@@ -9,7 +9,7 @@ public sealed class SettingsPage : ContentPage
     protected override bool OnBackButtonPressed() { if (closePanel is not null) _ = closePanel(); return true; }
     readonly VerticalStackLayout form = new() { Padding = new Thickness(16, 12), Spacing = 12, MaximumWidthRequest = 960, HorizontalOptions = LayoutOptions.Center };
     public SettingsPage(IReadOnlyList<ProviderAccount> accounts, IReadOnlyDictionary<string, QuotaSnapshot> snapshots, RadarSettings original, bool demo,
-        Func<RadarSettings, Task> save, Func<ProviderAccount, bool, Task> update, Func<Task> history, Func<Task> test, Func<ProviderAccount, Task> reconnect, string? accountId = null, bool earnedResetAlerts = false)
+        Func<RadarSettings, Task> save, Func<ProviderAccount, bool, Task> update, Func<Task> history, Func<Task> test, Func<ProviderAccount, Task> reconnect, string? accountId = null, bool earnedResetAlerts = false, Func<Task>? restartUpdate = null)
     {
         var saveGate = new SemaphoreSlim(1, 1);
         Func<Task>? flushAccountName = null;
@@ -18,6 +18,44 @@ public sealed class SettingsPage : ContentPage
         var pageTitle = selected is null ? "Settings" : $"{selected.Provider} / {selected.Nickname} \u00b7 {PlanLabels.Display(selected.Provider, snapshots.GetValueOrDefault(selected.Id)?.PlanType)}";
         Title = pageTitle; BackgroundColor = Color.FromArgb("#141519");
         if (demo) form.Children.Add(new Label { Text = "Demo changes stay in this preview. Notification test uses Windows.", TextColor = Color.FromArgb("#B5A0F4") });
+        var updateStart = form.Children.Count;
+        var updates = AppServices.Current.Updates;
+        form.Children.Add(new Label { Text = $"Version {AppUpdateService.CurrentVersion}" + (AppUpdateService.CurrentVersion.Revision == 0 ? " (Development Build)" : ""), FontSize = 16, TextColor = Color.FromArgb("#F2F1F5") });
+        var automaticUpdates = Toggle("Check for Newer Versions", original.CheckForNewerVersions);
+        var updateStatus = new Label { FontSize = 13, TextColor = Color.FromArgb("#BEC1D2") };
+        var lastChecked = new Label { FontSize = 12, TextColor = Color.FromArgb("#A5A8BA") };
+        form.Children.Add(updateStatus); form.Children.Add(lastChecked);
+        var updateActions = new Grid { ColumnDefinitions = [new(GridLength.Star), new(GridLength.Star)], ColumnSpacing = 8 };
+        var checkNow = new ActionButton { Text = "Check Now" };
+        var getUpdate = new ActionButton { Text = "Get Update" };
+        updateActions.Add(checkNow); updateActions.Add(getUpdate, 1); form.Children.Add(updateActions);
+        void ShowUpdateState()
+        {
+            updateStatus.Text = demo ? "Update Checks Are Paused in Demo" : updates.Status;
+            lastChecked.Text = updates.LastCheck is { } check ? $"Last Checked: {TimeZoneInfo.ConvertTime(check.CheckedAt, TimeZones.Resolve(original.TimeZoneId)):g}" : "Checks GitHub every 8 hours while Scrooge is running.";
+            checkNow.IsEnabled = !demo && !updates.Busy;
+            getUpdate.IsVisible = !demo && updates.Available is not null;
+            getUpdate.IsEnabled = !updates.Busy;
+            getUpdate.Text = updates.Ready ? "Update and Restart" : "Get Update";
+        }
+        void UpdateChanged() => Dispatcher.Dispatch(ShowUpdateState);
+        if (accountId is null)
+        {
+            Loaded += (_, _) => { updates.Changed -= UpdateChanged; updates.Changed += UpdateChanged; ShowUpdateState(); };
+            Unloaded += (_, _) => updates.Changed -= UpdateChanged;
+        }
+        ShowUpdateState();
+        checkNow.Clicked += async (_, _) => await updates.CheckAsync(automatic: false);
+        getUpdate.Clicked += async (_, _) =>
+        {
+            if (!updates.Ready) await updates.DownloadAsync();
+            else if (restartUpdate is not null)
+            {
+                await saveGate.WaitAsync();
+                try { await restartUpdate(); } finally { saveGate.Release(); }
+            }
+        };
+        WrapCard(updateStart, "App Updates");
         var displayStart = form.Children.Count;
         var zones = TimeZoneInfo.GetSystemTimeZones().ToArray();
         var timeZone = new Picker { ItemsSource = zones, ItemDisplayBinding = new Binding(nameof(TimeZoneInfo.DisplayName)),
@@ -275,7 +313,7 @@ public sealed class SettingsPage : ContentPage
             if (criticalValue >= lowValue) { status.Text = "Critical capacity must be lower than low capacity."; return; }
             var settings = original with { HistoryRetentionDays = retentionOptions[retention.SelectedIndex], ResetExpiryReminders = resetReminders.Value, QuotaRefreshReminders = refreshReminders.Value, Notifications = notifications.IsToggled, AlertOnIcon = iconAlerts.IsToggled, Sound = sound.IsToggled, Privacy = false,
                 QuietHours = quiet.IsToggled, QuietStartHour = start, QuietEndHour = end, InfoThreshold = (decimal)info.Value, LowThreshold = lowValue, CriticalThreshold = criticalValue,
-                LaunchAtSignIn = startup.IsToggled, CloseToTray = close.IsToggled,
+                LaunchAtSignIn = startup.IsToggled, CloseToTray = close.IsToggled, CheckForNewerVersions = automaticUpdates.IsToggled,
                 Rules = original.Rules?.Where(r => accounts.Any(a => a.Id == r.AccountId)).ToArray(),
                 SoundTheme = classicChimes.IsChecked ? "Classic" : "Ducks", SoundVolume = Math.Round(volume.Value),
                 TimeZoneId = (timeZone.SelectedItem as TimeZoneInfo)?.Id ?? TimeZones.DefaultId };
@@ -294,7 +332,7 @@ public sealed class SettingsPage : ContentPage
         classicChimes.CheckedChanged += async (_, e) => { if (e.Value) await AutoSaveAsync(); };
         retention.SelectedIndexChanged += async (_, _) => await AutoSaveAsync();
         timeZone.SelectedIndexChanged += async (_, _) => await AutoSaveAsync();
-        foreach (var toggle in new[] { notifications, iconAlerts, sound, quiet, close, startup })
+        foreach (var toggle in new[] { notifications, iconAlerts, sound, quiet, close, startup, automaticUpdates })
             toggle.Toggled += async (_, _) => await AutoSaveAsync();
         info.ValueChanged += async (_, _) => await AutoSaveAsync();
         low.ValueChanged += async (_, _) => await AutoSaveAsync();

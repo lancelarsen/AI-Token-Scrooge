@@ -86,6 +86,8 @@ public sealed class ActionButton : Button
     public static string GlyphFor(string? text)
     {
         var value = (text ?? "").ToLowerInvariant();
+        if (value == "check now" || value == "update and restart") return "\uE72C";
+        if (value == "get update") return "\uE896";
         if (value.StartsWith("preview")) return "\uE768";
         if (value == "show info") return "\uE946";
         if (value == "custom order") return "\uE80A";

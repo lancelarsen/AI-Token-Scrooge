@@ -111,6 +111,14 @@ Choose how often to check each account with the Polling Interval slider: 1 to 30
 
 Scrooge reads usage from the providers you connect. The app has no developer-hosted backend, analytics upload, or automatic crash-report upload. Its monitoring code does not read or send your prompts, chats, source files, or locally recorded usage history to the developer. Checking usage does not consume AI tokens.
 
+When update checks are enabled, Scrooge also checks this project's public GitHub releases. Selecting Get Update downloads the Windows package from GitHub. These requests contain no provider credentials or usage history. See [App Versions and Updates](docs/app-updates.md) for the network destinations and verification details.
+
+### App Updates
+
+Your version appears at the top of Settings. Check for Newer Versions is on by default and checks GitHub every eight hours while Scrooge is running. You can turn it off or select Check Now whenever you want.
+
+When a newer build is available, select Get Update. Scrooge downloads and verifies it while you keep working, then shows Update and Restart. Your saved accounts, settings, and history stay in place. Builds use date-based versions such as `v2026.11.3.001`.
+
 ### What Stays on Your Computer
 
 The default data folder is `%LOCALAPPDATA%\AIResetRadar`. The older internal folder name remains in use even though the app is named AI Token Scrooge. A `--data-dir` argument selects another app-data location. In the development build, new CLI profiles use the local Security root; existing profiles retain their saved location.
