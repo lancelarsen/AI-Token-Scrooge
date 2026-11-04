@@ -9,7 +9,7 @@ public sealed partial class MainPage : ContentPage
     TimeZoneInfo DisplayZone => TimeZones.Resolve(preferences.TimeZoneId);
     readonly VerticalStackLayout body = new() { Spacing = 20, Padding = new Thickness(32, 24, 32, 32) };
     readonly Label freshness = new() { FontSize = 12, TextColor = Color.FromArgb("#B6B8C8"), HorizontalTextAlignment = TextAlignment.End };
-    readonly Button refresh = MakeButton("Refresh", "\uE72C");
+    readonly ActionButton refresh = MakeButton("Refresh", "\uE72C");
     readonly Button settings = MakeButton("Settings", "\uE713");
     readonly Grid root = new() { RowDefinitions = [new(GridLength.Auto), new(new GridLength(1)), new(GridLength.Star)] };
     readonly ScrollView dashboardScroll = new();
@@ -171,5 +171,5 @@ public sealed partial class MainPage : ContentPage
         layout.Add(gear, 1);
         return layout;
     }
-    static Button MakeButton(string text, string glyph) => new AIResetRadar.App.Controls.ActionButton { Text = text };
+    static ActionButton MakeButton(string text, string glyph) => new AIResetRadar.App.Controls.ActionButton { Text = text };
 }

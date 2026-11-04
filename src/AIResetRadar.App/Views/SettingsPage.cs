@@ -33,10 +33,10 @@ public sealed class SettingsPage : ContentPage
         {
             updateStatus.Text = demo ? "Update Checks Are Paused in Demo" : updates.Status;
             lastChecked.Text = updates.LastCheck is { } check ? $"Last Checked: {TimeZoneInfo.ConvertTime(check.CheckedAt, TimeZones.Resolve(original.TimeZoneId)):g}" : "Checks GitHub every 8 hours while Scrooge is running.";
-            checkNow.IsEnabled = !demo && !updates.Busy;
+            checkNow.IsEnabled = !demo && !updates.Busy && !checkNow.IsBusy;
             getUpdate.IsVisible = !demo && updates.Available is not null;
-            getUpdate.IsEnabled = !updates.Busy;
-            getUpdate.Text = updates.Ready ? "Update and Restart" : "Get Update";
+            getUpdate.IsEnabled = !updates.Busy && !getUpdate.IsBusy;
+            if (!getUpdate.IsBusy) getUpdate.Text = updates.Ready ? "Update and Restart" : "Get Update";
         }
         void UpdateChanged() => Dispatcher.Dispatch(ShowUpdateState);
         if (accountId is null)
@@ -45,15 +45,19 @@ public sealed class SettingsPage : ContentPage
             Unloaded += (_, _) => updates.Changed -= UpdateChanged;
         }
         ShowUpdateState();
-        checkNow.Clicked += async (_, _) => await updates.CheckAsync(automatic: false);
+        checkNow.Clicked += async (_, _) => await checkNow.RunAsync(() => updates.CheckAsync(automatic: false), "Checking\u2026");
         getUpdate.Clicked += async (_, _) =>
         {
-            if (!updates.Ready) await updates.DownloadAsync();
-            else if (restartUpdate is not null)
+            await getUpdate.RunAsync(async () =>
             {
-                await saveGate.WaitAsync();
-                try { await restartUpdate(); } finally { saveGate.Release(); }
-            }
+                if (!updates.Ready) await updates.DownloadAsync();
+                else if (restartUpdate is not null)
+                {
+                    await saveGate.WaitAsync();
+                    try { await restartUpdate(); } finally { saveGate.Release(); }
+                }
+            }, updates.Ready ? "Restarting\u2026" : "Downloading\u2026");
+            ShowUpdateState();
         };
         WrapCard(updateStart, "App Updates");
         var displayStart = form.Children.Count;
@@ -138,7 +142,7 @@ public sealed class SettingsPage : ContentPage
         var startup = Toggle("Launch at Windows Sign-In", original.LaunchAtSignIn);
         startup.IsEnabled = !demo;
         var showHistory = new AIResetRadar.App.Controls.ActionButton { Text = "Alert History" }; showHistory.Clicked += async (_, _) => await history(); form.Children.Add(showHistory);
-        var testNotification = new AIResetRadar.App.Controls.ActionButton { Text = "Send Test Notification" }; testNotification.Clicked += async (_, _) => await test(); form.Children.Add(testNotification);
+        var testNotification = new AIResetRadar.App.Controls.ActionButton { Text = "Send Test Notification" }; testNotification.Clicked += async (_, _) => await testNotification.RunAsync(test, "Sending\u2026"); form.Children.Add(testNotification);
         WrapCard(behaviorStart, "App Behavior");
         if (accountId is not null) form.Children.Clear();
         foreach (var account in accounts.Where(a => a.Id == accountId).ToArray())

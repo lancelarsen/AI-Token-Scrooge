@@ -13,7 +13,7 @@ public sealed partial class ConnectAccountPage : ContentPage
     readonly Picker unit = new() { ItemsSource = new[] { "AI credits", "Legacy premium requests" }, SelectedIndex = 0, TextColor = Colors.White };
     readonly Label status = new() { TextColor = Color.FromArgb("#B6B8C8") };
     readonly Label explanation = new() { TextColor = Color.FromArgb("#B6B8C8") };
-    readonly Button connect = new AIResetRadar.App.Controls.ActionButton() { Text = "Connect" };
+    readonly AIResetRadar.App.Controls.ActionButton connect = new AIResetRadar.App.Controls.ActionButton() { Text = "Connect" };
     readonly CancellationTokenSource lifetime = new();
     readonly bool codex;
     readonly Func<ProviderAccount, QuotaSnapshot, Task> connected;
@@ -58,9 +58,10 @@ public sealed partial class ConnectAccountPage : ContentPage
     {
         if (connecting) return;
         if (string.IsNullOrWhiteSpace(nickname.Text)) { status.Text = "Enter an account nickname."; return; }
-        connecting = true; connect.IsEnabled = false;
+        connecting = true;
         try
         {
+            await connect.BeginBusyAsync("Connecting\u2026");
             if (codex)
             {
                 if (signingIn) { await FinishCodexAsync(); return; }
@@ -94,7 +95,7 @@ public sealed partial class ConnectAccountPage : ContentPage
             }
         }
         catch (Exception error) { status.Text = SafeMessage(error); }
-        finally { committing = false; connecting = false; connect.IsEnabled = true; }
+        finally { committing = false; connecting = false; connect.SetBusy(false); }
     }
     bool finishing;
     async Task FinishCodexAsync()

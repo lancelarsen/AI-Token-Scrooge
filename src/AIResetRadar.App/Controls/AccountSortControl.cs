@@ -24,7 +24,7 @@ public sealed class AccountSortControl : Border
             var (mode, title) = modes[i];
             grid.ColumnDefinitions.Add(new(GridLength.Star));
             var button = new ActionButton { Text = title, FontSize = 13, Padding = new Thickness(8, 4), CornerRadius = 0,
-                BorderWidth = 0, BackgroundColor = Color.FromArgb(mode == selected ? "#483A64" : "#232429"),
+                BorderWidth = 0, BackgroundColor = Color.FromArgb(mode == selected ? AppPalette.InteractionPurple : "#232429"),
                 TextColor = Color.FromArgb(mode == selected ? "#F2F1F5" : "#BEC1D2") };
             SemanticProperties.SetDescription(button, $"{title}{(mode == selected ? ", selected" : "")}");
             var first = i == 0; var last = i == modes.Length - 1;

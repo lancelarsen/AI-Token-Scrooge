@@ -51,8 +51,8 @@ public sealed class CapacityAlertToggle : Border
 
     void UpdateSelection()
     {
-        alarmsOn.BackgroundColor = Color.FromArgb(enabled ? "#483A64" : "#232429");
-        alarmsOff.BackgroundColor = Color.FromArgb(enabled ? "#232429" : "#483A64");
+        alarmsOn.BackgroundColor = Color.FromArgb(enabled ? AppPalette.InteractionPurple : "#232429");
+        alarmsOff.BackgroundColor = Color.FromArgb(enabled ? "#232429" : AppPalette.InteractionPurple);
         SemanticProperties.SetDescription(alarmsOn, $"Alarms On{(enabled ? ", Selected" : "")} · {description}");
         SemanticProperties.SetDescription(alarmsOff, $"Alarms Off{(!enabled ? ", Selected" : "")} · {description}");
     }

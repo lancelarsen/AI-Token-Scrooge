@@ -71,7 +71,7 @@ public sealed class HistoryTimelineView : Grid
         chart.SizeChanged += (_, _) => Reflow();
         SizeChanged += (_, _) => Reflow();
         SemanticProperties.SetDescription(navigator, "Timeline Navigator · Drag to Browse Dates");
-        Platforms.Windows.HistoryChartInput.Attach(chart, Hover, ClearHover, MoveCursor, Pan, FollowToday, chartInput);
+        Platforms.Windows.HistoryChartInput.Attach(chart, Hover, ClearHover, MoveCursor, Pan, FollowToday, chartInput, wheelSurface: chartHost);
         Platforms.Windows.HistoryChartInput.AttachNavigator(navigator, Pan, FollowToday, navigatorInput, BeginNavigation, DragNavigation, () => navigating = false);
     }
 
@@ -492,7 +492,7 @@ public sealed class HistoryTimelineView : Grid
             var width = Math.Max(1, rect.Width - 2); var thumb = owner.model.Overview(width);
             c.FillColor = Color.FromArgb("#232429"); c.FillRoundedRectangle(1, 1, width, 20, 5);
             c.StrokeColor = Color.FromArgb("#45464D"); c.StrokeSize = 1; c.DrawRoundedRectangle(1, 1, width, 20, 5);
-            c.FillColor = Color.FromArgb("#483A64"); c.FillRoundedRectangle((float)thumb.Left + 1, 1, (float)thumb.Width, 20, 5);
+            c.FillColor = Color.FromArgb(AppPalette.InteractionPurple); c.FillRoundedRectangle((float)thumb.Left + 1, 1, (float)thumb.Width, 20, 5);
             c.StrokeColor = Accent; c.DrawRoundedRectangle((float)thumb.Left + 1, 1, (float)thumb.Width, 20, 5);
             var events = owner.future.Select(e => (e.At, Expiry: e.IsExpiry, Future: true))
                 .Concat((owner.historyEnabled ? owner.Visible : []).SelectMany(s => s.Events.Select(e => (e.At, Expiry: e.Kind == HistoryEventKind.ReportedExpiration, Future: false))));

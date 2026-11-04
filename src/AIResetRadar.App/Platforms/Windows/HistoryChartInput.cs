@@ -21,8 +21,8 @@ public static class HistoryChartInput
     static readonly ConditionalWeakTable<GraphicsView, Binding> bindings = new();
 
     public static void Attach(GraphicsView view, Func<double, double, string?> hover, Action clear,
-        Func<int, string?> moveCursor, Action<double> pan, Action followToday, View? pointerSurface = null) =>
-        Replace(view, new Binding(view, hover, clear, moveCursor, pan, followToday, pointerSurface));
+        Func<int, string?> moveCursor, Action<double> pan, Action followToday, View? pointerSurface = null, View? wheelSurface = null) =>
+        Replace(view, new Binding(view, hover, clear, moveCursor, pan, followToday, pointerSurface, wheelSurface: wheelSurface));
 
     public static void AttachNavigator(GraphicsView view, Action<double> pan, Action followToday, View pointerSurface,
         Action<double> beginDrag, Action<double> drag, Action endDrag) =>
@@ -41,6 +41,8 @@ public static class HistoryChartInput
         static WeakReference<Binding>? popupOwner;
         readonly GraphicsView view;
         readonly View? pointerSurface;
+        readonly View? wheelSurface;
+        FrameworkElement? wheelTarget;
         FrameworkElement? pointerTarget;
         readonly Func<double, double, string?>? hover;
         readonly Action? clear;
@@ -65,10 +67,10 @@ public static class HistoryChartInput
 
         public Binding(GraphicsView view, Func<double, double, string?>? hover, Action? clear,
             Func<int, string?>? moveCursor, Action<double> pan, Action followToday, View? pointerSurface = null,
-            Action<double>? beginDrag = null, Action<double>? drag = null, Action? endDrag = null)
+            Action<double>? beginDrag = null, Action<double>? drag = null, Action? endDrag = null, View? wheelSurface = null)
         {
             this.view = view; this.hover = hover; this.clear = clear;
-            this.pointerSurface = pointerSurface;
+            this.pointerSurface = pointerSurface; this.wheelSurface = wheelSurface;
             this.beginDrag = beginDrag; this.drag = drag; this.endDrag = endDrag;
             this.moveCursor = moveCursor; this.pan = pan; this.followToday = followToday;
             wheelHandler = OnWheel; keyHandler = OnKeyDown;
@@ -86,12 +88,14 @@ public static class HistoryChartInput
             AutomationProperties.SetLiveSetting(heading, AutomationLiveSetting.Polite);
             view.HandlerChanged += OnHandlerChanged;
             if (pointerSurface is not null) pointerSurface.HandlerChanged += OnHandlerChanged;
+            if (wheelSurface is not null) wheelSurface.HandlerChanged += OnHandlerChanged;
         }
 
         public void Connect()
         {
             if (disposed || ReferenceEquals(target, (pointerSurface ?? view).Handler?.PlatformView) &&
-                ReferenceEquals(pointerTarget, (pointerSurface ?? view).Handler?.PlatformView)) return;
+                ReferenceEquals(pointerTarget, (pointerSurface ?? view).Handler?.PlatformView) &&
+                ReferenceEquals(wheelTarget, (wheelSurface ?? pointerSurface ?? view).Handler?.PlatformView)) return;
             Disconnect();
             target = (pointerSurface ?? view).Handler?.PlatformView as FrameworkElement;
             if (target is null) return;
@@ -124,7 +128,10 @@ public static class HistoryChartInput
             target.Unloaded += OnUnloaded;
             target.SizeChanged += OnSizeChanged;
             target.EffectiveViewportChanged += OnViewportChanged;
-            target.AddHandler(UIElement.PointerWheelChangedEvent, wheelHandler, true);
+            // Wheel input belongs to the common chart ancestor, not only the
+            // transparent sample surface beneath clickable event tiles.
+            wheelTarget = (wheelSurface ?? pointerSurface ?? view).Handler?.PlatformView as FrameworkElement;
+            wheelTarget?.AddHandler(UIElement.PointerWheelChangedEvent, wheelHandler, true);
             target.AddHandler(UIElement.KeyDownEvent, keyHandler, true);
         }
 
@@ -299,7 +306,8 @@ public static class HistoryChartInput
             target.GotFocus -= OnFocus; target.LostFocus -= OnLostFocus;
             target.Unloaded -= OnUnloaded; target.SizeChanged -= OnSizeChanged;
             target.EffectiveViewportChanged -= OnViewportChanged;
-            target.RemoveHandler(UIElement.PointerWheelChangedEvent, wheelHandler);
+            wheelTarget?.RemoveHandler(UIElement.PointerWheelChangedEvent, wheelHandler);
+            wheelTarget = null;
             target.RemoveHandler(UIElement.KeyDownEvent, keyHandler);
             target = null;
         }
@@ -310,6 +318,7 @@ public static class HistoryChartInput
             disposed = true;
             view.HandlerChanged -= OnHandlerChanged;
             if (pointerSurface is not null) pointerSurface.HandlerChanged -= OnHandlerChanged;
+            if (wheelSurface is not null) wheelSurface.HandlerChanged -= OnHandlerChanged;
             Disconnect();
         }
 

@@ -53,19 +53,21 @@ public sealed partial class MainPage
     readonly Dictionary<string, DateTimeOffset> throttledUntil = [];
     async Task RefreshByUserAsync()
     {
-        if (!initialized) { await InitializeAsync(); return; }
+        if (refresh.IsBusy) return;
+        if (!initialized) { await refresh.RunAsync(InitializeAsync, "Refreshing\u2026"); return; }
         if (refreshing.CurrentCount == 0) return;
-        AlertSounds.Play(preferences, "refresh");
-        await RefreshAsync();
+        await RefreshAsync(playSound: true);
     }
 
-    async Task RefreshAsync(bool force = true)
+    async Task RefreshAsync(bool force = true, bool playSound = false)
     {
         if (!initialized || exiting) return;
         if (!await refreshing.WaitAsync(0)) return;
-        if (force) refresh.IsEnabled = false;
+        var ownsBusyState = force && !refresh.IsBusy;
         try
         {
+            if (ownsBusyState) await refresh.BeginBusyAsync("Refreshing\u2026");
+            if (playSound) AlertSounds.Play(preferences, "refresh");
             alertHistory.RemoveAll(e => e.CreatedAt < HistoryRetention.Cutoff(DateTimeOffset.UtcNow, preferences.HistoryRetentionDays));
             if (state.IsDemo) { Render(); return; }
             foreach (var account in state.Accounts.Where(a => a.Enabled).ToArray())
@@ -117,7 +119,7 @@ public sealed partial class MainPage
             await SaveAsync(); Render(); UpdateTray();
         }
         catch { freshness.Text = "Scrooge could not save local monitoring state. Check available space and folder access."; }
-        finally { if (force) refresh.IsEnabled = true; refreshing.Release(); _ = CleanupRetiredAsync(); }
+        finally { if (ownsBusyState) refresh.SetBusy(false); refreshing.Release(); _ = CleanupRetiredAsync(); }
     }
     async Task SaveAsync()
     {

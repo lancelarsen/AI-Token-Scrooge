@@ -4,6 +4,61 @@ namespace AIResetRadar.App.Controls;
 public sealed class ActionButton : Button
 {
     public bool IconOnly { get; set; }
+    bool busy;
+    bool hovered;
+    string? busyText;
+    Microsoft.UI.Xaml.Controls.Button? nativeButton;
+    readonly Microsoft.UI.Xaml.Media.SolidColorBrush iconBrush = new(Windows.UI.Color.FromArgb(255, 181, 160, 244));
+    public bool IsBusy => busy;
+
+    public void SetBusy(bool value, string label = "Working\u2026")
+    {
+        busy = value;
+        busyText = value ? label : null;
+        IsEnabled = !value;
+        UpdateNativeContent();
+    }
+
+    public async Task RunAsync(Func<Task> operation, string label = "Working\u2026")
+    {
+        if (busy || !IsEnabled) return;
+        try { await BeginBusyAsync(label); await operation(); }
+        finally { SetBusy(false); }
+    }
+
+    public Task BeginBusyAsync(string label = "Working\u2026")
+    {
+        // Update synchronously, then return control to WinUI before any sound,
+        // profile setup, or provider work can occupy the UI thread.
+        SetBusy(true, label);
+        var painted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var queue = nativeButton?.DispatcherQueue;
+        if (queue is null || !queue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low,
+                () => painted.TrySetResult()))
+            painted.TrySetResult();
+        return painted.Task;
+    }
+
+    void ApplyColors()
+    {
+        if (nativeButton is not { } native) return;
+        var selected = AppPalette.InteractionColor;
+        var purple = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, (byte)(selected.Red * 255), (byte)(selected.Green * 255), (byte)(selected.Blue * 255)));
+        var white = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 255, 255, 255));
+        iconBrush.Color = busy || hovered ? Windows.UI.Color.FromArgb(255, 255, 255, 255) : Windows.UI.Color.FromArgb(255, 181, 160, 244);
+        native.Background = busy || hovered ? purple : new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, (byte)(BackgroundColor.Red * 255), (byte)(BackgroundColor.Green * 255), (byte)(BackgroundColor.Blue * 255)));
+        native.Foreground = busy || hovered ? white : new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 242, 241, 245));
+    }
+
+    void PointerEntered(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e) { hovered = true; ApplyColors(); }
+    void PointerExited(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e) { hovered = false; ApplyColors(); }
+    protected override void OnHandlerChanging(HandlerChangingEventArgs args)
+    {
+        if (nativeButton is { } old) { old.PointerEntered -= PointerEntered; old.PointerExited -= PointerExited; }
+        nativeButton = null;
+        hovered = false;
+        base.OnHandlerChanging(args);
+    }
 
     public ActionButton()
     {
@@ -21,11 +76,29 @@ public sealed class ActionButton : Button
     void UpdateNativeContent()
     {
         if (Handler?.PlatformView is not Microsoft.UI.Xaml.Controls.Button native) return;
-        if (IconOnly)
+        if (nativeButton != native)
+        {
+            nativeButton = native;
+            native.Template = (Microsoft.UI.Xaml.Controls.ControlTemplate)Microsoft.UI.Xaml.Markup.XamlReader.Load("""
+                <ControlTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" TargetType="Button">
+                  <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                          BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}">
+                    <ContentPresenter Content="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}"
+                                      Padding="{TemplateBinding Padding}" HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                      VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+                  </Border>
+                </ControlTemplate>
+                """);
+            native.UseSystemFocusVisuals = true;
+            native.PointerEntered += PointerEntered;
+            native.PointerExited += PointerExited;
+        }
+        ApplyColors();
+        if (IconOnly && !busy)
         {
             native.Content = new Microsoft.UI.Xaml.Controls.FontIcon { Glyph = GlyphFor(Text),
                 FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe Fluent Icons"), FontSize = 20,
-                Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 181, 160, 244)),
+                Foreground = iconBrush,
                 HorizontalAlignment = Microsoft.UI.Xaml.HorizontalAlignment.Center,
                 VerticalAlignment = Microsoft.UI.Xaml.VerticalAlignment.Center };
             native.HorizontalContentAlignment = Microsoft.UI.Xaml.HorizontalAlignment.Center;
@@ -37,7 +110,7 @@ public sealed class ActionButton : Button
         panel.ColumnDefinitions.Add(new Microsoft.UI.Xaml.Controls.ColumnDefinition { Width = Microsoft.UI.Xaml.GridLength.Auto });
         panel.ColumnDefinitions.Add(new Microsoft.UI.Xaml.Controls.ColumnDefinition { Width = new Microsoft.UI.Xaml.GridLength(1, Microsoft.UI.Xaml.GridUnitType.Star) });
         panel.Children.Add(CreateIcon());
-        var label = new Microsoft.UI.Xaml.Controls.TextBlock { Text = Text ?? "", FontSize = FontSize,
+        var label = new Microsoft.UI.Xaml.Controls.TextBlock { Text = busyText ?? Text ?? "", FontSize = FontSize,
             TextWrapping = Microsoft.UI.Xaml.TextWrapping.Wrap,
             VerticalAlignment = Microsoft.UI.Xaml.VerticalAlignment.Center };
         Microsoft.UI.Xaml.Controls.Grid.SetColumn(label, 1);
@@ -48,7 +121,8 @@ public sealed class ActionButton : Button
     }
     Microsoft.UI.Xaml.FrameworkElement CreateIcon()
     {
-        var accent = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 181, 160, 244));
+        if (busy) return new Microsoft.UI.Xaml.Controls.ProgressRing { IsActive = true, Width = 20, Height = 20, Foreground = iconBrush };
+        var accent = iconBrush;
         if (Text == "Custom Order")
         {
             var grip = new Microsoft.UI.Xaml.Controls.Canvas { Width = 20, Height = 22,
@@ -80,7 +154,7 @@ public sealed class ActionButton : Button
         }
         return new Microsoft.UI.Xaml.Controls.FontIcon { Glyph = GlyphFor(Text),
             FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe Fluent Icons"), FontSize = 20,
-            Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 181, 160, 244)),
+            Foreground = iconBrush,
             VerticalAlignment = Microsoft.UI.Xaml.VerticalAlignment.Center };
     }
     public static string GlyphFor(string? text)
