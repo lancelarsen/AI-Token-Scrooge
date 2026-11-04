@@ -1,0 +1,232 @@
+{
+  "captured": "2026-11-04",
+  "baseCommit": "fc37458a2d5ec5d3ef7c1f321ad43304b0a8ffc2",
+  "build": "artifacts/publish/timeline-wheel-win-x64",
+  "workingTreeIncludesUncommittedUIChanges": true,
+  "images": [
+    {
+      "file": "01-live-dashboard.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "normal session"
+    },
+    {
+      "file": "02-settings-updates-time-retention.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "normal session"
+    },
+    {
+      "file": "03-settings-sounds-quiet-hours.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "normal session"
+    },
+    {
+      "file": "04-settings-thresholds.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "normal session"
+    },
+    {
+      "file": "05-settings-reset-reminders.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "normal session"
+    },
+    {
+      "file": "06-settings-refresh-reminders.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "normal session"
+    },
+    {
+      "file": "07-settings-app-behavior.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "normal session"
+    },
+    {
+      "file": "08-alert-history.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "normal session"
+    },
+    {
+      "file": "09-demo-history-on.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "isolated demo or empty session"
+    },
+    {
+      "file": "10-demo-history-off.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "isolated demo or empty session"
+    },
+    {
+      "file": "11-demo-filter-off-tooltip.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "isolated demo or empty session"
+    },
+    {
+      "file": "12-demo-all-capacity-levels.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "isolated demo or empty session"
+    },
+    {
+      "file": "13-usage-details.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "isolated demo or empty session"
+    },
+    {
+      "file": "14-account-settings.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "isolated demo or empty session"
+    },
+    {
+      "file": "15-custom-color-chooser.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "isolated demo or empty session"
+    },
+    {
+      "file": "16-custom-color-added.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "isolated demo or empty session"
+    },
+    {
+      "file": "17-polling-snapped.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "isolated demo or empty session"
+    },
+    {
+      "file": "18-account-connection-actions.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "isolated demo or empty session"
+    },
+    {
+      "file": "19-first-launch.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "isolated demo or empty session"
+    },
+    {
+      "file": "20-provider-chooser.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "isolated demo or empty session"
+    },
+    {
+      "file": "21-connect-codex.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "isolated demo or empty session"
+    },
+    {
+      "file": "22-connect-github-browser.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "isolated demo or empty session"
+    },
+    {
+      "file": "23-connect-github-advanced.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "isolated demo or empty session"
+    },
+    {
+      "file": "24-compact-empty.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "isolated demo or empty session"
+    },
+    {
+      "file": "25-connect-claude.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "isolated demo or empty session"
+    },
+    {
+      "file": "26-compact-dashboard.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "isolated demo or empty session"
+    },
+    {
+      "file": "27-compact-account-rows.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "isolated demo or empty session"
+    },
+    {
+      "file": "28-compact-account-settings.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "isolated demo or empty session"
+    },
+    {
+      "file": "29-compact-tooltip-placement.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "isolated demo or empty session"
+    },
+    {
+      "file": "30-polling-tooltip.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "isolated demo or empty session"
+    },
+    {
+      "file": "31-compact-global-settings.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "isolated demo or empty session"
+    },
+    {
+      "file": "32-notification-banner.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "isolated demo or empty session"
+    },
+    {
+      "file": "33-quota-alerts-muted.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "isolated demo or empty session"
+    },
+    {
+      "file": "34-threshold-drag-feedback.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "isolated demo or empty session"
+    },
+    {
+      "file": "35-earned-reset-details.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "isolated demo or empty session"
+    },
+    {
+      "file": "36-timeline-event-tooltip.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "isolated demo or empty session"
+    },
+    {
+      "file": "37-history-sample-readout.png",
+      "width": 11010048,
+      "height": 4292542531,
+      "context": "isolated demo or empty session"
+    }
+  ],
+  "executableSha256": "765dbcacb22e0ba3cf521c88fa9f47ffebefe86dda80475e94ace323af673695",
+  "note": "Source snapshot is a reference, not a separately buildable or verified Mac implementation. Local UI changes are newer than the base commit."
+}

@@ -5,6 +5,7 @@
 Before implementation, read [Contributing](CONTRIBUTING.md), [Application Architecture](docs/architecture.md), and [Testing and Verification](docs/testing.md). Read the additional guides for the work being changed:
 
 - UI, layout, controls, icons, interaction, or copy: [Design Guidelines](docs/design.md)
+- Mac visual parity and cross-platform UI review: [Windows UI Reference](conversion-for-mac/mac-ui-parity.md) and [Screenshot Gallery](conversion-for-mac/mac-ui-gallery.md)
 - Providers, browser/CLI sign-in, usage mapping, polling, or credential lifecycle: [Provider Integration](docs/integration.md) and [Security](SECURITY.md)
 - Credential failure, removal, or revocation guidance: [Credential Recovery](docs/credential-recovery.md)
 - Persistence, retention, or migrations: [History Storage](docs/history-storage.md) and the architecture persistence section
