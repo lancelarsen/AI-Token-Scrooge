@@ -9,6 +9,7 @@ public sealed partial class MainPage
     TrayService? tray;
     Microsoft.UI.Xaml.Window? nativeWindow;
     bool exiting;
+    bool waitingForRestoreFrame;
     readonly List<AlertEvent> alertHistory = [];
     readonly Dictionary<string, DateTimeOffset> snoozed = [];
     readonly Dictionary<string, DateTimeOffset> nextRefresh = [];
@@ -46,6 +47,7 @@ public sealed partial class MainPage
         native.AppWindow.Closing += (_, args) =>
         {
             if (!exiting && preferences.CloseToTray && tray is not null) { args.Cancel = true; native.AppWindow.Hide(); return; }
+            CancelRestoreRefresh();
             timer?.Stop(); if (networkChanged is not null) System.Net.NetworkInformation.NetworkChange.NetworkAvailabilityChanged -= networkChanged;
             tray?.Dispose(); NotificationService.Current.Dispose();
         };
@@ -54,15 +56,45 @@ public sealed partial class MainPage
         timer.Start();
         networkChanged = (_, args) => { if (args.IsAvailable) Dispatcher.Dispatch(async () => { nextRefresh.Clear(); if (!state.IsDemo) await RefreshAsync(); }); };
         System.Net.NetworkInformation.NetworkChange.NetworkAvailabilityChanged += networkChanged;
-        window.Resumed += async (_, _) => { nextRefresh.Clear(); if (!state.IsDemo) await RefreshAsync(); };
+        window.Resumed += (_, _) => QueueRestoreRefresh();
         if (Environment.GetCommandLineArgs().Contains("--tray")) native.DispatcherQueue.TryEnqueue(() => native.AppWindow.Hide());
         UpdateTray();
     }
     void ShowMain()
     {
-        nativeWindow?.AppWindow.Show();
-        if (nativeWindow?.AppWindow.Presenter is Microsoft.UI.Windowing.OverlappedPresenter presenter && presenter.State == Microsoft.UI.Windowing.OverlappedPresenterState.Minimized) presenter.Restore();
-        nativeWindow?.Activate();
+        if (nativeWindow is null) return;
+        var wasHidden = !nativeWindow.AppWindow.IsVisible;
+        var wasMinimized = nativeWindow.AppWindow.Presenter is Microsoft.UI.Windowing.OverlappedPresenter previous
+            && previous.State == Microsoft.UI.Windowing.OverlappedPresenterState.Minimized;
+        nativeWindow.AppWindow.Show();
+        if (nativeWindow.AppWindow.Presenter is Microsoft.UI.Windowing.OverlappedPresenter presenter && presenter.State == Microsoft.UI.Windowing.OverlappedPresenterState.Minimized) presenter.Restore();
+        nativeWindow.Activate();
+        if (wasHidden || wasMinimized) QueueRestoreRefresh();
+    }
+
+    void QueueRestoreRefresh()
+    {
+        if (waitingForRestoreFrame || exiting || state.IsDemo || !initialized) return;
+        waitingForRestoreFrame = true;
+        Microsoft.UI.Xaml.Media.CompositionTarget.Rendered += OnRestoreFrameRendered;
+    }
+
+    void CancelRestoreRefresh()
+    {
+        if (!waitingForRestoreFrame) return;
+        Microsoft.UI.Xaml.Media.CompositionTarget.Rendered -= OnRestoreFrameRendered;
+        waitingForRestoreFrame = false;
+    }
+
+    void OnRestoreFrameRendered(object? sender, Microsoft.UI.Xaml.Media.RenderedEventArgs args)
+    {
+        CancelRestoreRefresh();
+        // The existing dashboard has had a frame. Let the compositor present it
+        // before scheduling provider work, outside the window restore callback.
+        nativeWindow?.DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, async () =>
+        {
+            if (!exiting && nativeWindow.AppWindow.IsVisible) await RefreshAsync();
+        });
     }
     async Task RestartForUpdateAsync()
     {

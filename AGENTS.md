@@ -34,6 +34,10 @@ These guides are implementation requirements, not optional background reading. C
 - This project preference overrides any writing skill's sentence-case heading default. Preserve approved taglines exactly.
 - Before publishing documentation edits, review every heading, table header, navigation label, and short label for capitalization, then check Markdown formatting and internal heading links.
 
+## Completing a Change
+
+After each requested change, run the relevant checks, commit the files for that change, and push the commit to GitHub. Report the commit and any verification gaps. Leave work local only when the user asks or a blocker prevents the push.
+
 ## Running App
 - After each UI or runtime behavior update, rebuild and restart the running Windows app from the latest build, then confirm the visible app reflects the change before calling it complete. A successful build alone does not update an already-running instance.
 

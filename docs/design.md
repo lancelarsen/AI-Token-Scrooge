@@ -143,6 +143,8 @@ Reference spacing is 32 horizontal dashboard padding, 20 between dashboard secti
 
 ActionButton uses a 44-unit height, 10-unit corner radius, and a lavender icon to the left of its text. Action buttons use the shared selected purple (`#483A64`) with white text and icons on hover. Processing keeps exactly those colors, replaces the icon with an animated progress ring, and disables repeat clicks until completion or failure. Use an action-specific label such as Checking or Refreshing with an ellipsis; restore the original label afterward. Reuse ActionButton.BeginBusyAsync or RunAsync rather than adding separate spinners. Set the busy state synchronously on activation, then yield at low dispatcher priority before sound playback or other work so Windows can paint the feedback first. Never play a sound or initialize a provider before showing the busy state. Settings cards use 15-unit corners. Usage bars use a 48-unit height and 11-unit corners. Keep icon-only actions accessible by name. Use existing Fluent/Lucide icon treatments and record licenses for new assets.
 
+When restoring from the tray, show the existing dashboard first. Schedule the refresh after its first rendered frame and keep provider checks off the UI thread.
+
 ## Account Cards and Capacity
 
 Group all quota windows for one account in one card. Keep provider identity, nickname, and plan together. Each window gets its own bar, alert controls, reset countdown, and exact reset date. Do not combine session and weekly allowances or duplicate Used/Left values in an extra column.

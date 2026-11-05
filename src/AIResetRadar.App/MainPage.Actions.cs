@@ -84,7 +84,11 @@ public sealed partial class MainPage
                 try
                 {
                     QuotaSnapshot snapshot;
-                    try { snapshot = await AppServices.Current.Monitor.RefreshAsync(account, timeout.Token); }
+                    try
+                    {
+                        var monitor = AppServices.Current.Monitor;
+                        snapshot = await Task.Run(() => monitor.RefreshAsync(account, timeout.Token), timeout.Token);
+                    }
                     catch (Exception error)
                     {
                         if (!Current()) continue;
