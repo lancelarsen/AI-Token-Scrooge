@@ -331,7 +331,10 @@ public sealed class HistoryTimelineView : Grid
             new Label { Text = TimeZones.Format(e.At, zone, "h:mm tt"), FontSize = 10, TextColor = accent, HorizontalTextAlignment = TextAlignment.Center } } });
         var action = new Button { Text = "", BackgroundColor = Colors.Transparent, BorderWidth = 0, HeightRequest = -1 };
         var details = $"{e.DisplayTitle}\n{e.Detail}\n{(e.IsExpiry ? "Reset Expires" : "Quota Refresh")}: {TimeZones.Format(e.At, zone)}";
-        action.Clicked += (_, _) => open(e); SemanticProperties.SetDescription(action, details); Platforms.Windows.ImmediateToolTip.Attach(action, details);
+        action.Clicked += (_, _) => open(e);
+        SemanticProperties.SetDescription(action, details);
+        var context = e.IsExpiry ? $"{e.DisplayTitle}\n{e.Detail}" : $"{e.DisplayTitle}\nQuota Refresh · {e.Detail}";
+        Platforms.Windows.ImmediateToolTip.AttachReset(action, context, e.At, zone);
         target.Add(action); return target;
     }
 

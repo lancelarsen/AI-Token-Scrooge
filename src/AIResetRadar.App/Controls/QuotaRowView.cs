@@ -19,17 +19,12 @@ public sealed class QuotaRowView : Border
     bool? wideLayout;
     public void UpdateClock(DateTimeOffset now)
     {
-        if (countdown is not null) countdown.Text = CountdownLabel(resetsAt, now);
+        if (countdown is not null) countdown.Text = ResetCountdown.Label(resetsAt, now);
         if (resetIcon is not null)
         {
             var severity = alertSettings.CapacityAlertsEnabled(row.Account.Id, row.Window.Id) && resetsAt is { } at ? TimedReminder.Due(alertSettings.EffectiveRefreshReminders, at, now)?.Severity : null;
             resetIcon.TextColor = Color.FromArgb(severity switch { ReminderSeverity.Critical => "#F05B69", ReminderSeverity.Warning => "#F2C94C", ReminderSeverity.Info => "#58A6FF", _ => "#B5A0F4" });
         }
-    }
-    static string CountdownLabel(DateTimeOffset? reset, DateTimeOffset now)
-    {
-        var summary = ResetTime.Summary(reset, now);
-        return summary.StartsWith("Resets: ", StringComparison.Ordinal) ? summary[8..] : summary;
     }
     public QuotaRowView(QuotaRow row, Action<QuotaRow> open, bool capacityAlertsEnabled, Func<bool, Task<bool>> saveCapacityAlerts,
         Func<AlertThresholds, Task<bool>> saveThresholds, Action<bool> thresholdInteraction, TimeZoneInfo? timeZone = null)
@@ -65,9 +60,9 @@ public sealed class QuotaRowView : Border
         var now = DateTimeOffset.Now;
         if (hasReset)
         {
-            countdown = new Label { Text = CountdownLabel(row.Window.ResetsAt, now), FontSize = 20, FontFamily = "Segoe UI Semibold", TextColor = Color.FromArgb("#BDA3F5") };
-            var exactReset = new Label { Text = TimeZones.Format(row.Window.ResetsAt, timeZone ?? TimeZones.Resolve(null)), FontSize = 12,
-                TextColor = Color.FromArgb("#BEC1D2"), VerticalOptions = LayoutOptions.Center };
+            countdown = new Label { Text = ResetCountdown.Label(row.Window.ResetsAt, now), FontSize = ResetCountdown.Size, FontFamily = "Segoe UI Semibold", TextColor = Color.FromArgb(ResetCountdown.Color) };
+            var exactReset = new Label { Text = TimeZones.Format(row.Window.ResetsAt, timeZone ?? TimeZones.Resolve(null)), FontSize = ResetCountdown.DateSize,
+                TextColor = Color.FromArgb(ResetCountdown.DateColor), VerticalOptions = LayoutOptions.Center };
             var resetText = new VerticalStackLayout { Spacing = 3, VerticalOptions = LayoutOptions.Center, Children = { countdown, exactReset } };
             resetIcon = new Label { Text = "\uE823", FontFamily = "Segoe Fluent Icons", FontSize = 25,
                 TextColor = Color.FromArgb(critical ? "#F05B69" : warning ? "#F2C94C" : info ? "#58A6FF" : "#B5A0F4"), VerticalOptions = LayoutOptions.Start, Margin = new Thickness(0, 3, 0, 0) };
