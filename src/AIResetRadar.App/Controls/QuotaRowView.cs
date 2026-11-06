@@ -7,34 +7,50 @@ public sealed class QuotaRowView : Border
     readonly Grid layout;
     readonly View quota;
     readonly View usage;
-    readonly View? reset;
-    readonly Label? countdown;
-    readonly DateTimeOffset? resetsAt;
-    readonly bool hasReset;
+    readonly HorizontalStackLayout reset;
+    readonly Label countdown = new() { FontSize = ResetCountdown.Size, FontFamily = "Segoe UI Semibold" };
+    readonly Label exactReset = new() { FontSize = ResetCountdown.DateSize, TextColor = Color.FromArgb(ResetCountdown.DateColor) };
+    readonly TimeZoneInfo zone;
+    (DateTimeOffset? At, bool IsExpiry) deadline;
     readonly QuotaRow row;
     readonly UsageBar bar;
     RadarSettings alertSettings = new();
-    readonly Label? resetIcon;
+    readonly Label resetIcon = new() { FontFamily = "Segoe Fluent Icons", FontSize = 25, VerticalOptions = LayoutOptions.Start, Margin = new Thickness(0, 3, 0, 0) };
     readonly AlertThresholdView thresholds;
     bool? wideLayout;
     public void UpdateClock(DateTimeOffset now)
     {
-        if (countdown is not null) countdown.Text = ResetCountdown.Label(resetsAt, now);
-        if (resetIcon is not null)
+        var selected = ResetCountdown.Select(row, now);
+        reset.IsVisible = selected.At.HasValue;
+        if (wideLayout == false) Grid.SetColumnSpan(quota, reset.IsVisible ? 1 : 2);
+        if (selected != deadline)
         {
-            var severity = alertSettings.CapacityAlertsEnabled(row.Account.Id, row.Window.Id) && resetsAt is { } at ? TimedReminder.Due(alertSettings.EffectiveRefreshReminders, at, now)?.Severity : null;
-            resetIcon.TextColor = Color.FromArgb(severity switch { ReminderSeverity.Critical => "#F05B69", ReminderSeverity.Warning => "#F2C94C", ReminderSeverity.Info => "#58A6FF", _ => "#B5A0F4" });
+            deadline = selected;
+            var kind = deadline.IsExpiry ? "Earned Reset Expires" : "Quota Refresh";
+            exactReset.Text = TimeZones.Format(deadline.At, zone);
+            resetIcon.Text = deadline.IsExpiry ? "\uE823" : "\uE72C";
+            countdown.TextColor = Color.FromArgb(deadline.IsExpiry ? "#EAAA51" : ResetCountdown.Color);
+            ToolTipProperties.SetText(reset, kind);
+            SemanticProperties.SetDescription(reset, $"{kind}, {exactReset.Text}");
         }
+        if (selected.At is not { } at) return;
+        countdown.Text = ResetCountdown.Label(at, now);
+        var severity = alertSettings.CapacityAlertsEnabled(row.Account.Id, row.Window.Id)
+            ? TimedReminder.Due(alertSettings.EffectiveRefreshReminders, at, now)?.Severity : null;
+        resetIcon.TextColor = Color.FromArgb(selected.IsExpiry ? "#EAAA51" : severity switch
+        {
+            ReminderSeverity.Critical => "#F05B69", ReminderSeverity.Warning => "#F2C94C",
+            ReminderSeverity.Info => "#58A6FF", _ => "#B5A0F4"
+        });
     }
-    public QuotaRowView(QuotaRow row, Action<QuotaRow> open, bool capacityAlertsEnabled, Func<bool, Task<bool>> saveCapacityAlerts,
+    public QuotaRowView(QuotaRow row, Action<QuotaRow> open, Action openReserve, bool capacityAlertsEnabled, Func<bool, Task<bool>> saveCapacityAlerts,
         Func<AlertThresholds, Task<bool>> saveThresholds, Action<bool> thresholdInteraction, TimeZoneInfo? timeZone = null)
     {
         this.row = row;
         var warning = row.IsWarning;
         var info = row.Window.Capacity(row.Low, row.Critical, row.Info) == CapacityState.Info;
         var critical = row.Window.Capacity(row.Low, row.Critical) is CapacityState.Critical or CapacityState.Exhausted;
-        resetsAt = row.Window.ResetsAt;
-        hasReset = resetsAt.HasValue;
+        zone = timeZone ?? TimeZones.Resolve(null);
         Stroke = Colors.Transparent; BackgroundColor = Colors.Transparent;
         Padding = new Thickness(0); MinimumHeightRequest = 56;
         layout = new Grid { ColumnSpacing = 12, RowSpacing = 8 };
@@ -57,30 +73,16 @@ public sealed class QuotaRowView : Border
             });
         var usageArea = new Grid { ColumnDefinitions = [new(GridLength.Auto), new(GridLength.Star)], ColumnSpacing = 8 };
         usageArea.Add(capacityToggle); usageArea.Add(bar, 1); usage = usageArea;
-        var now = DateTimeOffset.Now;
-        if (hasReset)
-        {
-            countdown = new Label { Text = ResetCountdown.Label(row.Window.ResetsAt, now), FontSize = ResetCountdown.Size, FontFamily = "Segoe UI Semibold", TextColor = Color.FromArgb(ResetCountdown.Color) };
-            var exactReset = new Label { Text = TimeZones.Format(row.Window.ResetsAt, timeZone ?? TimeZones.Resolve(null)), FontSize = ResetCountdown.DateSize,
-                TextColor = Color.FromArgb(ResetCountdown.DateColor), VerticalOptions = LayoutOptions.Center };
-            var resetText = new VerticalStackLayout { Spacing = 3, VerticalOptions = LayoutOptions.Center, Children = { countdown, exactReset } };
-            resetIcon = new Label { Text = "\uE823", FontFamily = "Segoe Fluent Icons", FontSize = 25,
-                TextColor = Color.FromArgb(critical ? "#F05B69" : warning ? "#F2C94C" : info ? "#58A6FF" : "#B5A0F4"), VerticalOptions = LayoutOptions.Start, Margin = new Thickness(0, 3, 0, 0) };
-            reset = new HorizontalStackLayout { Spacing = 12, VerticalOptions = LayoutOptions.Center, Children = {
-                resetIcon, resetText
-            }};
-        }
-        else
-        {
-            countdown = null;
-            reset = null;
-        }
+        var resetText = new VerticalStackLayout { Spacing = 3, VerticalOptions = LayoutOptions.Center, Children = { countdown, exactReset } };
+        reset = new HorizontalStackLayout { Spacing = 12, VerticalOptions = LayoutOptions.Center, Children = { resetIcon, resetText } };
+        var deadlineTap = new TapGestureRecognizer();
+        deadlineTap.Tapped += (_, _) => { if (deadline.IsExpiry) openReserve(); else open(row); };
+        reset.GestureRecognizers.Add(deadlineTap);
+        var quotaTap = new TapGestureRecognizer();
+        quotaTap.Tapped += (_, _) => open(row);
+        quota.GestureRecognizers.Add(quotaTap);
         Content = layout;
-        // Keep the alert circle independent of the details hit target.
-        foreach (var part in new[] { quota, reset }.OfType<View>())
-        {
-            var tap = new TapGestureRecognizer(); tap.Tapped += (_, _) => open(row); part.GestureRecognizers.Add(tap);
-        }
+        UpdateClock(DateTimeOffset.Now);
         SetWideLayout(false);
     }
 
@@ -109,16 +111,16 @@ public sealed class QuotaRowView : Border
             // Keep the reset column even when this particular window has no reset.
             layout.ColumnDefinitions = [new(new GridLength(156)), new(GridLength.Star), new(new GridLength(200))];
             layout.Add(quota); layout.Add(usage, 1);
-            if (reset is not null) layout.Add(reset, 2);
+            layout.Add(reset, 2);
         }
         else
         {
             layout.ColumnDefinitions = [new(GridLength.Star), new(GridLength.Star)];
             layout.RowDefinitions = [new(GridLength.Auto), new(GridLength.Auto)];
             layout.Add(quota, 0, 0);
-            if (reset is not null) layout.Add(reset, 1, 0);
+            layout.Add(reset, 1, 0);
             layout.Add(usage, 0, 1);
-            Grid.SetColumnSpan(quota, hasReset ? 1 : 2);
+            Grid.SetColumnSpan(quota, reset.IsVisible ? 1 : 2);
             Grid.SetColumnSpan(usage, 2);
         }
     }

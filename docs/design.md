@@ -151,6 +151,8 @@ Group all quota windows for one account in one card. Keep provider identity, nic
 
 Bar length represents used capacity. Keep both Used and Left labels readable over the entire track at 0%, 100%, and overage. Display dashboard percentages as whole numbers; retain underlying precision for arithmetic. Unknown usage is not 0% usage. Stale data must not appear as a newly confirmed healthy reading.
 
+On weekly and monthly rows, show the earliest available earned-reset expiration if it precedes the refresh or the refresh time is unknown. Use an amber clock and countdown, with a muted date beneath. Clicking opens the account’s available resets. Otherwise show the refresh with a circular arrow. Session rows always use their own refresh.
+
 Custom Order uses the selected six-dot grip treatment. Preserve the user's ordering, filtering, and selected controls during background refreshes. A new provider should use the existing card instead of introducing a provider-specific dashboard layout.
 
 ## Reset Horizon Invariants
@@ -162,7 +164,7 @@ Custom Order uses the selected six-dot grip treatment. Preserve the user's order
 - Consecutive calendar-day anchors are equally spaced, including Today and both endpoints. Compact widths together; never move one label or day independently.
 - Day labels, dots, and grouped service icons share the same day anchor. Preserve alignment during scrolling, resizing, filtering, toggling, and DST transitions.
 - Center day headings in calendar-day buckets. Place historical samples and events on their actual timestamp scale; do not shift them by the current time or averaged timestamps.
-- Upcoming event tooltips show the account and event, then the same large lavender countdown and smaller local date and time used beside a quota bar. Calculate the countdown when the tooltip opens.
+- Upcoming event tooltips show the account and event, then the same large lavender countdown and smaller local date and time used beside a quota bar. Leave 10 units above the countdown and 3 above the date. Calculate the countdown when the tooltip opens.
 - A refresh and an earned-reset expiration are different events. Preserve their colors, labels, details, and alert schedules.
 - Show gaps in history honestly. Do not draw continuous usage through missing observations. Use step-like real observations rather than inventing smooth consumption curves.
 

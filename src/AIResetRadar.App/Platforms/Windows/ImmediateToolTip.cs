@@ -14,6 +14,7 @@ public static class ImmediateToolTip
         Attach(view, () =>
         {
             var countdown = new TextBlock { FontSize = Presentation.ResetCountdown.Size,
+                Margin = new Microsoft.UI.Xaml.Thickness(0, 7, 0, 0),
                 FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe UI Semibold"),
                 Foreground = Brush(Presentation.ResetCountdown.Color) };
             var content = new Microsoft.UI.Xaml.Controls.StackPanel { Spacing = 3 };
