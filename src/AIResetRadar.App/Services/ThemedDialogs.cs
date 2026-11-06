@@ -79,7 +79,26 @@ internal static class ThemedDialogs
             var dialog = Create(page, title, content, "Cancel");
             foreach (var choice in choices)
             {
+                var asset = choice switch
+                {
+                    "OpenAI Codex" => "openai", "GitHub Copilot" => "github",
+                    "Claude" => "claude", "Devin" => "devin", _ => null
+                };
                 var button = new Native.Controls.Button { Content = choice, HorizontalAlignment = Native.HorizontalAlignment.Stretch, Style = ActionButtonStyle() };
+                if (asset is not null)
+                {
+                    var row = new StackPanel { Orientation = Native.Controls.Orientation.Horizontal, Spacing = 16 };
+                    row.Children.Add(new Native.Controls.Image
+                    {
+                        Width = 28, Height = 28,
+                        Source = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri($"ms-appx:///{asset}.png"))
+                    });
+                    row.Children.Add(new TextBlock { Text = choice, VerticalAlignment = Native.VerticalAlignment.Center, FontSize = 16 });
+                    button.Content = row;
+                    button.MinHeight = 54;
+                    button.HorizontalContentAlignment = Native.HorizontalAlignment.Left;
+                    Native.Automation.AutomationProperties.SetName(button, choice);
+                }
                 button.Click += (_, _) => { selected = choice; dialog.Hide(); };
                 content.Children.Add(button);
             }

@@ -135,7 +135,7 @@ public sealed partial class MainPage
     async Task AddAccountAsync()
     {
         if (!initialized) { await InitializeAsync(); if (!initialized) return; }
-        var provider = await AIResetRadar.App.Services.ThemedDialogs.ChooseAsync(this, "Connect account", "OpenAI Codex", "GitHub Copilot", "Claude", "Devin");
+        var provider = await AIResetRadar.App.Services.ThemedDialogs.ChooseAsync(this, "Connect Account", "OpenAI Codex", "GitHub Copilot", "Claude", "Devin");
         if (provider is "Claude" or "Devin") { await AppPanels.ShowAsync(this, new ConnectBrowserAccountPage(provider, (account, snapshot) => CommitConnectionAsync(account, snapshot, null))); return; }
         if (provider is not ("OpenAI Codex" or "GitHub Copilot")) return;
         await AppPanels.ShowAsync(this, new ConnectAccountPage(provider == "OpenAI Codex", (account, snapshot) => CommitConnectionAsync(account, snapshot, null)));
