@@ -11,6 +11,8 @@ internal static class ResetCountdown
     internal const int IconSize = 25;
     // Fluent leaves a larger inset around the clock than around the cycle arrow.
     internal static double IconScale(bool isExpiry) => isExpiry ? 44d / 41 : 1;
+    // Offset the enlarged clock within its existing slot to align its visible left edge.
+    internal static double IconOffsetX(bool isExpiry) => isExpiry ? 1 : 0;
     internal static string Glyph(bool isExpiry) => isExpiry ? "\uE823" : "\uE72C";
     internal static string TextColor(bool isExpiry) => isExpiry ? ExpiryColor : Color;
     internal const string DateColor = "#BEC1D2";

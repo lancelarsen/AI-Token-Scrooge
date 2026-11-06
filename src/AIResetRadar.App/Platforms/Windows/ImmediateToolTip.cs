@@ -26,7 +26,8 @@ public static class ImmediateToolTip
             timing.Children.Add(new FontIcon { Glyph = Presentation.ResetCountdown.Glyph(isExpiry),
                 FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe Fluent Icons"),
                 RenderTransformOrigin = new global::Windows.Foundation.Point(0.5, 0.5),
-                RenderTransform = new Microsoft.UI.Xaml.Media.ScaleTransform { ScaleX = scale, ScaleY = scale },
+                RenderTransform = new Microsoft.UI.Xaml.Media.CompositeTransform { ScaleX = scale, ScaleY = scale,
+                    TranslateX = Presentation.ResetCountdown.IconOffsetX(isExpiry) },
                 FontSize = Presentation.ResetCountdown.IconSize, Foreground = accent,
                 VerticalAlignment = Microsoft.UI.Xaml.VerticalAlignment.Top, Margin = new Microsoft.UI.Xaml.Thickness(0, 3, 0, 0) });
             var times = new Microsoft.UI.Xaml.Controls.StackPanel { Spacing = 3 };
