@@ -22,8 +22,11 @@ public static class ImmediateToolTip
             var timing = new Microsoft.UI.Xaml.Controls.StackPanel {
                 Orientation = Microsoft.UI.Xaml.Controls.Orientation.Horizontal, Spacing = 12,
                 Margin = new Microsoft.UI.Xaml.Thickness(0, 7, 0, 0) };
+            var scale = Presentation.ResetCountdown.IconScale(isExpiry);
             timing.Children.Add(new FontIcon { Glyph = Presentation.ResetCountdown.Glyph(isExpiry),
                 FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe Fluent Icons"),
+                RenderTransformOrigin = new global::Windows.Foundation.Point(0.5, 0.5),
+                RenderTransform = new Microsoft.UI.Xaml.Media.ScaleTransform { ScaleX = scale, ScaleY = scale },
                 FontSize = Presentation.ResetCountdown.IconSize, Foreground = accent,
                 VerticalAlignment = Microsoft.UI.Xaml.VerticalAlignment.Top, Margin = new Microsoft.UI.Xaml.Thickness(0, 3, 0, 0) });
             var times = new Microsoft.UI.Xaml.Controls.StackPanel { Spacing = 3 };

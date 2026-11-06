@@ -28,6 +28,7 @@ public sealed class QuotaRowView : Border
             deadline = selected;
             var kind = deadline.IsExpiry ? "Earned Reset Expires" : "Quota Refresh";
             exactReset.Text = TimeZones.Format(deadline.At, zone);
+            resetIcon.Scale = ResetCountdown.IconScale(deadline.IsExpiry);
             resetIcon.Text = ResetCountdown.Glyph(deadline.IsExpiry);
             countdown.TextColor = Color.FromArgb(ResetCountdown.TextColor(deadline.IsExpiry));
             ToolTipProperties.SetText(reset, kind);
