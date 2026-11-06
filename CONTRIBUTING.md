@@ -34,6 +34,8 @@ Use Title Case for headings and short labels; use sentence case for explanatory 
 
 Start with the research note and verification matrix in [Provider Integration](docs/integration.md). Prefer provider browser sign-in or the installed official CLI. A new provider must reuse Scrooge's account cards, timeline, alert rules, credential isolation, and cleanup flow. It must not consume model tokens to discover usage.
 
+For Devin Enterprise, use personally authorized My Analytics access. Keep tenant names, identity values, and live browser profiles out of the repository.
+
 Complete the [Credential Checklist](docs/integration.md#credential-checklist) and include the provider's [Recovery Guidance](docs/credential-recovery.md). Fixture tests do not establish live renewal, Windows cross-user isolation, or remote revocation.
 
 ## Issues and Security

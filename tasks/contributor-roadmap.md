@@ -16,6 +16,7 @@ A provider is ready only after mapping and failure tests, identity/scope isolati
 
 ## Live Provider Testing
 
+- [ ] Extend Devin Enterprise live verification to another tenant, expired SSO, and independent simultaneous users. The read-only integration uses personal My Analytics and a Scrooge-owned browser profile.
 - [ ] Test reconnecting and removing accounts across the integrated providers
 - [ ] Verify that multiple connected accounts remain isolated during usage updates and credential renewal
 - [ ] Compare reported usage with the provider's own usage screen for supported account types

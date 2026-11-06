@@ -97,7 +97,7 @@ public sealed partial class MainPage : ContentPage
             var demo = MakeButton("Explore with demo data", "\uE8A5"); demo.Clicked += (_, _) => { state.LoadDemo(DateTimeOffset.Now, historyDemo: true); Render(); };
             body.Children.Add(new VerticalStackLayout { Padding = new Thickness(24, 36), Spacing = 15, Children = {
                 new Label { Text = "Your AI capacity, in one quiet place.", FontSize = 24, FontFamily = "Segoe UI Semibold" },
-                new Label { Text = "Connect OpenAI Codex or GitHub Copilot to see usage, upcoming resets and earned-reset expirations.", TextColor = Color.FromArgb("#B6B8C8") }, demo }});
+                new Label { Text = "Connect an account to see its usage and upcoming resets.", TextColor = Color.FromArgb("#B6B8C8") }, demo }});
         }
         var orderedAccounts = state.OrderedAccounts.ToArray();
         foreach (var account in orderedAccounts)

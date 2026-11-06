@@ -26,6 +26,14 @@ New CLI sign-ins use the local Security root supplied by AppServices. Preserve P
 
 These are descriptions of this repository's implementation, not guarantees that provider interfaces never change. Verify the source and supported CLI/API versions when contributing.
 
+### Devin Enterprise
+
+The Windows app opens the tenant's Devin site in a dedicated WebView2 profile. Workspace input accepts an HTTPS tenant on `devinenterprise.com` and discards any path, query, or login hint. The user completes company sign-in in the provider page. Scrooge reads the user ID from Preferences before and after reading My Analytics and binds the account to the enterprise host. Personal totals span the user's organizations within that enterprise.
+
+My Analytics supplies monthly Agent Compute Units (ACUs). The adapter prefers the usage-limit meter. When only the consumption figure is visible, it leaves the allowance unknown. It accepts a reset only when the displayed date and time resolve unambiguously in the browser's time zone within the next monthly window. Background refresh uses the same account profile and never opens a sign-in prompt. The provider controls the page layout and role permissions. See [Devin Personal Analytics](https://docs.devin.ai/enterprise/security-access/personal-analytics).
+
+On November 6, 2026, one Windows user connected through enterprise SSO in the rebuilt app. Scrooge verified the stable user ID, matched the allowance, usage, and reset shown in My Analytics, and read all three again after an app restart without prompting for sign-in. Other enterprises, IdPs, languages, and expired live SSO sessions need separate verification.
+
 ### Codex
 
 [CodexConnection](../src/AIResetRadar.Infrastructure/CodexConnection.cs) launches app-server with argument-list construction, isolated profile storage, and an explicit method allowlist. It correlates requests and responses and closes pending work on termination. Do not widen the allowlist to inference or redemption operations.

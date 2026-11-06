@@ -181,7 +181,7 @@ public sealed class ActionButton : Button
         if (value.Contains("help")) return "\uE897";
         if (value.Contains("quick view") || value.Contains("dashboard")) return "\uE80F";
         if (value.Contains("token")) return "\uE8D7";
-        if (value.Contains("sign in") || value.Contains("connect") || value is "openai codex" or "github copilot" or "claude") return "\uE77B";
+        if (value.Contains("sign in") || value.Contains("connect") || value is "openai codex" or "github copilot" or "claude" or "devin") return "\uE77B";
         if (value.Contains("add")) return "\uE710";
         if (value.Contains("reset")) return "\uE8B7";
         if (value.Contains("usage")) return "\uE9D9";

@@ -6,7 +6,7 @@ internal static class OwnedProfileDirectory
     internal static void Delete(string dataDirectory, string provider, string credentialId)
     {
         if (!Guid.TryParseExact(credentialId, "N", out var id)) throw new ArgumentException("Invalid credential identity.");
-        var child = provider switch { "OpenAI" => "Profiles", "Claude" => "ClaudeProfiles", _ => throw new ArgumentException("Unknown profile provider.") };
+        var child = provider switch { "OpenAI" => "Profiles", "Claude" => "ClaudeProfiles", "Devin" => "DevinProfiles", _ => throw new ArgumentException("Unknown profile provider.") };
         var root = Path.GetFullPath(Path.Combine(dataDirectory, child));
         var profile = Path.GetFullPath(Path.Combine(root, id.ToString("N")));
         if (!string.Equals(Path.GetDirectoryName(profile), root, StringComparison.OrdinalIgnoreCase))

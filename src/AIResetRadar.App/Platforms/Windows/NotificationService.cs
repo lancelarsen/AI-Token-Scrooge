@@ -44,7 +44,7 @@ public sealed class NotificationService : IDisposable
                 .AddButton(new AppNotificationButton("Show Info").AddArgument("action", "view").AddArgument("account", alert.AccountId).AddArgument("window", alert.WindowId ?? ""))
                 .AddButton(new AppNotificationButton("Snooze 1 Hour").AddArgument("action", "snooze").AddArgument("account", alert.AccountId));
             builder.AddButton(new AppNotificationButton("Dismiss").AddArgument("action", "dismiss").AddArgument("account", alert.AccountId));
-            var image = provider switch { "OpenAI" => "openai", "Claude" => "claude", "GitHub Copilot" => "github", _ => "token_baron" };
+            var image = provider switch { "OpenAI" => "openai", "Claude" => "claude", "Devin" => "devin", "GitHub Copilot" => "github", _ => "token_baron" };
             var imagePath = Path.Combine(AppContext.BaseDirectory, image + ".scale-100.png");
             if (File.Exists(imagePath)) builder.SetAppLogoOverride(new Uri(imagePath));
             // Scrooge plays its selected cue once for both the Windows toast and in-app banner.

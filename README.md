@@ -21,7 +21,7 @@ Built for Windows with .NET 10 MAUI and the Windows App SDK, Scrooge brings your
 ## What Scrooge Does
 
 - See what's coming with Reset Horizon. Your usage history, upcoming refreshes, and earned Codex reset expirations share one timeline. Spot a refresh coming up and decide whether it's time to tackle that bigger task.
-- Find the account with room to work. See usage bars and reset countdowns for Codex, Copilot, and Claude together, with automatic checks at your chosen polling intervals.
+- Find the account with room to work. See usage bars and reset countdowns for Codex, Copilot, Claude, and Devin together, with automatic checks at your chosen polling intervals.
 - Use those earned resets before they expire. Get a reminder while there's still time to claim them in Codex. Scrooge keeps track; you decide when to use them.
 - Know when you're running low and when you're ready to go again. Get alerts as capacity runs down or becomes available, with sounds, quiet hours, snoozing, and mute controls that fit your day.
 - Let Scrooge keep watch while you work. Start it with Windows and leave it in the system tray. Your dashboard is one click away.
@@ -51,6 +51,11 @@ Checking usage does not consume AI tokens. Scrooge monitors and reminds you; it 
 <td>Claude</td>
 <td><ul><li>Session Usage Windows (Pro/Max)</li><li>Weekly Usage Windows (Pro/Max)</li></ul></td>
 <td>Requires the installed Claude CLI (Claude Code) version 2.1.310 or later. Scrooge uses it to open browser sign-in and read usage, with a separate profile for each account. Checking usage does not consume AI tokens.</td>
+</tr>
+<tr>
+<td>Devin Enterprise</td>
+<td><ul><li>Personal Monthly ACU Usage</li><li>Allowance and Reset Time When Shown</li></ul></td>
+<td>Paste your company workspace URL and sign in through Devin. Scrooge reads My Analytics in a private browser profile for this account. Your role needs access to My Analytics.</td>
 </tr>
 </tbody>
 </table>
@@ -126,6 +131,7 @@ The default data folder is `%LOCALAPPDATA%\AIResetRadar`. The older internal fol
 - **Settings and History:** `radar.db` is a local SQLite database containing account nicknames and identifiers (such as email/login and organization scope), settings, quota snapshots, reset details, and alert state/history. It is not encrypted by Scrooge. History and alerts default to 90 days of retention, which you can customize in Settings.
 - **GitHub Credentials:** Access/refresh credentials or the advanced token are encrypted with Windows DPAPI for the current Windows user, separately from the database. The development build moves legacy `Credentials\*.bin` records to `%LOCALAPPDATA%\AIResetRadar\Security\<data-directory-id>\Credentials`, even when the database uses `--data-dir`. It verifies the encrypted copy before deleting the old record; older releases use the original location.
 - **Codex Profile:** `Profiles\<id>` is the isolated `CODEX_HOME`, under the local Security namespace for new development-build sign-ins or the saved data directory for older connections. Scrooge requests the CLI's keyring credential store; the CLI manages credentials and profile files.
+- **Devin Profile:** WebView2 keeps the company sign-in in a dedicated local Security profile for each connection. Removing the account queues that profile for deletion.
 - **Claude Profile:** `ClaudeProfiles\<id>` is the isolated `CLAUDE_CONFIG_DIR`, using the same new-versus-existing location policy. The installed CLI manages its credentials and profile files. Scrooge restricts Windows file permissions but does not add encryption to these files.
 - **Local Diagnostics:** Windows exception handling writes `last-crash.log` or `last-focus-recovery.log` in the default data folder, containing a timestamp, exception type, HRESULT, and stack trace. It omits exception messages and does not upload these files. CLI-managed diagnostics may also exist in the profiles.
 
@@ -145,6 +151,7 @@ See [Security](SECURITY.md#credential-storage-policy) for the provider-specific 
 
 - Add your first account when you launch Scrooge, then connect any additional accounts you want to monitor.
 - For OpenAI Codex, install the Codex CLI and sign in with your ChatGPT account through the browser.
+- For Devin Enterprise, choose **Add Account** > **Devin**, paste your workspace URL, and select **Sign In with Devin**. Complete your usual company sign-in. Scrooge checks your personal usage across the enterprise every ten minutes by default.
 - For Claude, install Claude Code version 2.1.310 or later. Scrooge uses that CLI to open browser sign-in and read usage.
 - For GitHub Copilot, approve the short authorization code on GitHub's website. No GitHub CLI is needed. The authorization screen currently shows AI Reset Radar, the app's registered name.
 - If you build your own copy, configure the GitHub app registration using [GitHub Sign-In Setup](docs/github-sign-in.md).

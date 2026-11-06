@@ -21,12 +21,13 @@ public sealed record HistoryWindowSelection(QuotaWindow? Window, bool IsAmbiguou
 /// <summary>Projects recorded provider observations without manufacturing usage or reset events.</summary>
 public static class UsageHistory
 {
-    public static bool SupportsProvider(string provider) => provider is "OpenAI" or "Claude" or "GitHub Copilot";
+    public static bool SupportsProvider(string provider) => provider is "OpenAI" or "Claude" or "GitHub Copilot" or "Devin";
 
     public static bool IsEligible(string provider, QuotaWindow window) => provider switch
     {
         "OpenAI" => window.DurationMinutes == 10080,
         "Claude" => window.DurationMinutes == 10080 || window.Id == "weekly" && window.DurationMinutes is null,
+        "Devin" => window.Id == "devin/monthly",
         "GitHub Copilot" => window.Id == "copilot/monthly",
         _ => false
     };
@@ -49,7 +50,7 @@ public static class UsageHistory
         DateTimeOffset from, DateTimeOffset through, TimeSpan? pollingInterval = null)
     {
         if (through < from) throw new ArgumentOutOfRangeException(nameof(through));
-        var period = account.Provider == "GitHub Copilot" ? "Monthly" : "Weekly";
+        var period = account.Provider is "Devin" or "GitHub Copilot" ? "Monthly" : "Weekly";
         if (!SupportsProvider(account.Provider)) return new(account, period, "Plan unavailable", [], [], "History Unavailable");
         var ordered = snapshots.Where(s => s.AccountId == account.Id && s.ObservedAt <= through)
             .OrderBy(s => s.ObservedAt).GroupBy(s => s.ObservedAt).Select(g => g.Last()).ToArray();

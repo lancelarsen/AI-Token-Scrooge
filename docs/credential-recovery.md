@@ -26,6 +26,10 @@ In GitHub Settings, open Applications, then Authorized GitHub Apps. Revoke the a
 
 Delete the affected personal access token in GitHub's Developer Settings under Personal Access Tokens, choosing the matching fine-grained or classic token list. Other tools using that same token will need a replacement. Deleting Scrooge's encrypted copy alone does not revoke it. See [Managing Personal Access Tokens](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#deleting-a-personal-access-token).
 
+### Devin Enterprise
+
+Open **Sign In Again** and complete your company's sign-in for the same Devin user and enterprise. If My Analytics is unavailable, check **Settings** > **Personal** > **My Analytics** in Devin. Scrooge can read only the usage already visible to that user. Removing a connection deletes its Scrooge-owned browser profile through the cleanup queue. For suspected compromise, use your company's sign-in recovery process. Local cleanup does not establish remote session revocation.
+
 ### Claude
 
 Claude documents individual Claude Code sign-ins under Settings > Account, or authorization tokens under Settings > Claude Code when they are not listed with sessions. Remove the affected sign-in or token when it can be identified. Claude also documents an account-wide logout that includes Claude Code, but it interrupts other signed-in tools and devices. That action does not revoke API keys. See [Claude's Sign-Out Guide](https://support.claude.com/en/articles/10310342-how-do-i-log-out-of-all-active-sessions).

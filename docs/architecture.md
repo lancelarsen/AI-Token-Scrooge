@@ -83,6 +83,7 @@ History packing, definition reuse, range queries, and graph reduction live in th
 
 SQLite history and settings remain unencrypted by design; secrets are separate. Credential storage follows the provider-supported mechanism with the strongest compatible Windows protection:
 
+- **Devin Enterprise:** The Windows WebView2 adapter handles interactive company sign-in and background reads in the same account-specific profile. DevinClient journals the profile before sign-in, leases each read and cleanup, and verifies the user and enterprise scope before returning a quota snapshot.
 - **GitHub:** WindowsSecretStore implements ISecretStore with current-user DPAPI and validated credential IDs. GitHubCredentialManager owns token renewal and persistence. GitHub recommends platform-appropriate storage; DPAPI is our Windows implementation choice.
 - **Codex:** CodexConnection explicitly requests `cli_auth_credentials_store="keyring"`. Credentials are owned by the CLI's OS store, while its CODEX_HOME profile is isolated. OpenAI documents that keyring mode fails if unavailable; `auto` permits plaintext fallback and must not replace this setting. Do not duplicate credentials into WindowsSecretStore merely to unify storage.
 - **Claude:** ClaudeClient supplies an isolated CLAUDE_CONFIG_DIR. Anthropic documents a `.credentials.json` file there on Windows, protected by inherited file permissions. Scrooge currently adds no encryption. Do not assume the CLI can consume DPAPI blobs or that API-key helpers support subscription usage and renewal.

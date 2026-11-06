@@ -1,6 +1,6 @@
 namespace AIResetRadar.Core;
 
-public enum UsageUnit { Percent, Credits, Requests }
+public enum UsageUnit { Percent, Credits, Requests, Acus }
 public enum SourceHealth { Healthy, Loading, Stale, Offline, AuthenticationRequired, PermissionRequired, Unsupported, Demo }
 public enum AllowanceProvenance { Unknown, Provider, Manual }
 public enum CapacityState { Unknown, Healthy, Low, Critical, Exhausted, Info }

@@ -23,7 +23,7 @@ public sealed class AppServices
         var credentialDirectory = WindowsMigratingSecretStore.DirectoryFor(DirectoryPath,
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));
         Monitor = new(DirectoryPath, new WindowsMigratingSecretStore(credentialDirectory, Path.Combine(DirectoryPath, "Credentials")),
-            new(http, TimeProvider.System), TimeProvider.System, GitHubSignIn, Store, Path.GetDirectoryName(credentialDirectory)!);
+            new(http, TimeProvider.System), TimeProvider.System, GitHubSignIn, Store, Path.GetDirectoryName(credentialDirectory)!, new DevinBrowser());
     }
     static string? ReadGitHubClientId()
     {

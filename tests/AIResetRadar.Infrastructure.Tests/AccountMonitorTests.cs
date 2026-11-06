@@ -25,6 +25,52 @@ public class AccountMonitorTests
         { ct.ThrowIfCancellationRequested(); Pending.Remove(id); return Task.CompletedTask; }
     }
 
+    sealed class DevinBrowserFixture : IDevinBrowser
+    {
+        public required Func<Uri, string, bool, DevinReading> Read;
+        public Task<DevinReading> ReadAsync(Uri origin, string profile, bool interactive, CancellationToken ct)
+        {
+            ct.ThrowIfCancellationRequested();
+            return Task.FromResult(Read(origin, profile, interactive));
+        }
+    }
+
+    [Fact]
+    public async Task DevinVerifiesScopeAndSubjectOnRefreshAndDeletesOnlyItsOwnProfile()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        var root = Directory.CreateTempSubdirectory("scrooge-devin-");
+        var credential = Guid.NewGuid().ToString("N");
+        var journal = new Journal();
+        var reads = 0;
+        var subject = "provider|synthetic";
+        var fixture = new DevinBrowserFixture { Read = (origin, path, interactive) =>
+        {
+            Assert.Contains(credential, journal.Pending);
+            Assert.Equal("example.devinenterprise.com", origin.Host);
+            Assert.Equal(Path.Combine(root.FullName, "DevinProfiles", credential), path);
+            Assert.Equal(reads++ == 0, interactive);
+            return new(subject, 23m, 100m, null);
+        } };
+        var client = new DevinClient(root.FullName, root.FullName, new Secrets(), fixture, journal, TimeProvider.System);
+        try
+        {
+            var result = await client.ConnectAsync("local", credential, "Work", "example.devinenterprise.com", default);
+            Assert.True(result.Snapshot.BelongsTo(result.Account));
+            Assert.Equal(UsageUnit.Acus, Assert.Single(result.Snapshot.Windows).Unit);
+            Assert.Equal(77m, (await client.RefreshAsync(result.Account, default)).Windows.Single().Remaining);
+            subject = "provider|different";
+            var mismatch = await Assert.ThrowsAsync<ProviderAccessException>(() => client.RefreshAsync(result.Account, default));
+            Assert.Equal(SourceHealth.AuthenticationRequired, mismatch.Health);
+            await client.DisconnectAsync(result.Account, default);
+            Assert.Empty(journal.Pending);
+            Assert.False(Directory.Exists(Path.Combine(root.FullName, "DevinProfiles", credential)));
+            await Assert.ThrowsAsync<ProviderAccessException>(() => client.RefreshAsync(result.Account, default));
+            Assert.Equal(3, reads);
+        }
+        finally { root.Delete(true); }
+    }
+
     [Fact] public async Task SignInJournalsBeforeWritingAndCleanupCompletesAfterDeletion()
     {
         var journal = new Journal(); var secrets = new Secrets { BeforeSave = id => Assert.Contains(id, journal.Pending) };

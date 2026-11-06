@@ -8,6 +8,7 @@ Use provider-supported credential storage, with the strongest compatible Windows
 
 | Provider | Current Implementation | Required Treatment |
 | --- | --- | --- |
+| Devin Enterprise | WebView2-managed sign-in in a dedicated `DevinProfiles` directory beneath the local Security namespace | Restrict directory access, confirm the effective profile path, limit reads to the chosen tenant and the two expected pages, and verify the user on each refresh |
 | OpenAI Codex | Explicit `cli_auth_credentials_store="keyring"` in the isolated Codex process | Keep keyring mode; do not substitute `auto`, which can fall back to plaintext. Verify behavior with supported installed versions |
 | GitHub | Current-user DPAPI through WindowsSecretStore for access/refresh tokens and optional advanced tokens | Preserve encryption, restrict file access, and verify renewal and cleanup. DPAPI is Scrooge's Windows choice, not a GitHub-specific requirement |
 | Claude | CLI-managed `.credentials.json` in the isolated CLAUDE_CONFIG_DIR; Scrooge adds no encryption | Verify/harden Windows file permissions and preserve CLI compatibility. The reviewed Anthropic guide does not document Windows keyring support; do not claim this file is encrypted |

@@ -16,7 +16,7 @@ public sealed class AccountQuotaView : Grid
                 Content = new Label { Text = accountRow.AccountLabel, TextColor = Color.FromArgb("#C3ADF8"), FontSize = 12 } }
         }};
         var identity = new HorizontalStackLayout { Spacing = 16, VerticalOptions = LayoutOptions.Center, Children = {
-            new Image { Source = accountRow.Account.Provider switch { "OpenAI" => "openai.png", "Claude" => "claude.png", _ => "github.png" },
+            new Image { Source = accountRow.Account.Provider switch { "OpenAI" => "openai.png", "Devin" => "devin.png", "Claude" => "claude.png", _ => "github.png" },
                 WidthRequest = 44, HeightRequest = 44, VerticalOptions = LayoutOptions.Center },
             providerText
         }};

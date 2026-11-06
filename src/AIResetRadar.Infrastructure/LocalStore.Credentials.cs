@@ -16,7 +16,7 @@ public sealed partial class LocalStore : ICredentialLifecycleJournal
 {
     internal static PendingCredential ValidatePending(PendingCredential pending)
     {
-        if (pending is null || pending.Provider is not ("OpenAI" or "Claude" or "GitHub Copilot") ||
+        if (pending is null || pending.Provider is not ("OpenAI" or "Claude" or "GitHub Copilot" or "Devin") ||
             !Guid.TryParseExact(pending.CredentialId, "N", out _) || !Enum.IsDefined(pending.ProfileLocation))
             throw new InvalidDataException("Invalid pending credential record.");
         return pending;

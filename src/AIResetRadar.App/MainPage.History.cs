@@ -39,7 +39,7 @@ public sealed partial class MainPage
             historyRead?.Cancel(); historyRead?.Dispose(); historyRead = new();
             // Remove disconnected identities immediately, even while the replacement query is running.
             usageHistory = accounts.Select(account => usageHistory.FirstOrDefault(s => s.Account == account)
-                ?? new HistorySeries(account, account.Provider == "GitHub Copilot" ? "Monthly" : "Weekly",
+                ?? new HistorySeries(account, account.Provider is "Devin" or "GitHub Copilot" ? "Monthly" : "Weekly",
                     PlanLabels.Display(account.Provider, state.Snapshots.GetValueOrDefault(account.Id)?.PlanType), [], [])).ToArray();
             historyLoading = true; historyError = null;
             _ = LoadUsageHistoryAsync(accounts, now, DisplayZone, state.IsDemo,

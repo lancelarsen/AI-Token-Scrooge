@@ -16,7 +16,7 @@ internal sealed class CliProfilePaths(string dataDirectory, string? securityDire
     internal string PathFor(string provider, string id, CredentialProfileLocation location)
     {
         if (!Guid.TryParseExact(id, "N", out var guid)) throw new ArgumentException("Invalid credential identity.");
-        var child = provider switch { "OpenAI" => "Profiles", "Claude" => "ClaudeProfiles", _ => throw new InvalidDataException("Unknown profile provider.") };
+        var child = provider switch { "OpenAI" => "Profiles", "Claude" => "ClaudeProfiles", "Devin" => "DevinProfiles", _ => throw new InvalidDataException("Unknown profile provider.") };
         return Path.Combine(RootFor(location), child, guid.ToString("N"));
     }
 

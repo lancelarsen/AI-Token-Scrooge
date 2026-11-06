@@ -242,7 +242,7 @@ public sealed class HistoryTimelineView : Grid
         }
     }
 
-    static string Logo(string provider) => provider == "Claude" ? "claude.png" : provider == "GitHub Copilot" ? "github.png" : "openai.png";
+    static string Logo(string provider) => provider == "Devin" ? "devin.png" : provider == "Claude" ? "claude.png" : provider == "GitHub Copilot" ? "github.png" : "openai.png";
     void UpdateStatus()
     {
         var inPast = TodayX > AxisLeft + 30;

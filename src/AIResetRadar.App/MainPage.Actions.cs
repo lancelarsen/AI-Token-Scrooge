@@ -135,8 +135,8 @@ public sealed partial class MainPage
     async Task AddAccountAsync()
     {
         if (!initialized) { await InitializeAsync(); if (!initialized) return; }
-        var provider = await AIResetRadar.App.Services.ThemedDialogs.ChooseAsync(this, "Connect account", "OpenAI Codex", "GitHub Copilot", "Claude");
-        if (provider == "Claude") { await AppPanels.ShowAsync(this, new ConnectClaudePage((account, snapshot) => CommitConnectionAsync(account, snapshot, null))); return; }
+        var provider = await AIResetRadar.App.Services.ThemedDialogs.ChooseAsync(this, "Connect account", "OpenAI Codex", "GitHub Copilot", "Claude", "Devin");
+        if (provider is "Claude" or "Devin") { await AppPanels.ShowAsync(this, new ConnectBrowserAccountPage(provider, (account, snapshot) => CommitConnectionAsync(account, snapshot, null))); return; }
         if (provider is not ("OpenAI Codex" or "GitHub Copilot")) return;
         await AppPanels.ShowAsync(this, new ConnectAccountPage(provider == "OpenAI Codex", (account, snapshot) => CommitConnectionAsync(account, snapshot, null)));
     }
@@ -155,7 +155,7 @@ public sealed partial class MainPage
     }
     async Task ReconnectAsync(ProviderAccount original)
     {
-        if (original.Provider == "Claude") { await AppPanels.ShowAsync(this, new ConnectClaudePage((account, snapshot) => CommitConnectionAsync(account, snapshot, original), original)); return; }
+        if (original.Provider is "Claude" or "Devin") { await AppPanels.ShowAsync(this, new ConnectBrowserAccountPage(original.Provider, (account, snapshot) => CommitConnectionAsync(account, snapshot, original), original)); return; }
         await AppPanels.ShowAsync(this, new ConnectAccountPage(original.Provider == "OpenAI", (account, snapshot) => CommitConnectionAsync(account, snapshot, original), original));
     }
     void OpenAccount(string id, string? windowId = null)

@@ -4,6 +4,7 @@ public static class PlanLabels
 {
     public static string Display(string provider, string? plan) => (provider, plan) switch
     {
+        ("Devin", "enterprise") => "Enterprise",
         ("Claude", "pro") => "Pro",
         ("Claude", "max") => "Max",
         ("Claude", "team") => "Team",

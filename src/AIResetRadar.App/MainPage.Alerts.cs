@@ -31,7 +31,7 @@ public sealed partial class MainPage
         }
     }
     string AlertProvider(string accountId) => state.Accounts.FirstOrDefault(a => a.Id == accountId)?.Provider ?? "Scrooge";
-    static string ProviderImage(string provider) => provider switch { "OpenAI" => "openai.png", "Claude" => "claude.png", "GitHub Copilot" => "github.png", _ => "token_baron.png" };
+    static string ProviderImage(string provider) => provider switch { "OpenAI" => "openai.png", "Devin" => "devin.png", "Claude" => "claude.png", "GitHub Copilot" => "github.png", _ => "token_baron.png" };
     void ShowBanner(AlertEvent alert)
     {
         if (banner is not null) root.Children.Remove(banner);
