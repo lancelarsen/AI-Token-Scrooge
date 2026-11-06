@@ -117,32 +117,33 @@ public sealed class CliBoundaryTests : IDisposable
     {
         if (!OperatingSystem.IsWindows()) return;
         var childPidPath = Path.Combine(folder, "child-pid");
-        var childCommand = "[IO.File]::WriteAllText($env:SCROOGE_TEST_CHILD_PID,[string]$PID); [Threading.Thread]::Sleep(30000)";
         var start = Start("""
             $childStart = New-Object System.Diagnostics.ProcessStartInfo;
-            $childStart.FileName = Join-Path $PSHOME 'powershell.exe';
-            $childStart.Arguments = '-NoProfile -NonInteractive -EncodedCommand ' + $env:SCROOGE_TEST_CHILD_COMMAND;
+            $childStart.FileName = [IO.Path]::Combine($PSHOME, 'powershell.exe');
+            $childStart.Arguments = '-NoProfile -NonInteractive -Command [Threading.Thread]::Sleep(120000)';
             $childStart.UseShellExecute = $false;
             $childStart.CreateNoWindow = $true;
             $child = [Diagnostics.Process]::Start($childStart);
+            # Publish the live PID without waiting for the second PowerShell engine to initialize.
+            $pending = $env:SCROOGE_TEST_CHILD_PID + '.tmp';
+            [IO.File]::WriteAllText($pending, [string]$child.Id);
+            [IO.File]::Move($pending, $env:SCROOGE_TEST_CHILD_PID);
             $child.WaitForExit();
             """);
         start.Environment["SCROOGE_TEST_CHILD_PID"] = childPidPath;
-        start.Environment["SCROOGE_TEST_CHILD_COMMAND"] = Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes(childCommand));
         using var cancellation = new CancellationTokenSource();
-        var running = BoundedCliProcess.RunAsync(start, TimeSpan.FromSeconds(20), cancellation.Token);
+        var running = BoundedCliProcess.RunAsync(start, TimeSpan.FromSeconds(90), cancellation.Token);
         Process? child = null;
         try
         {
             var readyBy = Stopwatch.StartNew();
-            int childId;
-            while (!File.Exists(childPidPath) || !int.TryParse(File.ReadAllText(childPidPath), out childId))
+            while (!File.Exists(childPidPath))
             {
                 Assert.False(running.IsCompleted, "Synthetic parent exited before its child was ready.");
-                Assert.True(readyBy.Elapsed < TimeSpan.FromSeconds(10), "Synthetic child did not become ready.");
+                Assert.True(readyBy.Elapsed < TimeSpan.FromSeconds(60), "Synthetic parent did not publish its child PID within the fixture setup deadline.");
                 await Task.Delay(25);
             }
-            child = Process.GetProcessById(childId);
+            child = Process.GetProcessById(int.Parse(File.ReadAllText(childPidPath)));
             // Retain the exact process handle before cancellation, avoiding a later PID lookup.
             _ = child.Handle;
             Assert.False(child.HasExited);
