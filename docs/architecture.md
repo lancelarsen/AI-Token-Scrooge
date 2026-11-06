@@ -65,7 +65,9 @@ CliProfilePaths dispatches that filesystem work to a worker task and awaits it. 
 
 Preference updates use a gate, persist before adopting the new in-memory state, and preserve unrelated per-window settings. Startup registration changes have rollback handling. A new setting must retain these behaviors and deserialize older saved settings with a deliberate default.
 
-RefreshSchedule chooses the next normal poll or an earlier known future boundary. Provider retry deadlines and backoff must still be respected by orchestration. Do not add a second per-provider UI timer or poll directly from Render, a property getter, or a control.
+Startup, the polling timer, manual refresh, window restore, and system events all use the same account refresh path. It starts eligible accounts concurrently. If another trigger arrives while an account is refreshing, it reuses that account's active read and can still start other accounts. Each read has its own 45-second cancellation deadline. `RefreshSchedule` chooses the next normal poll or an earlier known reset or expiration. Failures back off per account, and even a manual refresh honors a provider's retry deadline. Keep scheduled polling on the shared timer and out of render methods, property getters, and controls.
+
+Provider reads run outside the account-change gate. Once a read finishes, Scrooge takes `accountChanges` and verifies the connection is still current. A successful read commits the snapshot, history sample, and any new alert intents together before the dashboard and tray show that account's result. Other accounts can still be waiting on their providers while this update appears.
 
 ## CLI Process Boundary
 

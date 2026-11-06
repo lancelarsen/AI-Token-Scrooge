@@ -4,8 +4,7 @@ namespace AIResetRadar.App;
 public sealed partial class MainPage
 {
     readonly SemaphoreSlim accountChanges = new(1, 1);
-    readonly Dictionary<string, CancellationTokenSource> pendingReads = [];
-    readonly Dictionary<string, (ProviderAccount Account, TaskCompletionSource Ended)> readCompletions = [];
+    readonly Dictionary<string, (ProviderAccount Account, CancellationTokenSource Cancellation, Task Completion)> pendingReads = [];
     readonly List<ProviderAccount> retiredCredentials = [];
     readonly SemaphoreSlim cleanupGate = new(1, 1);
     readonly TimeProvider cleanupClock = TimeProvider.System;
@@ -35,7 +34,7 @@ public sealed partial class MainPage
             retiredCredentials.Clear(); retiredCredentials.AddRange(pending);
             if (index >= 0) state.Accounts[index] = accepted; else state.Accounts.Add(accepted);
             state.Snapshots[accepted.Id] = snapshot;
-            pendingReads.GetValueOrDefault(accepted.Id)?.Cancel(); nextRefresh.Remove(accepted.Id); failures.Remove(accepted.Id); throttledUntil.Remove(accepted.Id);
+            pendingReads.GetValueOrDefault(accepted.Id).Cancellation?.Cancel(); nextRefresh.Remove(accepted.Id); failures.Remove(accepted.Id); throttledUntil.Remove(accepted.Id);
         }
         finally { accountChanges.Release(); }
         _ = CleanupRetiredAsync();
@@ -53,7 +52,7 @@ public sealed partial class MainPage
             {
                 try
                 {
-                    if (readCompletions.TryGetValue(retired.Id, out var read) && CredentialKey(read.Account) == CredentialKey(retired)) await read.Ended.Task;
+                    if (pendingReads.TryGetValue(retired.Id, out var read) && CredentialKey(read.Account) == CredentialKey(retired)) await read.Completion;
                     if (state.IsDemo) return;
                     if (!state.Accounts.Any(a => CredentialKey(a) == CredentialKey(retired)))
                     {
@@ -84,7 +83,7 @@ public sealed partial class MainPage
             var changed = latest with { Nickname = edit.Nickname, Enabled = remove ? false : edit.Enabled,
                 PollingMinutes = edit.EffectivePollingMinutes, LineColor = edit.LineColor };
             // Replacing the immutable record invalidates every read started before this edit.
-            state.Accounts[index] = changed; pendingReads.GetValueOrDefault(edit.Id)?.Cancel();
+            state.Accounts[index] = changed; pendingReads.GetValueOrDefault(edit.Id).Cancellation?.Cancel();
             try
             {
                 var accounts = state.Accounts.Where(a => !remove || a.Id != edit.Id).ToArray();

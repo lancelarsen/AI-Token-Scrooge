@@ -6,7 +6,6 @@ using AIResetRadar.Infrastructure;
 namespace AIResetRadar.App;
 public sealed partial class MainPage
 {
-    readonly SemaphoreSlim refreshing = new(1, 1);
     bool initialized;
     bool initializing;
     RadarSettings preferences = new();
@@ -55,83 +54,9 @@ public sealed partial class MainPage
     {
         if (refresh.IsBusy) return;
         if (!initialized) { await refresh.RunAsync(InitializeAsync, "Refreshing\u2026"); return; }
-        if (refreshing.CurrentCount == 0) return;
         await RefreshAsync(playSound: true);
     }
 
-    async Task RefreshAsync(bool force = true, bool playSound = false)
-    {
-        if (!initialized || exiting) return;
-        if (!await refreshing.WaitAsync(0)) return;
-        var ownsBusyState = force && !refresh.IsBusy;
-        try
-        {
-            if (ownsBusyState) await refresh.BeginBusyAsync("Refreshing\u2026");
-            if (playSound) AlertSounds.Play(preferences, "refresh");
-            alertHistory.RemoveAll(e => e.CreatedAt < HistoryRetention.Cutoff(DateTimeOffset.UtcNow, preferences.HistoryRetentionDays));
-            if (state.IsDemo) { Render(); return; }
-            foreach (var account in state.Accounts.Where(a => a.Enabled).ToArray())
-            {
-                if (throttledUntil.TryGetValue(account.Id, out var throttled) && throttled > DateTimeOffset.UtcNow) continue;
-                if (!force && nextRefresh.TryGetValue(account.Id, out var due) && due > DateTimeOffset.UtcNow) continue;
-                using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(45));
-                var lease = new AccountRefreshLease(account);
-                bool Current() => lease.IsCurrent(state.Accounts.FirstOrDefault(a => a.Id == account.Id));
-                if (!Current()) continue;
-                pendingReads[account.Id] = timeout;
-                var ended = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously); readCompletions[account.Id] = (account, ended);
-                var previous = state.Snapshots.GetValueOrDefault(account.Id);
-                try
-                {
-                    QuotaSnapshot snapshot;
-                    try
-                    {
-                        var monitor = AppServices.Current.Monitor;
-                        snapshot = await Task.Run(() => monitor.RefreshAsync(account, timeout.Token), timeout.Token);
-                    }
-                    catch (Exception error)
-                    {
-                        if (!Current()) continue;
-                        var health = error is ProviderAccessException access ? access.Health : SourceHealth.Offline;
-                        var last = previous ?? new(account.Id, account.Subject, account.Scope, DateTimeOffset.UtcNow, [], null);
-                        state.Snapshots[account.Id] = last with { Health = health, Message = ConnectAccountPage.SafeMessage(error) };
-                        var count = failures.GetValueOrDefault(account.Id) + 1; failures[account.Id] = count;
-                        nextRefresh[account.Id] = error is ProviderAccessException { RetryAt: { } retry } ? retry : DateTimeOffset.UtcNow.AddSeconds(Math.Min(1800, 60 * Math.Pow(2, Math.Min(5, count))));
-                        if (error is ProviderAccessException { RetryAt: { } retryAfter }) throttledUntil[account.Id] = retryAfter;
-                        continue;
-                    }
-                    if (!Current()) continue;
-                    failures[account.Id] = 0;
-                    nextRefresh[account.Id] = RefreshSchedule.AfterSuccess(snapshot, account, DateTimeOffset.UtcNow);
-                    try
-                    {
-                        state.Snapshots[account.Id] = snapshot;
-                        await AppServices.Current.Store.RecordSnapshotAsync(snapshot, pollingMinutes: account.EffectivePollingMinutes);
-                        if (!Current()) continue;
-                        await EvaluateAlertsAsync(account, previous, snapshot);
-                    }
-                    catch
-                    {
-                        if (!Current()) continue;
-                        // Keep the pre-alert baseline so a failed intent write can retry its crossing.
-                        var last = previous ?? new(account.Id, account.Subject, account.Scope, DateTimeOffset.UtcNow, [], null);
-                        state.Snapshots[account.Id] = last with { Health = SourceHealth.Stale, Message = "Local history could not be saved; retaining previous values. Check available space and folder access." };
-                    }
-                }
-                finally { pendingReads.Remove(account.Id); readCompletions.Remove(account.Id); ended.TrySetResult(); }
-            }
-            await SaveAsync(); Render(); UpdateTray();
-        }
-        catch { freshness.Text = "Scrooge could not save local monitoring state. Check available space and folder access."; }
-        finally { if (ownsBusyState) refresh.SetBusy(false); refreshing.Release(); _ = CleanupRetiredAsync(); }
-    }
-    async Task SaveAsync()
-    {
-        if (!initialized || state.IsDemo) return;
-        await accountChanges.WaitAsync();
-        try { await AppServices.Current.Store.WriteMonitoringStateAsync(state.Accounts.ToArray(), state.Snapshots.Values.ToArray(), retiredCredentials.ToArray()); }
-        finally { accountChanges.Release(); }
-    }
     async Task AddAccountAsync()
     {
         if (!initialized) { await InitializeAsync(); if (!initialized) return; }

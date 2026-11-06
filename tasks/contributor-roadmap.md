@@ -19,6 +19,7 @@ A provider is ready only after mapping and failure tests, identity/scope isolati
 - [ ] Extend Devin Enterprise live verification to another tenant, expired SSO, and independent simultaneous users. The read-only integration uses personal My Analytics and a Scrooge-owned browser profile.
 - [ ] Test reconnecting and removing accounts across the integrated providers
 - [ ] Verify that multiple connected accounts remain isolated during usage updates and credential renewal
+- [ ] With two live accounts due for refresh, confirm that the faster account updates on the Windows dashboard while the slower provider is still responding. Repeat with a manual refresh during a scheduled read. See [Orchestration and Concurrency](../docs/architecture.md#orchestration-and-concurrency).
 - [ ] Compare reported usage with the provider's own usage screen for supported account types
 
 ## Credential Protection

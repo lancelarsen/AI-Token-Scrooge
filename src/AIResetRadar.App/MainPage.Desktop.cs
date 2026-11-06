@@ -102,10 +102,8 @@ public sealed partial class MainPage
         if (!await AppServices.Current.Updates.PrepareRestartAsync(AppServices.Current.DirectoryPath)) return;
         exiting = true;
         timer?.Stop();
-        foreach (var pending in pendingReads.Values) pending.Cancel();
-        await refreshing.WaitAsync();
-        try { if (Window is { } window) Application.Current!.CloseWindow(window); }
-        finally { refreshing.Release(); }
+        await CancelPendingRefreshesAsync();
+        if (Window is { } window) Application.Current!.CloseWindow(window);
     }
     void UpdateTray()
     {

@@ -117,9 +117,18 @@ namespace AIResetRadar.App
         readonly Dictionary<string, DateTimeOffset> nextRefresh = [], throttledUntil = [];
         readonly Dictionary<string, int> failures = [];
         readonly TestLabel freshness = new();
+        readonly TestRefreshButton refresh = new();
+        readonly bool initialized = true;
+        bool exiting;
         readonly List<TestRow> rowViews = [];
         sealed class TestRow { public void UpdateAlertRules(RadarSettings settings) { } }
         sealed class TestLabel { public string? Text { get; set; } }
+        sealed class TestRefreshButton
+        {
+            public bool IsBusy { get; private set; }
+            public Task BeginBusyAsync(string label) { SetBusy(true); return Task.CompletedTask; }
+            public void SetBusy(bool busy) => IsBusy = busy;
+        }
         public MainPage(LocalStore store, Services.TestCredentialMonitor monitor, ProviderAccount? live, ProviderAccount? retired, bool demo, TimeProvider? cleanupTime = null)
         {
             cleanupClock = cleanupTime ?? TimeProvider.System;
@@ -131,9 +140,14 @@ namespace AIResetRadar.App
             if (demo) state.LoadDemo(DateTimeOffset.UtcNow);
         }
         public Task RunCleanupAsync() => CleanupRetiredAsync();
+        public Task RefreshForTestAsync(bool force) => RefreshAsync(force, playSound: force);
+        public Task StopRefreshesForTestAsync() { exiting = true; return CancelPendingRefreshesAsync(); }
+        public Task ReadCompletionForTest(string id) => pendingReads[id].Completion;
+        public void MarkDueForTest(string id) => nextRefresh.Remove(id);
         public Task EditForTestAsync(ProviderAccount edit) => UpdateAccountAsync(edit, false);
         public void AddAccountForTest(ProviderAccount account) => state.Accounts.Add(account);
-        public void TrackReadForTest(string id, CancellationTokenSource read) => pendingReads[id] = read;
+        public void TrackReadForTest(string id, CancellationTokenSource read) =>
+            pendingReads[id] = (state.Accounts.Single(account => account.Id == id), read, Task.CompletedTask);
         public List<string> DismissedBannersForTest { get; } = [];
         void DismissBanner(string id) => DismissedBannersForTest.Add(id);
         public Task SavePreferencesForTestAsync(RadarSettings settings) => SaveSettingsAsync(settings);
@@ -145,11 +159,14 @@ namespace AIResetRadar.App
         public IReadOnlyDictionary<string, DateTimeOffset> SnoozesForTest => snoozed;
         public async Task WaitForCleanupAsync() { await cleanupGate.WaitAsync(); cleanupGate.Release(); }
         public void SetSnapshotForTest(QuotaSnapshot snapshot) => state.Snapshots[snapshot.AccountId] = snapshot;
+        public QuotaSnapshot SnapshotForTest(string id) => state.Snapshots[id];
         public Task CommitForTestAsync(ProviderAccount account, QuotaSnapshot snapshot, ProviderAccount? original) => CommitConnectionAsync(account, snapshot, original);
         public Task<bool> RecordIntentForTestAsync(AlertEvent alert) => RecordAlertIntentAsync(alert);
         public IReadOnlyList<AlertEvent> AlertHistoryForTest => alertHistory;
-        void Render() { }
-        void UpdateTray() { }
+        public int RenderCountForTest { get; private set; }
+        public int TrayUpdateCountForTest { get; private set; }
+        void Render() => RenderCountForTest++;
+        void UpdateTray() => TrayUpdateCountForTest++;
         void ShowBanner(AlertEvent alert) { }
     }
 }
@@ -192,9 +209,19 @@ namespace AIResetRadar.App.Services
     }
     public sealed class TestCredentialMonitor
     {
+        public Func<ProviderAccount, CancellationToken, Task<QuotaSnapshot>>? OnRefresh { get; init; }
+        public Task<QuotaSnapshot> RefreshAsync(ProviderAccount account, CancellationToken token) => OnRefresh!(account, token);
         public List<ProviderAccount> Disconnected { get; } = [];
         public Func<CancellationToken, Task>? OnDisconnect { get; set; }
         public Task DisconnectAsync(ProviderAccount account, CancellationToken cancellationToken)
         { Disconnected.Add(account); return OnDisconnect?.Invoke(cancellationToken) ?? Task.CompletedTask; }
+    }
+}
+
+namespace AIResetRadar.App.Views
+{
+    public static class ConnectAccountPage
+    {
+        public static string SafeMessage(Exception error) => "Fixture provider failure";
     }
 }
