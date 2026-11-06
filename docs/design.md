@@ -164,7 +164,7 @@ Custom Order uses the selected six-dot grip treatment. Preserve the user's order
 - Consecutive calendar-day anchors are equally spaced, including Today and both endpoints. Compact widths together; never move one label or day independently.
 - Day labels, dots, and grouped service icons share the same day anchor. Preserve alignment during scrolling, resizing, filtering, toggling, and DST transitions.
 - Center day headings in calendar-day buckets. Place historical samples and events on their actual timestamp scale; do not shift them by the current time or averaged timestamps.
-- Upcoming event tooltips show the account and event, then the same large lavender countdown and smaller local date and time used beside a quota bar. Leave 10 units above the countdown and 3 above the date. Calculate the countdown when the tooltip opens.
+- Upcoming event tooltips show the account and event, then the event icon beside the large countdown, with the smaller local date and time aligned below the countdown. Match the row’s amber clock and amber countdown for expiration, or use a lavender circular arrow and countdown for refresh. Leave 10 units above the countdown and 3 above the date. Calculate the countdown when the tooltip opens.
 - A refresh and an earned-reset expiration are different events. Preserve their colors, labels, details, and alert schedules.
 - Show gaps in history honestly. Do not draw continuous usage through missing observations. Use step-like real observations rather than inventing smooth consumption curves.
 

@@ -7,6 +7,10 @@ internal static class ResetCountdown
     internal const int Size = 20;
     internal const int DateSize = 12;
     internal const string Color = "#BDA3F5";
+    internal const string ExpiryColor = "#EAAA51";
+    internal const int IconSize = 25;
+    internal static string Glyph(bool isExpiry) => isExpiry ? "\uE823" : "\uE72C";
+    internal static string TextColor(bool isExpiry) => isExpiry ? ExpiryColor : Color;
     internal const string DateColor = "#BEC1D2";
 
     internal static (DateTimeOffset? At, bool IsExpiry) Select(QuotaRow row, DateTimeOffset now)

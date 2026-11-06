@@ -9,19 +9,29 @@ public static class ImmediateToolTip
 {
     public static void Attach(View view, string text) => Attach(view, () => new ToolTip { Content = text });
 
-    public static void AttachReset(View view, string context, DateTimeOffset at, TimeZoneInfo zone)
+    public static void AttachReset(View view, string context, DateTimeOffset at, TimeZoneInfo zone, bool isExpiry)
     {
         Attach(view, () =>
         {
+            var accent = Brush(Presentation.ResetCountdown.TextColor(isExpiry));
             var countdown = new TextBlock { FontSize = Presentation.ResetCountdown.Size,
-                Margin = new Microsoft.UI.Xaml.Thickness(0, 7, 0, 0),
                 FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe UI Semibold"),
-                Foreground = Brush(Presentation.ResetCountdown.Color) };
+                Foreground = accent };
             var content = new Microsoft.UI.Xaml.Controls.StackPanel { Spacing = 3 };
             content.Children.Add(new TextBlock { Text = context, TextWrapping = TextWrapping.Wrap });
-            content.Children.Add(countdown);
-            content.Children.Add(new TextBlock { Text = Core.TimeZones.Format(at, zone),
+            var timing = new Microsoft.UI.Xaml.Controls.StackPanel {
+                Orientation = Microsoft.UI.Xaml.Controls.Orientation.Horizontal, Spacing = 12,
+                Margin = new Microsoft.UI.Xaml.Thickness(0, 7, 0, 0) };
+            timing.Children.Add(new FontIcon { Glyph = Presentation.ResetCountdown.Glyph(isExpiry),
+                FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe Fluent Icons"),
+                FontSize = Presentation.ResetCountdown.IconSize, Foreground = accent,
+                VerticalAlignment = Microsoft.UI.Xaml.VerticalAlignment.Top, Margin = new Microsoft.UI.Xaml.Thickness(0, 3, 0, 0) });
+            var times = new Microsoft.UI.Xaml.Controls.StackPanel { Spacing = 3 };
+            times.Children.Add(countdown);
+            times.Children.Add(new TextBlock { Text = Core.TimeZones.Format(at, zone),
                 FontSize = Presentation.ResetCountdown.DateSize, Foreground = Brush(Presentation.ResetCountdown.DateColor) });
+            timing.Children.Add(times);
+            content.Children.Add(timing);
             var tip = new ToolTip { Content = content };
             tip.Opened += (_, _) => countdown.Text = Presentation.ResetCountdown.Label(at, DateTimeOffset.Now);
             return tip;

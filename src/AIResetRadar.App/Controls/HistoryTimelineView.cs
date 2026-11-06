@@ -334,7 +334,7 @@ public sealed class HistoryTimelineView : Grid
         action.Clicked += (_, _) => open(e);
         SemanticProperties.SetDescription(action, details);
         var context = e.IsExpiry ? $"{e.DisplayTitle}\n{e.Detail}" : $"{e.DisplayTitle}\nQuota Refresh · {e.Detail}";
-        Platforms.Windows.ImmediateToolTip.AttachReset(action, context, e.At, zone);
+        Platforms.Windows.ImmediateToolTip.AttachReset(action, context, e.At, zone, e.IsExpiry);
         target.Add(action); return target;
     }
 

@@ -15,7 +15,7 @@ public sealed class QuotaRowView : Border
     readonly QuotaRow row;
     readonly UsageBar bar;
     RadarSettings alertSettings = new();
-    readonly Label resetIcon = new() { FontFamily = "Segoe Fluent Icons", FontSize = 25, VerticalOptions = LayoutOptions.Start, Margin = new Thickness(0, 3, 0, 0) };
+    readonly Label resetIcon = new() { FontFamily = "Segoe Fluent Icons", FontSize = ResetCountdown.IconSize, VerticalOptions = LayoutOptions.Start, Margin = new Thickness(0, 3, 0, 0) };
     readonly AlertThresholdView thresholds;
     bool? wideLayout;
     public void UpdateClock(DateTimeOffset now)
@@ -28,8 +28,8 @@ public sealed class QuotaRowView : Border
             deadline = selected;
             var kind = deadline.IsExpiry ? "Earned Reset Expires" : "Quota Refresh";
             exactReset.Text = TimeZones.Format(deadline.At, zone);
-            resetIcon.Text = deadline.IsExpiry ? "\uE823" : "\uE72C";
-            countdown.TextColor = Color.FromArgb(deadline.IsExpiry ? "#EAAA51" : ResetCountdown.Color);
+            resetIcon.Text = ResetCountdown.Glyph(deadline.IsExpiry);
+            countdown.TextColor = Color.FromArgb(ResetCountdown.TextColor(deadline.IsExpiry));
             ToolTipProperties.SetText(reset, kind);
             SemanticProperties.SetDescription(reset, $"{kind}, {exactReset.Text}");
         }
@@ -37,7 +37,7 @@ public sealed class QuotaRowView : Border
         countdown.Text = ResetCountdown.Label(at, now);
         var severity = alertSettings.CapacityAlertsEnabled(row.Account.Id, row.Window.Id)
             ? TimedReminder.Due(alertSettings.EffectiveRefreshReminders, at, now)?.Severity : null;
-        resetIcon.TextColor = Color.FromArgb(selected.IsExpiry ? "#EAAA51" : severity switch
+        resetIcon.TextColor = Color.FromArgb(selected.IsExpiry ? ResetCountdown.ExpiryColor : severity switch
         {
             ReminderSeverity.Critical => "#F05B69", ReminderSeverity.Warning => "#F2C94C",
             ReminderSeverity.Info => "#58A6FF", _ => "#B5A0F4"
