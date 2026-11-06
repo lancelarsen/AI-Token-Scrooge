@@ -149,7 +149,7 @@ When restoring from the tray, show the existing dashboard first. Schedule the re
 
 Group all quota windows for one account in one card. Keep provider identity, nickname, and plan together. Each window gets its own bar, alert controls, reset countdown, and exact reset date. Do not combine session and weekly allowances or duplicate Used/Left values in an extra column.
 
-Bar length represents used capacity. Keep both Used and Left labels readable over the entire track at 0%, 100%, and overage. Display dashboard percentages as whole numbers; retain underlying precision for arithmetic. Unknown usage is not 0% usage. Stale data must not appear as a newly confirmed healthy reading.
+Bar length represents used capacity. Keep both Used and Left labels readable over the entire track at 0%, 100%, and overage. Devin and Copilot show the percentage used and left on their quota bars. Display dashboard percentages as whole numbers; retain underlying precision for arithmetic. Unknown usage is not 0% usage. Stale data must not appear as a newly confirmed healthy reading.
 
 On weekly and monthly rows, show the earliest available earned-reset expiration if it precedes the refresh or the refresh time is unknown. Use an amber clock and countdown, with a muted date beneath. Clicking opens the account’s available resets. Otherwise show the refresh with a circular arrow. Session rows always use their own refresh.
 

@@ -6,7 +6,7 @@ public sealed record QuotaRow(ProviderAccount Account, QuotaSnapshot Snapshot, Q
     public string AccountLabel => $"{Account.Nickname} · {PlanLabels.Display(Account.Provider, Snapshot.PlanType)}";
     public string WindowTitle => UiTitle.CapitalizeWords(Window.Name);
     public bool IsWarning => Window.Capacity(Low, Critical) is CapacityState.Low or CapacityState.Critical or CapacityState.Exhausted;
-    bool DisplayPercent => Window.Unit == UsageUnit.Percent || Account.Provider == "GitHub Copilot";
+    bool DisplayPercent => Window.Unit == UsageUnit.Percent || Account.Provider is "GitHub Copilot" or "Devin";
     public string UsedText => DisplayPercent ? Window.UsedPercent is { } percent ? $"{percent:0}% used" : "Usage unavailable" :
         Window.Used is { } used ? $"{used:N0} used" : "Usage unavailable";
     public string LeftText => DisplayPercent ? Window.RemainingPercent is { } percent ? $"{percent:0}% left" : "Left unavailable" :
