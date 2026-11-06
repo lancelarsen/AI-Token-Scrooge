@@ -5,6 +5,8 @@ try {
     Set-Content (Join-Path $root 'github-app.json') '{"clientId":"public-client-id"}'
     & "$PSScriptRoot/Test-PublishContent.ps1" -PublishDirectory $root
     $cases = @(
+        @{ Name = 'DevinProfiles'; Content = '' },
+        @{ Name = 'DevinTrials'; Content = '' },
         @{ Name = '.credentials.json'; Content = '{}' },
         @{ Name = '.credentials.json.bak'; Content = '{}' },
         @{ Name = 'auth.json.tmp'; Content = '{}' },
@@ -21,7 +23,7 @@ try {
         if (-not $rejected) { throw "Fixture was not rejected: $($case.Name)" }
         Remove-Item -LiteralPath $path
     }
-    Write-Output 'Publish-content checks passed: public client ID accepted; six secret/state fixtures rejected.'
+    Write-Output 'Publish-content checks passed: public client ID accepted; eight secret/state fixtures rejected.'
 }
 finally {
     $resolved = [System.IO.Path]::GetFullPath($root)

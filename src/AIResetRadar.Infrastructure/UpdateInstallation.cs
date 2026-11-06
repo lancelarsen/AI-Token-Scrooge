@@ -107,8 +107,7 @@ public static class UpdateInstallation
             foreach (var entry in Directory.EnumerateFileSystemEntries(directory))
             {
                 UpdatePackage.RequireOrdinaryPath(entry);
-                if (Path.GetFileName(entry).StartsWith("radar.db", StringComparison.OrdinalIgnoreCase) ||
-                    new[] { "Profiles", "ClaudeProfiles", "Credentials" }.Contains(Path.GetFileName(entry), StringComparer.OrdinalIgnoreCase))
+                if (UpdatePackage.IsLocalData(Path.GetFileName(entry)))
                     throw new IOException("An update directory contains user data; it will not be removed.");
                 if (Directory.Exists(entry)) Validate(entry);
             }

@@ -11,6 +11,12 @@ public static class UpdatePackage
 {
     public static readonly string[] RequiredFiles = ["AIResetRadar.App.exe", "AIResetRadar.App.dll", "AIResetRadar.App.runtimeconfig.json", "coreclr.dll", "Microsoft.UI.Xaml.dll", "github-app.json", "build-info.json", "Launcher/Scrooge.exe"];
 
+    static readonly HashSet<string> ProtectedDirectories = new(StringComparer.OrdinalIgnoreCase)
+        { "Credentials", "Profiles", "ClaudeProfiles", "DevinProfiles", "DevinTrials" };
+
+    internal static bool IsLocalData(string name) =>
+        name.StartsWith("radar.db", StringComparison.OrdinalIgnoreCase) || ProtectedDirectories.Contains(name);
+
     public static void RequireOrdinaryPath(string path)
     {
         var full = Path.GetFullPath(path);
@@ -53,7 +59,7 @@ public static class UpdatePackage
             _ = Child(destination, path);
             if (!names.Add(path) || ((entry.ExternalAttributes >> 16) & 0xF000) == 0xA000 || (entry.ExternalAttributes & (int)FileAttributes.ReparsePoint) != 0)
                 throw new InvalidDataException("Duplicate or redirected package entry.");
-            if (path.Split('/').Any(p => p.Equals("Credentials", StringComparison.OrdinalIgnoreCase) || p.Equals("Profiles", StringComparison.OrdinalIgnoreCase) || p.Equals("ClaudeProfiles", StringComparison.OrdinalIgnoreCase) || p.StartsWith("radar.db", StringComparison.OrdinalIgnoreCase)))
+            if (path.Split('/').Any(IsLocalData))
                 throw new InvalidDataException("Package contains local app data.");
         }
         if (RequiredFiles.Any(f => !names.Contains(f))) throw new InvalidDataException("Incomplete Windows package.");

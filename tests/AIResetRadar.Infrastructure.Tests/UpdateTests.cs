@@ -96,6 +96,8 @@ public sealed class UpdateTests : IDisposable
     [InlineData("CON.txt")]
     [InlineData("folder./file.txt")]
     [InlineData("AIResetRadar.App.EXE")]
+    [InlineData("DevinProfiles/example/Cookies")]
+    [InlineData("devintrials/example/cache")]
     [InlineData("radar.db")]
     [InlineData("Profiles/id/auth.json")]
     public async Task RejectsUnsafeOrDuplicatePackagePaths(string extra)
