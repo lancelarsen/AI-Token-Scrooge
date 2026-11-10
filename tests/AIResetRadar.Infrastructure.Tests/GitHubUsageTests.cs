@@ -65,11 +65,9 @@ public class GitHubUsageTests
     }
 
     [Theory]
-    [InlineData("business")]
-    [InlineData("enterprise")]
     [InlineData("future_plan")]
     [InlineData(null)]
-    public async Task PersonalBillingCannotBorrowAnOrganizationOrUnidentifiedEntitlement(string? plan)
+    public async Task PersonalBillingCannotBorrowAnUnidentifiedEntitlement(string? plan)
     {
         using var http = new HttpClient(new Handler(request => request.RequestUri!.AbsolutePath switch
         {

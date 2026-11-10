@@ -50,6 +50,46 @@ public static class ProviderMapping
         }
     }
 
+    // Work-account usage and its personal budget must come from the same user quota,
+    // never from a personal billing report or an organization-wide credit pool.
+    public static QuotaSnapshot? GitHubManagedQuota(ProviderAccount account, JsonElement response, DateTimeOffset observed)
+    {
+        if (account.Scope != "personal" || response.ValueKind != JsonValueKind.Object ||
+            Text(response, "copilot_plan") is not ("business" or "enterprise") ||
+            !response.TryGetProperty("token_based_billing", out var billing) || billing.ValueKind != JsonValueKind.True ||
+            account.Unit != UsageUnit.Credits ||
+            !response.TryGetProperty("quota_snapshots", out var snapshots) || snapshots.ValueKind != JsonValueKind.Object ||
+            !snapshots.TryGetProperty("premium_interactions", out var quota) || quota.ValueKind != JsonValueKind.Object ||
+            !quota.TryGetProperty("unlimited", out var unlimited) || unlimited.ValueKind is not (JsonValueKind.True or JsonValueKind.False)) return null;
+
+        var pooled = unlimited.GetBoolean();
+        var limit = pooled ? null : NonnegativeNumber(quota, "entitlement");
+        var used = NonnegativeNumber(quota, "credits_used");
+        if (used is null && !pooled && limit is { } total && NonnegativeNumber(quota, "quota_remaining") is { } remaining && remaining <= total)
+            used = total - remaining;
+        var reset = new DateTimeOffset(observed.UtcDateTime.Year, observed.UtcDateTime.Month, 1, 0, 0, 0, TimeSpan.Zero).AddMonths(1);
+        // Under token billing, finite snapshots can report has_quota=false even with
+        // credits remaining. Only use this signal for the pooled/unlimited case.
+        var blocked = pooled && quota.TryGetProperty("has_quota", out var available) && available.ValueKind == JsonValueKind.False;
+        return new(account.Id, account.Subject, account.Scope, observed,
+            [new("copilot/monthly", "AI credits · Monthly", UsageUnit.Credits, used, limit, reset, null,
+                limit.HasValue ? AllowanceProvenance.Provider : AllowanceProvenance.Unknown)], null,
+            Message: blocked ? "Your organization has blocked Copilot usage. Contact your administrator." :
+                pooled ? "No personal limit is set. Usage draws from your organization's shared budget." :
+                limit.HasValue ? $"Personal budget: {limit:N0} AI credits. Usage reported by GitHub." : "GitHub did not report a personal limit.",
+            UsageAllowed: blocked ? false : null, PlanType: Text(response, "copilot_plan"));
+    }
+
+    static decimal? NonnegativeNumber(JsonElement element, string key)
+    {
+        if (!element.TryGetProperty(key, out var value)) return null;
+        decimal number;
+        var valid = value.ValueKind == JsonValueKind.Number ? value.TryGetDecimal(out number) :
+            decimal.TryParse(value.ValueKind == JsonValueKind.String ? value.GetString() : null,
+                System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out number);
+        return valid && number >= 0 ? number : null;
+    }
+
     public static decimal? GitHubAllowance(JsonElement response, UsageUnit unit)
     {
         if (response.ValueKind != JsonValueKind.Object ||

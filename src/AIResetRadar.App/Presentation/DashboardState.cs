@@ -7,10 +7,14 @@ public sealed record QuotaRow(ProviderAccount Account, QuotaSnapshot Snapshot, Q
     public string WindowTitle => UiTitle.CapitalizeWords(Window.Name);
     public bool IsWarning => Window.Capacity(Low, Critical) is CapacityState.Low or CapacityState.Critical or CapacityState.Exhausted;
     bool DisplayPercent => Window.Unit == UsageUnit.Percent || Account.Provider is "GitHub Copilot" or "Devin";
-    public string UsedText => DisplayPercent ? Window.UsedPercent is { } percent ? $"{percent:0}% used" : "Usage unavailable" :
+    bool GitHubWithoutPercentage => Account.Provider == "GitHub Copilot" && Window.UsedPercent is null;
+    public string UsedText => GitHubWithoutPercentage ? GitHubUsedText : DisplayPercent ? Window.UsedPercent is { } percent ? $"{percent:0}% used" : "Usage unavailable" :
         Window.Used is { } used ? $"{used:N0} used" : "Usage unavailable";
-    public string LeftText => DisplayPercent ? Window.RemainingPercent is { } percent ? $"{percent:0}% left" : "Left unavailable" :
+    string GitHubUsedText => Window.Used is { } count
+        ? $"{count:N0} {(Window.Unit == UsageUnit.Requests ? "Requests" : "Credits")} Used" : "Usage Unavailable";
+    public string LeftText => GitHubWithoutPercentage ? GitHubLimitText : DisplayPercent ? Window.RemainingPercent is { } percent ? $"{percent:0}% left" : "Left unavailable" :
         Window.Remaining is { } left ? left < 0 ? $"{-left:N0} over" : $"{left:N0} left" : "Limit unavailable";
+    string GitHubLimitText => Window.Limit is { } limit ? $"{limit:N0} Limit" : "Limit Unavailable";
     public string CardNote => Snapshot.Health == SourceHealth.Healthy && Snapshot.UsageAllowed != false &&
         (Account.Provider == "Claude" || Snapshot.Message is "Allowance reported by GitHub; billing usage may lag.") ? "" : SourceNote;
     public string SourceNote => Snapshot.Health == SourceHealth.Demo ? "Demo data" : Snapshot.Health != SourceHealth.Healthy ? $"{Snapshot.Health}: {Snapshot.Message}" : Snapshot.UsageAllowed == false ? "Provider reports usage is paused" :
@@ -120,6 +124,11 @@ public sealed class DashboardState
             var snapshot = Snapshots[id];
             Snapshots[id] = scenario switch
             {
+                "github-pooled" when Accounts.Any(a => a.Id == id && a.Provider == "GitHub Copilot") => snapshot with
+                {
+                    PlanType = "business", Windows = snapshot.Windows.Select(w => w with { Name = "AI credits · Monthly", Used = 1250, Limit = null, AllowanceSource = AllowanceProvenance.Unknown }).ToArray(),
+                    Message = "No personal limit is set. Usage draws from your organization's shared budget."
+                },
                 "history-long" when snapshot.Reserve is not null => snapshot with { Reserve = new(3,
                     [.. snapshot.Reserve.Credits ?? [], new("demo-long-horizon", "available", DateTimeOffset.Now.AddDays(35))]) },
                 "reserve-only" => snapshot with { Windows = [], Message = "Demo: source reported reset credits without quota windows." },

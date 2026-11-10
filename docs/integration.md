@@ -44,7 +44,7 @@ On November 6, 2026, one Windows user connected through enterprise SSO in the re
 
 [GitHubDeviceFlow](../src/AIResetRadar.Infrastructure/GitHubDeviceFlow.cs) implements device authorization with approval in the browser, not the authorization-code/PKCE flow. [GitHubCredentialManager](../src/AIResetRadar.Infrastructure/GitHubCredentialManager.cs) handles saved credentials and renewal. [GitHub Sign-In Setup](github-sign-in.md) documents app registration; public client IDs are not client secrets.
 
-[GitHubUsageClient](../src/AIResetRadar.Infrastructure/GitHubUsageClient.cs) resolves /user on reads, requests the correct billing scope and unit, bounds response size, and classifies auth, permission, transient, and rate-limit failures. Personal allowance lookup uses an internal endpoint. An optional lookup failure must not turn unavailable allowance into a guessed denominator. Manual allowance has explicit provenance.
+[GitHubUsageClient](../src/AIResetRadar.Infrastructure/GitHubUsageClient.cs) resolves /user on reads, requests the correct billing scope and unit, bounds response size, and classifies auth, permission, transient, and rate-limit failures. Personal allowance lookup uses an internal endpoint. Business and Enterprise user-scoped credit monitoring reads usage and the personal budget together from that endpoint; pooled accounts retain actual usage without a guessed personal limit. Explicit organization billing remains separate. See [Business and Enterprise User Quotas](github-sign-in.md#business-and-enterprise-user-quotas). An optional lookup failure must not turn unavailable allowance into a guessed denominator. Manual allowance has explicit provenance.
 
 ### Claude
 

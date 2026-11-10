@@ -16,6 +16,8 @@ A provider is ready only after mapping and failure tests, identity/scope isolati
 
 ## Live Provider Testing
 
+- [ ] Extend Copilot managed-quota live verification to Enterprise, no-personal-limit pools, and organization-blocked usage. One Business user quota was read successfully; synthetic cases do not establish live acceptance. See [Business and Enterprise User Quotas](../docs/github-sign-in.md#business-and-enterprise-user-quotas).
+
 - [ ] Extend Devin Enterprise live verification to another tenant, expired SSO, and independent simultaneous users. The read-only integration uses personal My Analytics and a Scrooge-owned browser profile.
 - [ ] Test reconnecting and removing accounts across the integrated providers
 - [ ] Verify that multiple connected accounts remain isolated during usage updates and credential renewal
