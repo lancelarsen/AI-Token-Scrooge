@@ -15,8 +15,7 @@ public sealed record QuotaRow(ProviderAccount Account, QuotaSnapshot Snapshot, Q
     public string LeftText => GitHubWithoutPercentage ? GitHubLimitText : DisplayPercent ? Window.RemainingPercent is { } percent ? $"{percent:0}% left" : "Left unavailable" :
         Window.Remaining is { } left ? left < 0 ? $"{-left:N0} over" : $"{left:N0} left" : "Limit unavailable";
     string GitHubLimitText => Window.Limit is { } limit ? $"{limit:N0} Limit" : "Limit Unavailable";
-    public string CardNote => Snapshot.Health == SourceHealth.Healthy && Snapshot.UsageAllowed != false &&
-        (Account.Provider == "Claude" || Snapshot.Message is "Allowance reported by GitHub; billing usage may lag.") ? "" : SourceNote;
+    public string CardNote => Snapshot.Health == SourceHealth.Healthy && Snapshot.UsageAllowed != false ? "" : SourceNote;
     public string SourceNote => Snapshot.Health == SourceHealth.Demo ? "Demo data" : Snapshot.Health != SourceHealth.Healthy ? $"{Snapshot.Health}: {Snapshot.Message}" : Snapshot.UsageAllowed == false ? "Provider reports usage is paused" :
         Snapshot.Message ?? (Window.AllowanceSource == AllowanceProvenance.Manual ? "User-entered allowance · Billing data may lag" : "");
 }

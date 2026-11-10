@@ -191,3 +191,7 @@ Keep keyboard focus visible. Give controls semantic names and values; exclude de
 The November 3 button-state check used the existing dashboard and Settings action buttons as its reference. Native desktop and 800-by-700 checks showed purple processing states for Refresh and Check Now, a white animated ring, and the normal/hover appearance returning after completion. The local build and 425 regression tests passed. Sign-in, download completion, and restart were not exercised as part of this visual check.
 
 Before editing, identify the closest production control and name it in the PR. After editing, rebuild and restart the Windows app from the new output. Compare the actual app at a representative desktop size and the 800-by-700 compact preview, including Windows scaling. Check navigation, keyboard focus, empty/error states, and long content. Include redacted screenshots and state any unverified cases. Compilation alone does not establish visual correctness.
+
+## Dashboard Information and Account Settings
+
+Keep routine provider explanations, allowance provenance, and personal-budget notes in the account settings page under Usage Information and in quota details. Healthy dashboard rows show the quota name, usage, and reset time without these supporting notes. Authentication, permission, offline, and usage-paused status remain visible on the dashboard when action may be needed. Reuse the existing settings cards and account-row layout.

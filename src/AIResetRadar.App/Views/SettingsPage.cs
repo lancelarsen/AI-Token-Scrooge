@@ -262,6 +262,19 @@ public sealed class SettingsPage : ContentPage
                 finally { saveGate.Release(); }
             };
             WrapCard(accountStart, "Account");
+            if (snapshot is not null)
+            {
+                var usageStart = form.Children.Count;
+                foreach (var window in snapshot.Windows)
+                {
+                    var row = new AIResetRadar.App.Presentation.QuotaRow(account, snapshot, window);
+                    form.Children.Add(new Label { Text = row.WindowTitle, FontSize = 16, TextColor = Color.FromArgb("#F2F1F5") });
+                    form.Children.Add(new Label { Text = $"{row.UsedText} · {row.LeftText}", FontSize = 14, TextColor = Color.FromArgb("#B6B8C8") });
+                    if (!string.IsNullOrWhiteSpace(row.SourceNote))
+                        form.Children.Add(new Label { Text = row.SourceNote, FontSize = 13, TextColor = Color.FromArgb("#B6B8C8") });
+                }
+                if (form.Children.Count > usageStart) WrapCard(usageStart, "Usage Information");
+            }
             if (snapshot?.Reserve is { } reserve)
             {
                 var start = form.Children.Count;
