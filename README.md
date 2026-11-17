@@ -190,7 +190,7 @@ Start with [Contributing](CONTRIBUTING.md) and the [Contribution Roadmap](tasks/
 
 ## Future Tasks
 
-- OpenAI API credit-pool tracking is under verification, separate from Codex subscription usage. See [API Credit Research and Acceptance](docs/providers/openai-api-credits.md) for the billing source and sign-in limitations.
+- OpenAI API credit-pool tracking now has a [Chrome Extension Preview](docs/chrome-api-credits.md) that uses your existing browser login. Live connection and refresh acceptance remain open. See [API Credit Research and Acceptance](docs/providers/openai-api-credits.md) for the billing source and limits.
 
 - [ ] Research and integrate additional providers, including Grok, Gemini, Cursor, and Windsurf, where a reliable usage source is available
 - [ ] Provide a signed Windows installer

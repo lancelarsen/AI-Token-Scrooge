@@ -1,0 +1,46 @@
+{
+  "content_scripts": [
+    {
+      "world": "MAIN",
+      "run_at": "document_start",
+      "js": [
+        "capture.js"
+      ],
+      "matches": [
+        "https://platform.openai.com/*"
+      ]
+    },
+    {
+      "world": "ISOLATED",
+      "run_at": "document_start",
+      "js": [
+        "relay.js"
+      ],
+      "matches": [
+        "https://platform.openai.com/*"
+      ]
+    }
+  ],
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArdRvjwvlLDJP1aCIw6YDmlo9ilJfv3aAITBfSRBlHN34dcOysffod+EHAm67jJAlEJuYBXQw3stmbM+qLkb1wsxZGnRKfRVPhR8L2AevYjrcB9qxakDu1H6XmZ6/9RCnbX8bVrzM8WeJQ4/aN1+EwwZg5gjrVaz6L+VOJyhEZOgd8iiSHGxkWafPDwvbnDRDDPxm52xK05EZUFAL88XCjzV4SwgRgVsBFxNjpCvwPQvKWivnRmkuu50qMtiWDyrnABqEBU4eFY0TdR7Kqkywr1thh18tXXIzWt5RSiSzpqQltiXsRZcS1jEaGZgsaXoldNrzn0pm2N1+mKVvzn4nsQIDAQAB",
+  "description": "Read OpenAI API credit balances for AI Token Scrooge using your existing Chrome sign-in.",
+  "background": {
+    "service_worker": "worker.js",
+    "type": "module"
+  },
+  "version": "0.1.0",
+  "minimum_chrome_version": "120",
+  "host_permissions": [
+    "https://platform.openai.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Scrooge API Credits"
+  },
+  "name": "Scrooge API Credits",
+  "permissions": [
+    "nativeMessaging",
+    "alarms",
+    "storage"
+  ],
+  "manifest_version": 3
+}

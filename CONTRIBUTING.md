@@ -32,7 +32,7 @@ Use Title Case for headings and short labels; use sentence case for explanatory 
 
 ## Provider Contributions
 
-OpenAI API credit-pool work is tracked in [API Credit Research and Acceptance](docs/providers/openai-api-credits.md). Keep the full API organization balance separate from Codex windows and subscription-benefit eligibility. Complete the isolated sign-in and restart checks before describing this connection as live verified.
+OpenAI API credit-pool work is tracked in [API Credit Research and Acceptance](docs/providers/openai-api-credits.md). The [Chrome Extension Preview](docs/chrome-api-credits.md) replaces embedded sign-in with the user's authorized Chrome session and a current-user native bridge. Keep the full API organization balance separate from Codex windows and subscription-benefit eligibility. Complete extension installation, connection, refresh, and restart checks before describing this connection as live verified.
 
 Start with the research note and verification matrix in [Provider Integration](docs/integration.md). Prefer provider browser sign-in or the installed official CLI. A new provider must reuse Scrooge's account cards, timeline, alert rules, credential isolation, and cleanup flow. It must not consume model tokens to discover usage.
 

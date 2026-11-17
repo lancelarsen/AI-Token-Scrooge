@@ -4,13 +4,13 @@ Scrooge's API credit work tracks the full API organization's dollar balance, inc
 
 ## Status and Evidence
 
-Status: Implemented With Fixtures; isolated sign-in and background refresh acceptance remain open.
+Status: Chrome Extension Preview Implemented With Fixtures; live extension connection and background refresh acceptance remain open. See [Chrome Extension Setup](../chrome-api-credits.md).
 
 Research date: November 17, 2026. Repository baseline: `c799788`. The API dashboard has no published version identifier for the internal endpoints observed below.
 
 A read-only check in an existing authorized Chrome session reconciled the billing overview, credit-grant table, and the dashboard's credit-grant response. Reloading the grant page returned the same balance. Only field names and sanitized findings belong in this document; live account identifiers, grant identifiers, amounts, and raw responses are omitted.
 
-The Windows connection was built and opened. Its separate browser profile reached provider sign-in, but the user reported an error during Google sign-in. This does not establish a usable recurring connection. Keep the implementation's live acceptance open until sign-in, refresh, restart, and cleanup have been exercised.
+The original Windows connection reached provider sign-in in WebView2, but Google passkey authentication failed in Windows Hello. The screenshots did not establish the underlying passkey failure cause. At the user's request, the embedded adapter has been replaced by a Chrome extension and native messaging bridge using the existing browser login. Keep live acceptance open until extension installation, confirmation, refresh, restart, and cleanup have been exercised.
 
 ## Source and Billing Semantics
 
@@ -30,11 +30,13 @@ The existing Codex integration reads `account/rateLimits/read` through an isolat
 
 The observed billing request was `GET https://api.openai.com/v1/dashboard/billing/credit_grants`. It used a Platform session credential and an `OpenAI-Organization` header. The signed-in dashboard obtains user identity and organization membership from `https://api.openai.com/v1/dashboard/onboarding/login`. No public credit-balance API was found in the official references reviewed. Ordinary API-key access to the dashboard endpoint was not tested and must not be claimed.
 
-The current adapter uses a dedicated WebView2 profile. It observes the provider page's own identity and billing responses, retaining only the stable user ID, organization membership, and normalized credit fields. It does not copy browser cookies or export session tokens. The user selects the organization and confirms it; a reload verifies identity and scope before acceptance. Background reads reject a different user or organization and do not open interactive sign-in.
+The current adapter uses the [Chrome extension and native bridge](../chrome-api-credits.md). The user selects an organization in Chrome and confirms its normalized reading in the extension popup. A reload verifies identity and scope before acceptance. Background reads use temporary inactive tabs, reject a different user or organization, and never switch the browser account. The extension observes the page's own requests; it does not extract a token or perform inference, purchases, or benefit activation.
 
-The profile is journaled before sign-in and stored under the app's local Security namespace in `OpenAiBillingProfiles/<credential-id>`. Existing operation leases serialize reads and retirement. Windows directory permissions and WebView2-managed storage apply; Scrooge does not claim all browser-profile contents are encrypted. Removal deletes only the owned profile through retryable cleanup. Local removal does not establish remote session revocation.
+The native bridge accepts bounded, normalized messages from the pinned extension origin. Scrooge correlates each result to a live request over a current-user-only named pipe and validates identity, totals, and grants again. No HTTP listener or raw response persistence is used. The page-context observer is not an attestation mechanism: the Platform page and same-user local environment remain trust boundaries.
 
-Google's [embedded-browser policy](https://developers.googleblog.com/en/upcoming-security-changes-to-googles-oauth-20-authorization-endpoint-in-embedded-webviews/) is a compatibility constraint for this approach. Do not work around it by spoofing a browser identity or copying another browser's session. A provider-supported external-browser flow or another compatible authentication route must be verified before claiming Google sign-in support.
+Connection IDs still use the lifecycle journal and `OpenAiBillingProfiles/<credential-id>` directory so removal can clean up old experimental profiles through the existing guarded path. New connections do not store browser credentials there. Removing a Scrooge account does not sign out Chrome. Google's [embedded-browser policy](https://developers.google.com/identity/protocols/oauth2/policies) is an additional reason to use the normal browser, but the observed Windows Hello error was not proof of a Google policy rejection.
+
+The installed Codex client `0.167.0-alpha.3.2` was also inspected through its generated experimental app-server schema. Its account usage reader exposes token activity and thread usage estimates, not an API organization balance. The benefit-preview interface exposes benefit terms, not remaining credits. No supported API-billing OAuth callback equivalent to Codex login was found in the reviewed interfaces.
 
 ## Data Contract
 
@@ -56,7 +58,7 @@ An unreadable or inconsistent response fails as unsupported instead of becoming 
 
 ## Implementation and Acceptance
 
-`OpenAiBilling` parses identity and grants. `OpenAiBillingClient` owns connection, leases, identity checks, and retirement. The Windows browser adapter owns the browser lifecycle. The shared account cards, capacity alerts, history projection, and timeline render the normalized snapshot. API credit expiration reminders are not added to the earned-reset reminder schedule.
+`OpenAiBilling` defines identity and grant semantics. `OpenAiBillingClient` owns connection, leases, identity checks, and retirement. `ChromeBillingBridge` owns request correlation and `ChromeBridgeProtocol` validates normalized readings. The extension owns billing tabs and explicit organization confirmation. The shared account cards, capacity alerts, history projection, and timeline render the normalized snapshot. API credit expiration reminders are not added to the earned-reset reminder schedule.
 
 SQLite version 5 protects the new provider and grant metadata from older executables. The version rises when the API credential is staged and never decreases when another provider saves. Grant metadata is stored with existing compact-history definitions; credentials and raw responses are excluded.
 
@@ -64,7 +66,7 @@ SQLite version 5 protects the new provider and grant metadata from older executa
 - [x] Synthetic client coverage checks journal-before-sign-in, expected identity/scope on refresh, cancellation, and owned-profile removal
 - [x] Synthetic presentation and persistence cover expiration events, consumed grants, shared USD rows, history, and the monotonic version gate
 - [x] Existing Chrome session reconciles the provider page with its network response
-- [ ] Isolated provider sign-in succeeds
+- [ ] Chrome extension and host installation succeed, and existing browser sign-in is reused
 - [ ] Scrooge reads the same balance and expiration as the provider page
 - [ ] Background refresh and app restart succeed without interaction
 - [ ] Second-account isolation, expired session, reconnect, and remote revocation behavior are verified
@@ -77,3 +79,9 @@ Follow [Provider Integration](../integration.md), [Credential Recovery](../crede
 The November 17 solution run passed 490 tests: 143 Core and 347 Infrastructure, including 11 API credit tests. The self-contained Windows x64 publish succeeded. These checks used the installed .NET SDK 10.0.404 from the parent directory because the repository's exact 10.0.403 SDK was unavailable; the pin was left unchanged. Verification with the pinned SDK remains open.
 
 The native reference was the existing production dashboard, including Codex and Copilot account rows and the shared provider chooser. The rebuilt app displayed the new OpenAI API choice and opened a separate Platform sign-in window while retaining the existing account dashboard. No successful API account, compact USD-row review, or unattended refresh has yet been observed. The branch is not a published release.
+
+## Chrome Bridge Verification
+
+The replacement passed 498 .NET tests (143 Core and 355 Infrastructure) and nine JavaScript tests. The self-contained Windows app and native host published successfully using installed SDK 10.0.404; the unavailable 10.0.403 repository pin remains unchanged. The installed native host was registered for the current user and the rebuilt app restarted; the native dashboard retained its existing accounts. The shared production connection page and ActionButton are the UI reference. Compact connection/popup review remains open.
+
+Browser automation refused `chrome://extensions`, so Chrome extension loading requires the user's manual action. Installation and live-provider checks remain separate from fixtures. The ordinary release package does not yet install the host or distribute the unpacked extension; see the preview setup guide.

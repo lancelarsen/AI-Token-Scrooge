@@ -36,7 +36,7 @@ On November 6, 2026, one Windows user connected through enterprise SSO in the re
 
 ### Codex
 
-OpenAI API billing is a separate connection under verification. See [API Credit Research and Acceptance](providers/openai-api-credits.md). Its dollar pool must not be mapped into Codex rate-limit percentages or earned-reset counts.
+OpenAI API billing is a separate connection under verification. See [API Credit Research and Acceptance](providers/openai-api-credits.md) and [Chrome Extension Setup](chrome-api-credits.md). The user explicitly authorizes reading the existing Chrome session through an extension; no cookies or tokens are copied to Scrooge. The extension confirms identity and organization after reload, and Infrastructure revalidates every correlated response. Its dollar pool must not be mapped into Codex rate-limit percentages or earned-reset counts.
 
 [CodexConnection](../src/AIResetRadar.Infrastructure/CodexConnection.cs) launches app-server with argument-list construction, isolated profile storage, and an explicit method allowlist. It correlates requests and responses and closes pending work on termination. Do not widen the allowlist to inference or redemption operations.
 

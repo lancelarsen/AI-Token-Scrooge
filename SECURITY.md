@@ -19,9 +19,9 @@ Local hardening changes add explicit Windows permissions for credential/profile 
 
 Scrooge's monitoring is read-only, but stolen credentials may grant broader provider access. DPAPI and OS keyrings do not establish protection against malware running as the same user or a compromised administrator/OS. Directory isolation and Windows permissions are not equivalent to encryption. Removing a local credential also does not necessarily revoke it at the provider.
 
-## OpenAI API Billing Browser
+## OpenAI API Billing Extension
 
-The OpenAI API billing adapter under verification uses a separate `OpenAiBillingProfiles` directory beneath the local Security namespace. It retains normalized identity and credit amounts, not Platform session tokens, in SQLite. Browser-profile permissions and storage follow the existing isolated-browser approach. Pending sign-in and removal use the lifecycle journal. Its observed internal billing endpoint and sign-in limitations are documented in [API Credit Research](docs/providers/openai-api-credits.md); fixture success does not establish live authentication compatibility or remote revocation.
+The [Chrome Extension Preview](docs/chrome-api-credits.md) uses the user's explicitly authorized Chrome session. It replaces embedded API sign-in and sends only normalized identity and credit amounts through a bounded native host and current-user-only named pipe. The host pins the extension origin; this is not protection against malicious same-user local software. Page-context observations are untrusted and validated again in the worker and Infrastructure. No cookies, provider authorization headers, passwords, or raw login/billing responses are exported or persisted. No debugger, cookie, or broad browsing permission is requested. Existing `OpenAiBillingProfiles` directories remain only for the connection lifecycle and compatible cleanup. Removing a connection does not sign out or revoke Chrome. See [API Credit Research](docs/providers/openai-api-credits.md); fixture success does not establish live authentication compatibility.
 
 ## Application Update Downloads
 

@@ -36,7 +36,7 @@ Claude documents individual Claude Code sign-ins under Settings > Account, or au
 
 ### OpenAI API Billing
 
-This connection is under verification; see [API Credit Acceptance](providers/openai-api-credits.md). Use **Sign In Again** with the original Platform user and API organization. Scrooge rejects another organization rather than merging its balance. Removal queues the connection's isolated `OpenAiBillingProfiles` directory for deletion, without signing out Chrome, Codex, or other browser sessions. Local deletion does not prove remote revocation. For suspected exposure, use OpenAI's current account-recovery controls or contact support; do not copy cookies or tokens between profiles.
+This connection is under verification; see [API Credit Acceptance](providers/openai-api-credits.md) and [Chrome Extension Setup](chrome-api-credits.md). Open Chrome with the extension and native host installed, and select the original Platform user and API organization. Use **Sign In Again** in Scrooge to replace a connection. Scrooge rejects another organization rather than merging its balance. Removal queues only the Scrooge-owned connection directory for deletion, including any legacy experimental browser profile; it does not sign out Chrome or Codex. The new bridge does not hold a provider login credential. For suspected exposure of your browser account, use OpenAI's account-recovery controls or contact support. Do not copy cookies or tokens between profiles.
 
 ### OpenAI Codex
 
