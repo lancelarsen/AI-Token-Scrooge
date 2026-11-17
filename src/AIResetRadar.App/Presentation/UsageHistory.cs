@@ -21,10 +21,11 @@ public sealed record HistoryWindowSelection(QuotaWindow? Window, bool IsAmbiguou
 /// <summary>Projects recorded provider observations without manufacturing usage or reset events.</summary>
 public static class UsageHistory
 {
-    public static bool SupportsProvider(string provider) => provider is "OpenAI" or "Claude" or "GitHub Copilot" or "Devin";
+    public static bool SupportsProvider(string provider) => provider is "OpenAI" or "Claude" or "GitHub Copilot" or "Devin" or "OpenAI API";
 
     public static bool IsEligible(string provider, QuotaWindow window) => provider switch
     {
+        "OpenAI API" => window.Id == "openai-api/credits",
         "OpenAI" => window.DurationMinutes == 10080,
         "Claude" => window.DurationMinutes == 10080 || window.Id == "weekly" && window.DurationMinutes is null,
         "Devin" => window.Id == "devin/monthly",
@@ -50,7 +51,7 @@ public static class UsageHistory
         DateTimeOffset from, DateTimeOffset through, TimeSpan? pollingInterval = null)
     {
         if (through < from) throw new ArgumentOutOfRangeException(nameof(through));
-        var period = account.Provider is "Devin" or "GitHub Copilot" ? "Monthly" : "Weekly";
+        var period = account.Provider == "OpenAI API" ? "Credit Pool" : account.Provider is "Devin" or "GitHub Copilot" ? "Monthly" : "Weekly";
         if (!SupportsProvider(account.Provider)) return new(account, period, "Plan unavailable", [], [], "History Unavailable");
         var ordered = snapshots.Where(s => s.AccountId == account.Id && s.ObservedAt <= through)
             .OrderBy(s => s.ObservedAt).GroupBy(s => s.ObservedAt).Select(g => g.Last()).ToArray();
@@ -103,6 +104,13 @@ public static class UsageHistory
                 pendingRefreshes[window.Id] = new(account.Id, window.Id, $"refresh:{window.Id}:{at.ToUnixTimeMilliseconds()}", at,
                     HistoryEventKind.ScheduledRefresh, snapshot.ObservedAt, $"Scheduled {period} Quota Refresh");
             }
+            if (snapshot.ApiCreditGrants is { } reportedGrants)
+                foreach (var id in expirations.Keys.Where(id => !reportedGrants.Any(g => g.Id == id) && snapshot.ObservedAt < expirations[id].At).ToArray())
+                    expirations.Remove(id);
+            foreach (var grant in snapshot.ApiCreditGrants ?? [])
+                if (grant.Remaining > 0 && grant.ExpiresAt is { } expires)
+                    expirations[grant.Id] = new(account.Id, "openai-api/credits", $"api-credit:{grant.Id}", expires,
+                        HistoryEventKind.ReportedExpiration, snapshot.ObservedAt, "Last Reported API Credit Expiration");
             foreach (var credit in snapshot.Reserve?.Credits ?? [])
             {
                 if (credit.Status == "available" && credit.ExpiresAt is { } expiry)

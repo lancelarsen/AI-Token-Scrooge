@@ -82,7 +82,7 @@ internal static class ThemedDialogs
                 var asset = choice switch
                 {
                     "OpenAI Codex" => "openai", "GitHub Copilot" => "github",
-                    "Claude" => "claude", "Devin" => "devin", _ => null
+                    "OpenAI API" => "openai", "Claude" => "claude", "Devin" => "devin", _ => null
                 };
                 var button = new Native.Controls.Button { Content = choice, HorizontalAlignment = Native.HorizontalAlignment.Stretch, Style = ActionButtonStyle() };
                 if (asset is not null)

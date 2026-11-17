@@ -26,7 +26,7 @@ public sealed class QuotaRowView : Border
         if (selected != deadline)
         {
             deadline = selected;
-            var kind = deadline.IsExpiry ? "Earned Reset Expires" : "Quota Refresh";
+            var kind = row.Account.Provider == "OpenAI API" ? "API Credits Expire" : deadline.IsExpiry ? "Earned Reset Expires" : "Quota Refresh";
             exactReset.Text = TimeZones.Format(deadline.At, zone);
             resetIcon.TranslationX = ResetCountdown.IconOffsetX(deadline.IsExpiry);
             resetIcon.Scale = ResetCountdown.IconScale(deadline.IsExpiry);
@@ -36,7 +36,7 @@ public sealed class QuotaRowView : Border
             SemanticProperties.SetDescription(reset, $"{kind}, {exactReset.Text}");
         }
         if (selected.At is not { } at) return;
-        countdown.Text = ResetCountdown.Label(at, now);
+        countdown.Text = selected.IsExpiry && at <= now ? "Expired - Checking" : ResetCountdown.Label(at, now);
         var severity = alertSettings.CapacityAlertsEnabled(row.Account.Id, row.Window.Id)
             ? TimedReminder.Due(alertSettings.EffectiveRefreshReminders, at, now)?.Severity : null;
         resetIcon.TextColor = Color.FromArgb(selected.IsExpiry ? ResetCountdown.ExpiryColor : severity switch
@@ -78,7 +78,7 @@ public sealed class QuotaRowView : Border
         var resetText = new VerticalStackLayout { Spacing = 3, VerticalOptions = LayoutOptions.Center, Children = { countdown, exactReset } };
         reset = new HorizontalStackLayout { Spacing = 12, VerticalOptions = LayoutOptions.Center, Children = { resetIcon, resetText } };
         var deadlineTap = new TapGestureRecognizer();
-        deadlineTap.Tapped += (_, _) => { if (deadline.IsExpiry) openReserve(); else open(row); };
+        deadlineTap.Tapped += (_, _) => { if (deadline.IsExpiry && row.Account.Provider != "OpenAI API") openReserve(); else open(row); };
         reset.GestureRecognizers.Add(deadlineTap);
         var quotaTap = new TapGestureRecognizer();
         quotaTap.Tapped += (_, _) => open(row);

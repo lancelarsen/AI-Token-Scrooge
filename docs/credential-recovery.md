@@ -34,6 +34,10 @@ Open **Sign In Again** and complete your company's sign-in for the same Devin us
 
 Claude documents individual Claude Code sign-ins under Settings > Account, or authorization tokens under Settings > Claude Code when they are not listed with sessions. Remove the affected sign-in or token when it can be identified. Claude also documents an account-wide logout that includes Claude Code, but it interrupts other signed-in tools and devices. That action does not revoke API keys. See [Claude's Sign-Out Guide](https://support.claude.com/en/articles/10310342-how-do-i-log-out-of-all-active-sessions).
 
+### OpenAI API Billing
+
+This connection is under verification; see [API Credit Acceptance](providers/openai-api-credits.md). Use **Sign In Again** with the original Platform user and API organization. Scrooge rejects another organization rather than merging its balance. Removal queues the connection's isolated `OpenAiBillingProfiles` directory for deletion, without signing out Chrome, Codex, or other browser sessions. Local deletion does not prove remote revocation. For suspected exposure, use OpenAI's current account-recovery controls or contact support; do not copy cookies or tokens between profiles.
+
 ### OpenAI Codex
 
 Scrooge uses the installed Codex CLI's credential store. OpenAI's [Active Sessions Guide](https://help.openai.com/en/articles/20001257-managing-active-sessions-in-chatgpt) explicitly excludes Codex CLI sessions. Do not treat a missing session row or a ChatGPT browser logout as proof that the CLI credential was revoked.

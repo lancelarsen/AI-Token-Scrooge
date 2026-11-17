@@ -4,6 +4,7 @@ public static class PlanLabels
 {
     public static string Display(string provider, string? plan) => (provider, plan) switch
     {
+        ("OpenAI API", "api") => "API Credits",
         ("Devin", "enterprise") => "Enterprise",
         ("Claude", "pro") => "Pro",
         ("Claude", "max") => "Max",

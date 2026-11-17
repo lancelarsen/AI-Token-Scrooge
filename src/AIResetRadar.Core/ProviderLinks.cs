@@ -6,6 +6,7 @@ public static class ProviderLinks
         "Devin" when System.Text.RegularExpressions.Regex.IsMatch(account.Scope, @"^[a-z0-9-]+\.devinenterprise\.com$") =>
             new($"https://{account.Scope}/settings/my-analytics"),
         "Claude" => new("https://claude.ai/new#settings/usage"),
+        "OpenAI API" => new("https://platform.openai.com/settings/organization/billing/credit-grants"),
         "OpenAI" => new("https://chatgpt.com/settings/usage?tab=overview"),
         "GitHub Copilot" when account.Scope.StartsWith("organization:", StringComparison.OrdinalIgnoreCase) =>
             new($"https://github.com/organizations/{Uri.EscapeDataString(account.Scope[13..])}/settings/billing"),
@@ -16,6 +17,7 @@ public static class ProviderLinks
     {
         "Devin" => new("https://docs.devin.ai/enterprise/security-access/personal-analytics"),
         "Claude" => new("https://support.claude.com/en/articles/11145838-use-claude-code-with-your-pro-or-max-plan"),
+        "OpenAI API" => new("https://developers.openai.com/api/docs/guides/chatgpt-api-credits"),
         "OpenAI" => new("https://help.openai.com/en/articles/11369540-using-codex-with-your-chatgpt-plan"),
         "GitHub Copilot" => new("https://docs.github.com/en/rest/billing/usage"),
         _ => null

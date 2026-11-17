@@ -124,6 +124,8 @@ Demo mode supplies synthetic observations and does not persist account/settings 
 
 ## Extending the Architecture
 
+The OpenAI API credit adapter is separate from the Codex CLI connection. Infrastructure parses the full organization dollar pool and owns its credential lifecycle; the Windows adapter observes provider billing reads inside its isolated browser profile. `ApiCreditGrants` holds normalized expiration details independently of `ResetReserve`. Shared cards and timeline render USD usage and expirations without promising a quota reset. See [API Credit Research and Acceptance](providers/openai-api-credits.md) for current verification limits.
+
 For a new provider, follow [Provider Integration](integration.md). Refresh and disconnect reject unknown providers. Add explicit routes and a validated lifecycle-journal provider entry; do not let an unknown provider fall through to Codex.
 
 Keep shared behavior in Core or existing helpers when it is actually shared. A provider registry or interface can be proposed as a focused refactor with compatibility tests; do not document or depend on an abstraction that does not exist yet. Record substantial architecture changes in a short decision note under `docs/decisions/`, including the problem, chosen boundary, alternatives, migration, and verification.

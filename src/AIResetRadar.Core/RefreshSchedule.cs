@@ -6,6 +6,7 @@ public static class RefreshSchedule
     {
         var next = now.AddMinutes(account.EffectivePollingMinutes);
         var boundaries = snapshot.Windows.Select(w => w.ResetsAt)
+            .Concat(snapshot.ApiCreditGrants?.Where(g => g.Remaining > 0).Select(g => g.ExpiresAt) ?? [])
             .Concat(snapshot.Reserve?.Credits?.Where(c => c.Status == "available").Select(c => c.ExpiresAt) ?? []);
         foreach (var boundary in boundaries)
             if (boundary > now && boundary < next) next = boundary.Value;

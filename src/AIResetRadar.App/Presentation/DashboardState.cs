@@ -8,11 +8,11 @@ public sealed record QuotaRow(ProviderAccount Account, QuotaSnapshot Snapshot, Q
     public bool IsWarning => Window.Capacity(Low, Critical) is CapacityState.Low or CapacityState.Critical or CapacityState.Exhausted;
     bool DisplayPercent => Window.Unit == UsageUnit.Percent || Account.Provider is "GitHub Copilot" or "Devin";
     bool GitHubWithoutPercentage => Account.Provider == "GitHub Copilot" && Window.UsedPercent is null;
-    public string UsedText => GitHubWithoutPercentage ? GitHubUsedText : DisplayPercent ? Window.UsedPercent is { } percent ? $"{percent:0}% used" : "Usage unavailable" :
+    public string UsedText => Window.Unit == UsageUnit.Usd ? Window.Used is { } dollars ? $"${dollars:N2} Used" : "Usage Unavailable" : GitHubWithoutPercentage ? GitHubUsedText : DisplayPercent ? Window.UsedPercent is { } percent ? $"{percent:0}% used" : "Usage unavailable" :
         Window.Used is { } used ? $"{used:N0} used" : "Usage unavailable";
     string GitHubUsedText => Window.Used is { } count
         ? $"{count:N0} {(Window.Unit == UsageUnit.Requests ? "Requests" : "Credits")} Used" : "Usage Unavailable";
-    public string LeftText => GitHubWithoutPercentage ? GitHubLimitText : DisplayPercent ? Window.RemainingPercent is { } percent ? $"{percent:0}% left" : "Left unavailable" :
+    public string LeftText => Window.Unit == UsageUnit.Usd ? Window.Remaining is { } dollars ? dollars < 0 ? $"${-dollars:N2} Over" : $"${dollars:N2} Left" : "Balance Unavailable" : GitHubWithoutPercentage ? GitHubLimitText : DisplayPercent ? Window.RemainingPercent is { } percent ? $"{percent:0}% left" : "Left unavailable" :
         Window.Remaining is { } left ? left < 0 ? $"{-left:N0} over" : $"{left:N0} left" : "Limit unavailable";
     string GitHubLimitText => Window.Limit is { } limit ? $"{limit:N0} Limit" : "Limit Unavailable";
     public string CardNote => Snapshot.Health == SourceHealth.Healthy && Snapshot.UsageAllowed != false ? "" : SourceNote;
@@ -78,6 +78,9 @@ public sealed class DashboardState
         .Concat(Accounts.Where(a => a.Enabled && Snapshots.ContainsKey(a.Id)).SelectMany(a =>
             Snapshots[a.Id].Reserve?.AvailableCount == 0 ? [] : Snapshots[a.Id].Reserve?.Credits?.Where(c => c.Status == "available" && c.ExpiresAt > now)
                 .Select(c => new HorizonEvent(a.Id, "Earned Reset Expires", $"{a.Provider} / {a.Nickname} · {PlanLabels.Display(a.Provider, Snapshots[a.Id].PlanType)}", c.ExpiresAt!.Value, true, Provider: a.Provider, PlanBadge: TimelineBadge(a))) ?? []))
+        .Concat(Accounts.Where(a => a.Enabled && Snapshots.ContainsKey(a.Id)).SelectMany(a =>
+            (Snapshots[a.Id].ApiCreditGrants ?? []).Where(g => g.Remaining > 0 && g.ExpiresAt > now)
+                .Select(g => new HorizonEvent(a.Id, "API Credits Expire", $"{a.Nickname} · ${g.Remaining:N2} USD", g.ExpiresAt!.Value, true, "openai-api/credits", a.Provider, TimelineBadge(a)))))
         .OrderBy(e => e.At);
 
     string? TimelineBadge(ProviderAccount account) => Accounts.Count(a => a.Enabled && a.Provider == account.Provider) > 1
@@ -118,6 +121,15 @@ public sealed class DashboardState
     public void ApplyDemoScenario(string scenario)
     {
         if (!IsDemo) return;
+        if (scenario == "api-credits")
+        {
+            var account = new ProviderAccount("demo-api", "OpenAI API", "Personal", "demo-user", "demo-org", Unit: UsageUnit.Usd);
+            Accounts.Insert(0, account);
+            Snapshots[account.Id] = new(account.Id, account.Subject, account.Scope, DateTimeOffset.UtcNow,
+                [new("openai-api/credits", "API Credits · USD", UsageUnit.Usd, 12.35m, 75m, null, AllowanceSource: AllowanceProvenance.Provider)],
+                null, SourceHealth.Demo, PlanType: "api", ApiCreditGrants: [new("demo-api-grant", 62.65m, DateTimeOffset.UtcNow.AddDays(8))]);
+            return;
+        }
         foreach (var id in Snapshots.Keys.ToArray())
         {
             var snapshot = Snapshots[id];

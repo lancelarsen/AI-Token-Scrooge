@@ -26,7 +26,11 @@ public sealed partial class LocalStore
             if (accounts.Concat(retired ?? []).Any(a => a.ProfileLocation == CredentialProfileLocation.LocalSecurityDirectory))
             {
                 await using var version = connection.CreateCommand(); version.Transaction = transaction;
-                version.CommandText = "PRAGMA user_version=4"; await version.ExecuteNonQueryAsync(ct);
+                version.CommandText = "PRAGMA user_version";
+                var currentVersion = Convert.ToInt64(await version.ExecuteScalarAsync(ct));
+                var requiredVersion = accounts.Concat(retired ?? []).Any(a => a.Provider == OpenAiBilling.Provider) ? 5 : 4;
+                version.CommandText = $"PRAGMA user_version={Math.Max(currentVersion, requiredVersion)}";
+                await version.ExecuteNonQueryAsync(ct);
             }
             foreach (var item in values)
             {
@@ -126,7 +130,7 @@ public sealed partial class LocalStore
             await using var command = connection.CreateCommand();
             command.CommandText = "PRAGMA user_version";
             var version = Convert.ToInt64(await command.ExecuteScalarAsync(ct));
-            if (version > 4) throw new InvalidDataException("This database was created by a newer Scrooge version. Update Scrooge before opening it.");
+            if (version > 5) throw new InvalidDataException("This database was created by a newer Scrooge version. Update Scrooge before opening it.");
             command.CommandText = "CREATE TABLE IF NOT EXISTS state(key TEXT PRIMARY KEY,value TEXT NOT NULL); CREATE TABLE IF NOT EXISTS history(account_id TEXT NOT NULL,observed_at INTEGER NOT NULL,value TEXT NOT NULL,PRIMARY KEY(account_id,observed_at)); CREATE INDEX IF NOT EXISTS history_observed ON history(observed_at);";
             await command.ExecuteNonQueryAsync(ct);
             if (version < 3) await UpgradeHistoryAsync(connection, ct);

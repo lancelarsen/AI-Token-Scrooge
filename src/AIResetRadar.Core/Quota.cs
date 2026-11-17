@@ -1,6 +1,6 @@
 namespace AIResetRadar.Core;
 
-public enum UsageUnit { Percent, Credits, Requests, Acus }
+public enum UsageUnit { Percent, Credits, Requests, Acus, Usd }
 public enum SourceHealth { Healthy, Loading, Stale, Offline, AuthenticationRequired, PermissionRequired, Unsupported, Demo }
 public enum AllowanceProvenance { Unknown, Provider, Manual }
 public enum CapacityState { Unknown, Healthy, Low, Critical, Exhausted, Info }
@@ -19,6 +19,7 @@ public sealed record QuotaWindow(string Id, string Name, UsageUnit Unit, decimal
     AllowanceProvenance AllowanceSource = AllowanceProvenance.Unknown)
 {
     public decimal? UsedPercent => Used is not (>= 0) ? null : Unit == UsageUnit.Percent ? Used :
+        Unit == UsageUnit.Usd && Limit == 0 ? 100 :
         Limit is > 0 ? Used / Limit * 100 : null;
     public decimal? Remaining => Used is not (>= 0) ? null : Unit == UsageUnit.Percent ?
         Math.Max(0, 100 - Used.Value) : Limit is >= 0 ? Limit - Used : null;
@@ -41,9 +42,12 @@ public sealed record ResetReserve(int? AvailableCount, IReadOnlyList<ResetCredit
         .Where(c => c.Status == "available" && c.ExpiresAt > now).Select(c => c.ExpiresAt).Min();
 }
 
+public sealed record ApiCreditGrant(string Id, decimal Remaining, DateTimeOffset? ExpiresAt);
+
 public sealed record QuotaSnapshot(string AccountId, string Subject, string Scope, DateTimeOffset ObservedAt,
     IReadOnlyList<QuotaWindow> Windows, ResetReserve? Reserve, SourceHealth Health = SourceHealth.Healthy,
-    string? Message = null, DateTimeOffset? ProviderDataAt = null, bool? UsageAllowed = null, string? PlanType = null)
+    string? Message = null, DateTimeOffset? ProviderDataAt = null, bool? UsageAllowed = null, string? PlanType = null,
+    IReadOnlyList<ApiCreditGrant>? ApiCreditGrants = null)
 {
     [System.Text.Json.Serialization.JsonIgnore]
     public DateTimeOffset? HistoryContinuousFrom { get; init; }

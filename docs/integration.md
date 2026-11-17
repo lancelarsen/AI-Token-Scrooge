@@ -36,6 +36,8 @@ On November 6, 2026, one Windows user connected through enterprise SSO in the re
 
 ### Codex
 
+OpenAI API billing is a separate connection under verification. See [API Credit Research and Acceptance](providers/openai-api-credits.md). Its dollar pool must not be mapped into Codex rate-limit percentages or earned-reset counts.
+
 [CodexConnection](../src/AIResetRadar.Infrastructure/CodexConnection.cs) launches app-server with argument-list construction, isolated profile storage, and an explicit method allowlist. It correlates requests and responses and closes pending work on termination. Do not widen the allowlist to inference or redemption operations.
 
 [AccountMonitor](../src/AIResetRadar.Infrastructure/AccountMonitor.cs) completes browser sign-in, reads identity and usage, and checks identity again during refresh. [ProviderMapping](../src/AIResetRadar.Infrastructure/ProviderMapping.cs) handles rate-limit data and earned resets. The provider may return only one window or reserve information without ordinary windows.

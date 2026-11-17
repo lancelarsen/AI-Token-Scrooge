@@ -60,8 +60,8 @@ public sealed partial class MainPage
     async Task AddAccountAsync()
     {
         if (!initialized) { await InitializeAsync(); if (!initialized) return; }
-        var provider = await AIResetRadar.App.Services.ThemedDialogs.ChooseAsync(this, "Connect Account", "OpenAI Codex", "GitHub Copilot", "Claude", "Devin");
-        if (provider is "Claude" or "Devin") { await AppPanels.ShowAsync(this, new ConnectBrowserAccountPage(provider, (account, snapshot) => CommitConnectionAsync(account, snapshot, null))); return; }
+        var provider = await AIResetRadar.App.Services.ThemedDialogs.ChooseAsync(this, "Connect Account", "OpenAI Codex", "OpenAI API", "GitHub Copilot", "Claude", "Devin");
+        if (provider is "Claude" or "Devin" or "OpenAI API") { await AppPanels.ShowAsync(this, new ConnectBrowserAccountPage(provider, (account, snapshot) => CommitConnectionAsync(account, snapshot, null))); return; }
         if (provider is not ("OpenAI Codex" or "GitHub Copilot")) return;
         await AppPanels.ShowAsync(this, new ConnectAccountPage(provider == "OpenAI Codex", (account, snapshot) => CommitConnectionAsync(account, snapshot, null)));
     }
@@ -80,7 +80,7 @@ public sealed partial class MainPage
     }
     async Task ReconnectAsync(ProviderAccount original)
     {
-        if (original.Provider is "Claude" or "Devin") { await AppPanels.ShowAsync(this, new ConnectBrowserAccountPage(original.Provider, (account, snapshot) => CommitConnectionAsync(account, snapshot, original), original)); return; }
+        if (original.Provider is "Claude" or "Devin" or "OpenAI API") { await AppPanels.ShowAsync(this, new ConnectBrowserAccountPage(original.Provider, (account, snapshot) => CommitConnectionAsync(account, snapshot, original), original)); return; }
         await AppPanels.ShowAsync(this, new ConnectAccountPage(original.Provider == "OpenAI", (account, snapshot) => CommitConnectionAsync(account, snapshot, original), original));
     }
     void OpenAccount(string id, string? windowId = null)
@@ -94,6 +94,12 @@ public sealed partial class MainPage
     async Task OpenDetailsAsync(QuotaRow row)
     {
         var details = $"{row.WindowTitle}\n{row.UsedText} · {row.LeftText}\nResets: {ResetTime.Exact(row.Window.ResetsAt, DisplayZone)}\n\nAccount: {row.Account.Login ?? row.Account.Subject}\nScope: {row.Account.Scope}\nLast successful fetch: {ResetTime.Exact(row.Snapshot.ObservedAt, DisplayZone)}\nProvider data as of: {ResetTime.Exact(row.Snapshot.ProviderDataAt, DisplayZone)}\n\n{row.SourceNote}";
+        if (row.Account.Provider == OpenAiBilling.Provider)
+        {
+            var grantDetails = string.Join("\n", (row.Snapshot.ApiCreditGrants ?? []).Select(g =>
+                $"${g.Remaining:N2} USD · Expires: {ResetTime.Exact(g.ExpiresAt, DisplayZone)}"));
+            details = $"{row.WindowTitle}\n{row.UsedText} · {row.LeftText}\n\nCredit Grant Expirations\n{(grantDetails.Length == 0 ? "No available grant expirations reported" : grantDetails)}\n\nOrganization: {row.Account.Scope}\nLast Successful Fetch: {ResetTime.Exact(row.Snapshot.ObservedAt, DisplayZone)}\n\n{row.SourceNote}";
+        }
         if (state.IsDemo || ProviderLinks.Usage(row.Account) is null) { await AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, $"{row.Account.Provider} / {row.AccountLabel}", details, "Close"); return; }
         if (await AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, $"{row.Account.Provider} / {row.AccountLabel}", details + "\n\nProvider pages use your browser's sign-in. Check its account and workspace before comparing.", "Open provider usage", "Close") && !await ProviderNavigation.OpenAsync(row.Account))
             await AIResetRadar.App.Services.ThemedDialogs.ShowAsync(this, "Provider page unavailable", "Open your provider's usage page in your browser, and check its connection status.", "Close");

@@ -2,10 +2,11 @@ using System.Text.Json;
 using AIResetRadar.Core;
 namespace AIResetRadar.Infrastructure;
 
-public sealed class AccountMonitor(string directory, ISecretStore secrets, GitHubUsageClient github, TimeProvider clock, GitHubDeviceFlow? githubSignIn = null, ICredentialLifecycleJournal? journal = null, string? securityDirectory = null, IDevinBrowser? devinBrowser = null)
+public sealed class AccountMonitor(string directory, ISecretStore secrets, GitHubUsageClient github, TimeProvider clock, GitHubDeviceFlow? githubSignIn = null, ICredentialLifecycleJournal? journal = null, string? securityDirectory = null, IDevinBrowser? devinBrowser = null, IOpenAiBillingBrowser? billingBrowser = null)
 {
     readonly CliProfilePaths profiles = new(directory, securityDirectory);
     readonly GitHubCredentialManager githubCredentials = new(secrets, github, githubSignIn, clock);
+    public OpenAiBillingClient Billing { get; } = new(directory, securityDirectory, secrets, billingBrowser, journal, clock);
     public DevinClient Devin { get; } = new(directory, securityDirectory, secrets, devinBrowser, journal, clock);
     public ClaudeClient Claude { get; } = new(directory, clock, journal, securityDirectory);
     public string ProfilePath(string id, CredentialProfileLocation location = CredentialProfileLocation.LegacyDataDirectory) => profiles.PathFor("OpenAI", id, location);
@@ -66,6 +67,7 @@ public sealed class AccountMonitor(string directory, ISecretStore secrets, GitHu
 
     public async Task<QuotaSnapshot> RefreshAsync(ProviderAccount account, CancellationToken ct)
     {
+        if (account.Provider == OpenAiBilling.Provider) return await Billing.RefreshAsync(account, ct);
         if (account.Provider == "Devin") return await Devin.RefreshAsync(account, ct);
         if (account.Provider == "Claude") return await Claude.RefreshAsync(account, ct);
         if (account.Provider == "GitHub Copilot")
@@ -82,6 +84,7 @@ public sealed class AccountMonitor(string directory, ISecretStore secrets, GitHu
     }
     public async Task DisconnectAsync(ProviderAccount account, CancellationToken ct = default)
     {
+        if (account.Provider == OpenAiBilling.Provider) { await Billing.DisconnectAsync(account, ct); return; }
         if (account.Provider == "Devin") { await Devin.DisconnectAsync(account, ct); return; }
         if (account.Provider == "Claude") { await Claude.DisconnectAsync(account, ct); return; }
         if (account.Provider == "GitHub Copilot") await githubCredentials.RemoveAsync(account.CredentialId ?? account.Id, ct);

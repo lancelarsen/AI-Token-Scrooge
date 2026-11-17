@@ -19,6 +19,8 @@ internal static class ResetCountdown
 
     internal static (DateTimeOffset? At, bool IsExpiry) Select(QuotaRow row, DateTimeOffset now)
     {
+        if (row.Account.Provider == "OpenAI API")
+            return (row.Snapshot.ApiCreditGrants?.Where(g => g.Remaining > 0).Select(g => g.ExpiresAt).Min(), true);
         var refresh = row.Window.ResetsAt;
         if (UsageHistory.IsEligible(row.Account.Provider, row.Window)
             && row.Snapshot.Reserve?.EarliestExpiry(now) is { } expiry

@@ -12,7 +12,7 @@ public static class UpdatePackage
     public static readonly string[] RequiredFiles = ["AIResetRadar.App.exe", "AIResetRadar.App.dll", "AIResetRadar.App.runtimeconfig.json", "coreclr.dll", "Microsoft.UI.Xaml.dll", "github-app.json", "build-info.json", "Launcher/Scrooge.exe"];
 
     static readonly HashSet<string> ProtectedDirectories = new(StringComparer.OrdinalIgnoreCase)
-        { "Credentials", "Profiles", "ClaudeProfiles", "DevinProfiles", "DevinTrials" };
+        { "Credentials", "Profiles", "ClaudeProfiles", "DevinProfiles", "OpenAiBillingProfiles", "DevinTrials" };
 
     internal static bool IsLocalData(string name) =>
         name.StartsWith("radar.db", StringComparison.OrdinalIgnoreCase) || ProtectedDirectories.Contains(name);

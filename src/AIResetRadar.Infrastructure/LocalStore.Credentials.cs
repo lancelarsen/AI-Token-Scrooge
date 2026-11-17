@@ -16,7 +16,7 @@ public sealed partial class LocalStore : ICredentialLifecycleJournal
 {
     internal static PendingCredential ValidatePending(PendingCredential pending)
     {
-        if (pending is null || pending.Provider is not ("OpenAI" or "Claude" or "GitHub Copilot" or "Devin") ||
+        if (pending is null || pending.Provider is not ("OpenAI" or "Claude" or "GitHub Copilot" or "Devin" or "OpenAI API") ||
             !Guid.TryParseExact(pending.CredentialId, "N", out _) || !Enum.IsDefined(pending.ProfileLocation))
             throw new InvalidDataException("Invalid pending credential record.");
         return pending;
@@ -59,7 +59,9 @@ public sealed partial class LocalStore : ICredentialLifecycleJournal
             await WritePendingAsync(connection, transaction, pending.Where(p => p.CredentialId != credentialId).Append(item), ct);
             if (profileLocation == CredentialProfileLocation.LocalSecurityDirectory)
             {
-                command.Parameters.Clear(); command.CommandText = "PRAGMA user_version=4";
+                command.Parameters.Clear(); command.CommandText = "PRAGMA user_version";
+                var currentVersion = Convert.ToInt64(await command.ExecuteScalarAsync(ct));
+                command.CommandText = $"PRAGMA user_version={Math.Max(currentVersion, provider == OpenAiBilling.Provider ? 5 : 4)}";
                 await command.ExecuteNonQueryAsync(ct);
             }
             ct.ThrowIfCancellationRequested(); transaction.Commit();

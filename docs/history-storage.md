@@ -18,6 +18,10 @@ Ordinary history retention still follows the configured application policy (curr
 
 The history tables remain unchanged. Staging or accepting a CLI profile in the local Security root raises user_version to 4 transactionally, so older executables refuse to open state containing location references they cannot preserve. ProfileLocation in account and pending-cleanup JSON identifies the legacy data directory or local Security root. Old records without this field continue to use their legacy location. The database contains no credential contents or arbitrary profile paths. See [Architecture](architecture.md#persistence-and-secrets).
 
+## API Credit Metadata in Version 5
+
+API billing connections raise the database version to 5 when their credential is staged or accepted. Version updates are monotonic, including saves for other providers. Earlier executables reject this state. `ApiCreditGrants` contains only normalized grant identifiers, remaining dollars, and expiration times in snapshot metadata. USD windows use the existing compact numeric payload. Grant expiration boundaries stop history runs, and consumed grants are removed from future historical-expiration candidates. Browser sessions remain outside SQLite.
+
 ## Graph Loading and Drawing
 
 The first load reads the visible seven-day range and a preceding anchor. Later loads query only runs whose revision changed. An extended run replaces its former cached endpoint, while a new state appends a run. The immutable cache is adopted only after cancellation/signature checks, so an older asynchronous load cannot overwrite newer results. Identity changes or requests for an earlier uncached range force a fresh bounded load.

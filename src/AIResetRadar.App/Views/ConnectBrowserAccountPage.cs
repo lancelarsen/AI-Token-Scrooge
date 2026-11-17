@@ -13,10 +13,11 @@ public sealed class ConnectBrowserAccountPage : ContentPage
     public ConnectBrowserAccountPage(string provider, Func<ProviderAccount, QuotaSnapshot, Task> connected, ProviderAccount? reconnect = null)
     {
         var devin = provider == "Devin";
+        var billing = provider == "OpenAI API";
         Title = $"Connect {provider}"; BackgroundColor = Color.FromArgb("#141519");
         nickname.Text = reconnect?.Nickname ?? (devin ? "Work" : "Personal");
         var workspace = new Entry { Placeholder = "Company Devin Workspace URL", Text = reconnect?.Scope, IsReadOnly = reconnect is not null, IsVisible = devin };
-        var signIn = new ActionButton { Text = devin ? "Sign In with Devin" : "Sign in with Claude" };
+        var signIn = new ActionButton { Text = billing ? "Sign In to OpenAI API" : devin ? "Sign In with Devin" : "Sign in with Claude" };
         var cancel = new ActionButton { Text = "Cancel" };
         cancel.Clicked += async (_, _) => { if (committed || committing) return; await lifetime.CancelAsync(); await AppPanels.CloseAsync(this); };
         signIn.Clicked += async (_, _) =>
@@ -25,12 +26,14 @@ public sealed class ConnectBrowserAccountPage : ContentPage
             if (string.IsNullOrWhiteSpace(nickname.Text)) { status.Text = "Enter an account nickname."; return; }
             var credential = Guid.NewGuid().ToString("N");
             busy = true; signIn.IsEnabled = false;
-            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token); timeout.CancelAfter(TimeSpan.FromMinutes(devin ? 10 : 5));
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token); timeout.CancelAfter(TimeSpan.FromMinutes(devin || billing ? 10 : 5));
             ProviderAccount? pending = null;
             try
             {
                 status.Text = $"Complete {provider} sign-in in your browser. Scrooge will check the account and usage when you finish.";
-                var result = devin
+                var result = billing
+                    ? await AppServices.Current.Monitor.Billing.ConnectAsync(reconnect?.Id ?? Guid.NewGuid().ToString("N"), credential, nickname.Text.Trim(), timeout.Token)
+                    : devin
                     ? await AppServices.Current.Monitor.Devin.ConnectAsync(reconnect?.Id ?? Guid.NewGuid().ToString("N"), credential, nickname.Text.Trim(), workspace.Text ?? "", timeout.Token)
                     : await AppServices.Current.Monitor.Claude.ConnectAsync(reconnect?.Id ?? Guid.NewGuid().ToString("N"), credential, nickname.Text.Trim(), timeout.Token);
                 pending = result.Account;
@@ -58,7 +61,7 @@ public sealed class ConnectBrowserAccountPage : ContentPage
             Children =
             {
                 new Label { Text = Title, FontSize = 26, FontFamily = "Segoe UI Semibold" },
-                new Label { Text = devin ? "Paste your usual Devin Enterprise workspace URL and sign in. Scrooge reads your personal monthly ACUs and reset time from My Analytics." : "Sign in through Claude in your browser. Scrooge uses a separate Claude Code profile to read your session and weekly limits. Requires Claude Code 2.1.310 or later.", TextColor = Color.FromArgb("#B6B8C8") },
+                new Label { Text = billing ? "Sign in to OpenAI Platform, select the organization to monitor, then choose Track This Organization. Scrooge reads the full API credit pool in a separate browser profile. This does not change your Codex subscription usage." : devin ? "Paste your usual Devin Enterprise workspace URL and sign in. Scrooge reads your personal monthly ACUs and reset time from My Analytics." : "Sign in through Claude in your browser. Scrooge uses a separate Claude Code profile to read your session and weekly limits. Requires Claude Code 2.1.310 or later.", TextColor = Color.FromArgb("#B6B8C8") },
                 nickname, workspace, status, signIn, cancel
             }
         } };

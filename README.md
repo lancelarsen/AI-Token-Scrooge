@@ -190,6 +190,8 @@ Start with [Contributing](CONTRIBUTING.md) and the [Contribution Roadmap](tasks/
 
 ## Future Tasks
 
+- OpenAI API credit-pool tracking is under verification, separate from Codex subscription usage. See [API Credit Research and Acceptance](docs/providers/openai-api-credits.md) for the billing source and sign-in limitations.
+
 - [ ] Research and integrate additional providers, including Grok, Gemini, Cursor, and Windsurf, where a reliable usage source is available
 - [ ] Provide a signed Windows installer
 - [ ] Complete broader live-provider testing, including reconnecting and removing accounts

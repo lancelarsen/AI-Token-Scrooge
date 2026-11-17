@@ -26,7 +26,7 @@ public sealed class HorizonView : Border
         } });
         var refreshCount = events.Count(e => !e.IsExpiry);
         var expiryCount = events.Count(e => e.IsExpiry);
-        refreshLabel.Text = $"Quota Refresh ({refreshCount})"; expiryLabel.Text = $"Reset Expires ({expiryCount})";
+        refreshLabel.Text = $"Quota Refresh ({refreshCount})"; expiryLabel.Text = $"Expirations ({expiryCount})";
         header.Children.Add(Legend(refreshLabel, "#B5A0F4"));
         header.Children.Add(Legend(expiryLabel, "#EAAA51"));
         header.Children.Add(new HorizontalStackLayout { Spacing = 7, Margin = new Thickness(0, 0, 18, 0), Children = {
@@ -59,7 +59,7 @@ public sealed class HorizonView : Border
     {
         var events = HorizonTimeline.VisibleEvents(source, choices);
         refreshLabel.Text = $"Quota Refresh ({events.Count(e => !e.IsExpiry)})";
-        expiryLabel.Text = $"Reset Expires ({events.Count(e => e.IsExpiry)})";
+        expiryLabel.Text = $"Expirations ({events.Count(e => e.IsExpiry)})";
         updating = true; historyToggle.IsToggled = choices.Enabled; updating = false;
         SetHistoryVisible(choices.Enabled);
         history.Update(series, events, choices, zone, now, loading, error);

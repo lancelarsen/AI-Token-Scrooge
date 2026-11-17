@@ -19,6 +19,10 @@ Local hardening changes add explicit Windows permissions for credential/profile 
 
 Scrooge's monitoring is read-only, but stolen credentials may grant broader provider access. DPAPI and OS keyrings do not establish protection against malware running as the same user or a compromised administrator/OS. Directory isolation and Windows permissions are not equivalent to encryption. Removing a local credential also does not necessarily revoke it at the provider.
 
+## OpenAI API Billing Browser
+
+The OpenAI API billing adapter under verification uses a separate `OpenAiBillingProfiles` directory beneath the local Security namespace. It retains normalized identity and credit amounts, not Platform session tokens, in SQLite. Browser-profile permissions and storage follow the existing isolated-browser approach. Pending sign-in and removal use the lifecycle journal. Its observed internal billing endpoint and sign-in limitations are documented in [API Credit Research](docs/providers/openai-api-credits.md); fixture success does not establish live authentication compatibility or remote revocation.
+
 ## Application Update Downloads
 
 Update checks use the public GitHub release API without provider credentials. Downloads are limited to the project's versioned Windows package and GitHub release-asset hosts over HTTPS. The updater checks GitHub's SHA-256 digest, byte count, embedded version/protocol, required files, and ZIP paths before handoff. No update step runs elevated. Releases remain unsigned; checksums are not publisher signatures. See [App Versions and Updates](docs/app-updates.md#network-and-trust) for the exact boundary and local staging behavior.

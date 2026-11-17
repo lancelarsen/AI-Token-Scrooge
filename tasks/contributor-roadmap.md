@@ -4,6 +4,8 @@ Contributions are welcome. These are open tasks, not promises of provider availa
 
 ## Additional Providers
 
+- [ ] Complete [OpenAI API Credit-Pool Acceptance](../docs/providers/openai-api-credits.md): isolated sign-in, accurate grant balances and expiration, background refresh, restart, and native visual checks. Track the full organization pool; do not infer subscription-benefit attribution.
+
 Each candidate starts with the evidence and acceptance process in [Provider Integration](../docs/integration.md). Research should establish the product, sign-in method, read-only usage source, units, allowance, timestamps, account scope, and permission requirements. No inference request may be used as a usage probe.
 
 - [ ] Grok / xAI: investigate consumer subscription usage separately from API billing; document whether a supported browser or CLI connection can expose usable quota data

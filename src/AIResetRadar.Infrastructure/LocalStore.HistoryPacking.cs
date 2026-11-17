@@ -63,6 +63,11 @@ public sealed partial class LocalStore
 
     async Task WritePackedSnapshotAsync(SqliteConnection connection, SqliteTransaction transaction, QuotaSnapshot snapshot, CancellationToken ct, int pollingMinutes = 2)
     {
+        if (snapshot.ApiCreditGrants is not null || snapshot.Windows.Any(w => w.Unit == UsageUnit.Usd))
+        {
+            await using var version = connection.CreateCommand(); version.Transaction = transaction;
+            version.CommandText = "PRAGMA user_version=5"; await version.ExecuteNonQueryAsync(ct);
+        }
         var definition = snapshot with { ObservedAt = DateTimeOffset.UnixEpoch, ProviderDataAt = null,
             Windows = snapshot.Windows.Select(w => w with { Used = null, Limit = null, ResetsAt = null }).ToArray() };
         var json = JsonSerializer.Serialize(definition, HistoryJson);
@@ -87,7 +92,7 @@ public sealed partial class LocalStore
                     snapshot.Health is SourceHealth.Healthy or SourceHealth.Demo &&
                     packed.F - previous.L >= TimeSpan.TicksPerSecond && packed.F - previous.L <= TimeSpan.TicksPerMinute * Math.Max(15, packed.C * 3) &&
                     previous.W.Length == packed.W.Length && previous.W.Zip(packed.W).All(pair => pair.First.SequenceEqual(pair.Second)) &&
-                    !snapshot.Windows.Select(w => w.ResetsAt).Concat(snapshot.Reserve?.Credits?.Select(c => c.ExpiresAt) ?? [])
+                    !snapshot.Windows.Select(w => w.ResetsAt).Concat(snapshot.Reserve?.Credits?.Select(c => c.ExpiresAt) ?? []).Concat(snapshot.ApiCreditGrants?.Select(g => g.ExpiresAt) ?? [])
                         .Any(at => at is { } boundary && boundary.UtcTicks > previous.L && boundary.UtcTicks <= packed.F))
                 {
                     key = reader.GetInt64(0);
