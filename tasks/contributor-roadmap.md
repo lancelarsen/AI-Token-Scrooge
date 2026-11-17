@@ -34,4 +34,12 @@ Date-based versions and portable updates are being implemented. The [Update Guid
 
 - [ ] Provide a signed Windows installer
 
+## macOS and Linux Port
+
+The PyQt6 port in [`pyqt/`](../pyqt/README.md) passes fixture and offscreen tests. These items remain open:
+
+- [ ] Verify Codex, Claude, GitHub Copilot and Devin sign-in, refresh, reconnect and removal on macOS and Linux
+- [ ] Check native notifications, tray or menu-bar behavior and launch at sign-in on macOS and on GNOME and KDE
+- [ ] Package signed macOS and Linux builds and define their update path
+
 Use [Contributing](../CONTRIBUTING.md) to propose scope and report verification. Mark an item complete only with evidence appropriate to the behavior, not solely because a scaffold or fixture exists.

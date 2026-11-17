@@ -20,6 +20,8 @@ The current guides describe required behavior and current boundaries. Older desi
 
 Use Windows and the SDK pinned in `global.json`. Follow [Build and Run from Source](README.md#build-and-run-from-source), then run the tests in [Testing](docs/testing.md). Use an isolated `--data-dir` and `--demo` for visual work. Do not experiment against another person's credentials or overwrite your normal app data.
 
+For the macOS and Linux PyQt6 port, follow [`pyqt/README.md`](pyqt/README.md) and run `python -m pytest -q` from `pyqt/`. Keep Core and Infrastructure rules aligned with the Windows app, and record which platform and evidence type (fixture, offscreen, native, live) each change was checked with.
+
 Inspect `git status` before editing. Preserve unrelated changes and stage only your contribution. The main branch may differ from a contributor's locally modified preview; identify the commit and build you tested.
 
 ## A Good Pull Request

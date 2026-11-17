@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-token-scrooge"
+version = "0.1.0"
+description = "AI Token Scrooge for macOS and Linux: monitor AI subscription usage and reset times"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "PyQt6>=6.6",
+    "keyring>=24",
+]
+
+[project.optional-dependencies]
+devin = ["PyQt6-WebEngine>=6.6"]
+test = ["pytest>=8"]
+
+[project.scripts]
+token-scrooge = "token_scrooge.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["token_scrooge*"]
+
+[tool.setuptools.package-data]
+"token_scrooge.resources" = ["images/*", "sounds/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

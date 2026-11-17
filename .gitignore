@@ -21,3 +21,11 @@ Profiles/
 ClaudeProfiles/
 DevinProfiles/
 DevinTrials/
+
+# PyQt6 port (pyqt/)
+pyqt/.venv/
+**/__pycache__/
+.pytest_cache/
+pyqt/build/
+pyqt/dist/
+*.egg-info/

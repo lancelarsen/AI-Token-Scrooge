@@ -182,6 +182,17 @@ Build on Windows. If you just want to use Scrooge, download the portable package
 
 5. Open `artifacts/publish/win-x64` and run `AIResetRadar.App.exe`. Keep the entire folder together when moving the app.
 
+### macOS and Linux (PyQt6 Preview)
+
+A PyQt6 port for macOS and Linux lives in [`pyqt/`](pyqt/README.md). It reuses the same providers, layout and credential rules. Live provider sign-in on those platforms is not yet verified.
+
+```sh
+cd pyqt
+python3 -m venv .venv
+.venv/bin/pip install -e '.[devin]'
+.venv/bin/token-scrooge --demo --data-dir /tmp/scrooge-demo
+```
+
 ## Contributions Welcome
 
 Want to help Scrooge keep track of more of your AI tools? We'd love contributions for Grok and other services, along with bug fixes.
@@ -192,6 +203,7 @@ Start with [Contributing](CONTRIBUTING.md) and the [Contribution Roadmap](tasks/
 
 - [ ] Research and integrate additional providers, including Grok, Gemini, Cursor, and Windsurf, where a reliable usage source is available
 - [ ] Provide a signed Windows installer
+- [ ] Verify the macOS and Linux PyQt6 port against live providers and package it
 - [ ] Complete broader live-provider testing, including reconnecting and removing accounts
 
 Found a problem? Open a [GitHub Issue](https://github.com/lancelarsen/AI-Token-Scrooge/issues) with your app version, provider, steps to reproduce, and a screenshot with private information removed.
