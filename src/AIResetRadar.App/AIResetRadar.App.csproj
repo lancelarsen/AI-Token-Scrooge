@@ -19,6 +19,7 @@
     <ApplicationManifest>Platforms/Windows/app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="../../extensions/scrooge-api-credits/*" Link="ChromeExtension/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../docs/windows-preview.txt" Link="README.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.120" />
     <ProjectReference Include="../AIResetRadar.Core/AIResetRadar.Core.csproj" />

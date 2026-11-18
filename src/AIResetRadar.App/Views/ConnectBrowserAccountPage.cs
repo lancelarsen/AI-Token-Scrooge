@@ -19,6 +19,30 @@ public sealed class ConnectBrowserAccountPage : ContentPage
         var workspace = new Entry { Placeholder = "Company Devin Workspace URL", Text = reconnect?.Scope, IsReadOnly = reconnect is not null, IsVisible = devin };
         var signIn = new ActionButton { Text = billing ? "Connect with Chrome" : devin ? "Sign In with Devin" : "Sign in with Claude" };
         var cancel = new ActionButton { Text = "Cancel" };
+        var setup = new VerticalStackLayout { IsVisible = false, Spacing = 12 };
+        var help = new ActionButton { Text = "Install the Chrome Extension", IsVisible = billing };
+        help.Clicked += (_, _) => setup.IsVisible = !setup.IsVisible;
+        var copyFolder = new ActionButton { Text = "Copy Extension Folder Path" };
+        copyFolder.Clicked += async (_, _) =>
+        {
+            try
+            {
+                await Clipboard.Default.SetTextAsync(Path.Combine(AppContext.BaseDirectory, "ChromeExtension"));
+                status.Text = "Folder path copied. In Chrome, choose Load unpacked, paste this path into the folder picker, and choose Select Folder.";
+            }
+            catch { status.Text = "Could not copy the extension folder path. Try again."; }
+        };
+        setup.Children.Add(new Label { Text = "Chrome Extension Setup", FontSize = 21 });
+        setup.Children.Add(new Label { Text = "This preview uses an unpacked extension, so Chrome asks you to install it manually.\n\n1. In Chrome's address bar, enter chrome://extensions and turn on Developer mode.\n\n2. Click Copy Extension Folder Path below. In Chrome, click Load unpacked, paste the path into the folder picker, and click Select Folder.\n\n3. Click Chrome's puzzle-piece Extensions button and pin Scrooge API Credits. Look for the purple top-hat icon beside the address bar.\n\nKeep the extension folder in place. If Scrooge API Credits is already installed, use its Reload button to pick up an update instead of adding it again.", TextColor = Color.FromArgb("#B6B8C8") });
+        setup.Children.Add(copyFolder);
+        setup.Children.Add(new Label { Text = "The Windows bridge must also be installed for this preview. The setup guide includes that step. Once both are installed, return here and choose Connect with Chrome.", TextColor = Color.FromArgb("#B6B8C8") });
+        var guide = new ActionButton { Text = "Open Full Setup Guide" };
+        guide.Clicked += async (_, _) =>
+        {
+            try { await Launcher.Default.OpenAsync("https://github.com/lancelarsen/AI-Token-Scrooge/blob/codex/openai-api-credit-pool/docs/chrome-api-credits.md"); }
+            catch { status.Text = "Could not open the setup guide. Check your default browser and try again."; }
+        };
+        setup.Children.Add(guide);
         cancel.Clicked += async (_, _) => { if (committed || committing) return; await lifetime.CancelAsync(); await AppPanels.CloseAsync(this); };
         signIn.Clicked += async (_, _) =>
         {
@@ -30,7 +54,7 @@ public sealed class ConnectBrowserAccountPage : ContentPage
             ProviderAccount? pending = null;
             try
             {
-                status.Text = billing ? "Select your organization in Chrome, then open the Scrooge API Credits extension and choose Track This Organization."
+                status.Text = billing ? "Finish in Chrome\n\n1. On the billing page, check that the correct organization is selected.\n\n2. Click the Scrooge top-hat icon beside Chrome's address bar. If it is hidden, click the puzzle-piece Extensions button and choose Scrooge API Credits.\n\n3. In the extension popup, click Track This Organization.\n\nLeave this panel open. It closes automatically when your balance is added. Cancel stops the connection."
                     : $"Complete {provider} sign-in in your browser. Scrooge will check the account and usage when you finish.";
                 var result = billing
                     ? await AppServices.Current.Monitor.Billing.ConnectAsync(reconnect?.Id ?? Guid.NewGuid().ToString("N"), credential, nickname.Text.Trim(), timeout.Token)
@@ -62,8 +86,8 @@ public sealed class ConnectBrowserAccountPage : ContentPage
             Children =
             {
                 new Label { Text = Title, FontSize = 26, FontFamily = "Segoe UI Semibold" },
-                new Label { Text = billing ? "Requires the Scrooge API Credits Chrome extension and its Windows bridge. Open Chrome with your usual OpenAI login. Scrooge reads the full organization credit pool; passwords and session tokens stay in Chrome. Keep Chrome open for automatic refreshes." : devin ? "Paste your usual Devin Enterprise workspace URL and sign in. Scrooge reads your personal monthly ACUs and reset time from My Analytics." : "Sign in through Claude in your browser. Scrooge uses a separate Claude Code profile to read your session and weekly limits. Requires Claude Code 2.1.310 or later.", TextColor = Color.FromArgb("#B6B8C8") },
-                nickname, workspace, status, signIn, cancel
+                new Label { Text = billing ? "Connect with Chrome opens your OpenAI billing page. Then click the Scrooge top-hat icon in Chrome's toolbar and choose Track This Organization to finish.\n\nRequires the Scrooge API Credits extension and Windows bridge. Your login stays in Chrome. Scrooge tracks the full organization credit pool; keep Chrome open for automatic refreshes." : devin ? "Paste your usual Devin Enterprise workspace URL and sign in. Scrooge reads your personal monthly ACUs and reset time from My Analytics." : "Sign in through Claude in your browser. Scrooge uses a separate Claude Code profile to read your session and weekly limits. Requires Claude Code 2.1.310 or later.", TextColor = Color.FromArgb("#B6B8C8") },
+                nickname, workspace, help, setup, status, signIn, cancel
             }
         } };
     }

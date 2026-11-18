@@ -4,6 +4,8 @@ Contributions are welcome. These are open tasks, not promises of provider availa
 
 ## Additional Providers
 
+The Chrome preview now includes in-app installation help, a bundled extension folder, and the Token Baron toolbar icon. User screenshots confirmed initial API credit connection and balance display on November 17, 2026. Background refresh, restart, and broader acceptance remain open in the linked checklist.
+
 - [ ] Complete [OpenAI API Credit-Pool Acceptance](../docs/providers/openai-api-credits.md) using the [Chrome Extension Preview](../docs/chrome-api-credits.md): extension/host installation, account and organization confirmation, accurate balances and expiration, background refresh, restart, and native visual checks. Track the full organization pool; do not infer subscription-benefit attribution. Chrome Web Store publishing and integration of the bridge into the ordinary installer remain separate distribution work.
 
 Each candidate starts with the evidence and acceptance process in [Provider Integration](../docs/integration.md). Research should establish the product, sign-in method, read-only usage source, units, allowance, timestamps, account scope, and permission requirements. No inference request may be used as a usage probe.

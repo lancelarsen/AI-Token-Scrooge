@@ -27,12 +27,14 @@
     "service_worker": "worker.js",
     "type": "module"
   },
-  "version": "0.1.0",
+  "version": "0.1.1",
+  "icons": { "16": "icon.png", "32": "icon.png", "48": "icon.png", "128": "icon.png" },
   "minimum_chrome_version": "120",
   "host_permissions": [
     "https://platform.openai.com/*"
   ],
   "action": {
+    "default_icon": { "16": "icon.png", "32": "icon.png" },
     "default_popup": "popup.html",
     "default_title": "Scrooge API Credits"
   },

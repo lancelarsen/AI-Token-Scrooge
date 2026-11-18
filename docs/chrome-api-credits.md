@@ -1,6 +1,6 @@
 # Chrome API Credit Tracking
 
-Scrooge's Chrome extension reads the full OpenAI API organization credit pool using the account already signed in to Chrome. It replaces the experimental embedded sign-in window. The extension and Windows bridge are a local preview, not a Chrome Web Store release. Live authentication, refresh, and restart acceptance remain open until tested with the installed extension.
+Scrooge's Chrome extension reads the full OpenAI API organization credit pool using the account already signed in to Chrome. It replaces the experimental embedded sign-in window. The extension and Windows bridge are a local preview, not a Chrome Web Store release. Initial live connection and balance display were confirmed on November 17, 2026; refresh and restart acceptance remain open.
 
 ## Build and Install
 
@@ -16,6 +16,10 @@ The installer copies the bridge to the current user's local Programs directory a
 In Chrome, open `chrome://extensions`, enable Developer Mode, choose **Load Unpacked**, and select `extensions/scrooge-api-credits` from this checkout. Keep that folder available. The manifest's public key fixes the extension ID so only that extension origin is allowed by the native host. The public key is not an authentication secret or a publisher signature. Do not change it without updating the host identity and registration.
 
 ## Connect an Organization
+
+The connection panel's **Install the Chrome Extension** button expands setup instructions. **Copy Extension Folder Path** copies the bundled `ChromeExtension` directory, ready to paste into Chrome's **Load Unpacked** folder picker. The source-checkout directory above remains valid for developers. Keep whichever folder you loaded in place. For an existing installation, use its **Reload** button on `chrome://extensions` after an update.
+
+Pin **Scrooge API Credits** from Chrome's puzzle-piece Extensions menu. Its purple Token Baron top-hat icon then appears beside the address bar. After Chrome opens the billing page, click that icon and choose **Track This Organization** in the popup. Leave Scrooge's connection panel open; it closes automatically after confirmation. **Cancel** stops the connection rather than finishing it.
 
 Open Scrooge and Chrome. In Scrooge, choose **Add Account**, **OpenAI API**, then **Connect with Chrome**. Chrome opens the credit-grants page using its normal login. If needed, sign in and select the intended organization yourself. Open the **Scrooge API Credits** extension from Chrome's extensions menu, review the balance and account/organization identifiers, and choose **Track This Organization**.
 
@@ -45,6 +49,6 @@ Remove the API account in Scrooge to stop its requests. Existing journal and cle
 
 Run `node --test extensions/scrooge-api-credits/tests/*.test.js` and the .NET solution tests. Fixtures cover response normalization, exclusion of synthetic secrets, scope validation, explicit confirmation followed by reload, old-document rejection, cancellation, malformed/oversized framing, and current-request correlation. Fixture success does not establish live Chrome or provider compatibility.
 
-Before release, reconcile the connected balance and grant expirations with Platform, refresh with Chrome open, restart both apps, close Chrome, change the selected organization, remove/reconnect the account, and verify compact/native rendering. No live API-account acceptance is claimed by this document.
+User-provided screenshots on November 17, 2026 confirmed the extension read $115.99 remaining and the connected Scrooge row displayed the same balance and November 29 expiration. This establishes initial connection only. Before release, refresh with Chrome open, restart both apps, close Chrome, change the selected organization, remove/reconnect the account, and verify compact/native rendering.
 
 References: [Chrome Native Messaging](https://developer.chrome.com/docs/extensions/develop/concepts/native-messaging), [Content Scripts](https://developer.chrome.com/docs/extensions/reference/manifest/content-scripts), and [Service Worker Lifecycle](https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle).
